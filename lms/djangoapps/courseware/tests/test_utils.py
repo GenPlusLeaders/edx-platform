@@ -12,6 +12,7 @@ from requests.models import Response
 from rest_framework import status
 
 from common.djangoapps.student.tests.factories import GlobalStaffFactory, UserFactory
+from lms.djangoapps.courseware.constants import UNEXPECTED_ERROR_IS_ELIGIBLE
 from lms.djangoapps.courseware.tests.factories import FinancialAssistanceConfigurationFactory
 from lms.djangoapps.courseware.utils import (
     create_financial_assistance_application,
@@ -32,7 +33,7 @@ class TestFinancialAssistanceViews(TestCase):
         self.user = UserFactory()
         self.global_staff = GlobalStaffFactory.create()
         _ = FinancialAssistanceConfigurationFactory(
-            api_url='http://financial.assistance.app:7556',
+            api_url='http://financial.assistance.test:1234',
             service_username=self.global_staff.username,
             fa_backend_enabled_courses_percentage=100,
             enabled=True
@@ -44,7 +45,7 @@ class TestFinancialAssistanceViews(TestCase):
             authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
         )
 
-    def _mock_response(self, status_code, content):
+    def _mock_response(self, status_code, content=None):
         """
         Generates a python core response which is used as a default response in edx-rest-api-client.
         """
@@ -80,6 +81,18 @@ class TestFinancialAssistanceViews(TestCase):
             is_eligible, reason = is_eligible_for_financial_aid(self.test_course_id)
             assert is_eligible is False
             assert reason == error_message
+
+    def test_is_eligible_for_financial_aid_invalid_unexpected_error(self):
+        """
+        Tests the functionality of is_eligible_for_financial_aid for an unexpected error
+        """
+        with patch.object(OAuthAPIClient, 'request') as oauth_mock:
+            oauth_mock.return_value = self._mock_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            is_eligible, reason = is_eligible_for_financial_aid(self.test_course_id)
+            assert is_eligible is False
+            assert reason == UNEXPECTED_ERROR_IS_ELIGIBLE
 
     def test_get_financial_assistance_application_status(self):
         """
