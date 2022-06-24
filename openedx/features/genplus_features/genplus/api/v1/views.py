@@ -7,9 +7,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from openedx.core.djangoapps.cors_csrf.decorators import ensure_csrf_cookie_cross_domain
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Character
-from .serializers import CharacterSerializer
+from openedx.features.genplus_features.genplus.models import GenUser, Character, Teacher, Student
+from .serializers import (CharacterSerializer, TeacherProfileSerializer,
+                            StudentProfileSerializer)
 from .permissions import IsStudent
 from .messages import SuccessMessage, ErrorMessages
 
@@ -37,10 +39,47 @@ class UserInfo(views.APIView):
             'csrf_token': csrf.get_token(self.request),
             'role': gen_user.role
         }
+
         if gen_user.is_student:
             user_info.update({'onboarded': gen_user.student.onboarded})
+            student = Student.objects.get(gen_user=gen_user)
+            data = StudentProfileSerializer(instance=student).data
+            user_info.update({'profile': data})
+            
+        if gen_user.is_teacher:
+            teacher = Teacher.objects.get(gen_user=gen_user)
+            data = TeacherProfileSerializer(instance=teacher).data
+            user_info.update({'profile': data})
 
         return Response(status=status.HTTP_200_OK, data=user_info)
+               
+    @method_decorator(ensure_csrf_cookie_cross_domain)
+    def post(self, *args, **kwargs):
+        try:
+            gen_user = GenUser.objects.get(user=self.request.user)
+            if gen_user.is_teacher:
+                teacher = Teacher.objects.get(gen_user=gen_user)
+                serializer = TeacherProfileSerializer(teacher, data=self.request.data, 
+                                                                        partial=True)
+                serializer.is_valid(raise_exception=True)
+                obj = serializer.save()
+                image_url = 'media/' + str(obj.profile_image)
+                data = {'message': SuccessMessage.PPOFILE_IMAGE_UPLOADED,
+                        'url': image_url,
+                        }
+                        
+            if gen_user.is_student:
+                student = Student.objects.get(gen_user=gen_user)
+                serializer = StudentProfileSerializer(student, data=self.request.data,
+                                                                         partial=True)
+                serializer.is_valid(raise_exception=True)
+                obj = serializer.save()
+                data = {'message': SuccessMessage.PPOFILE_IMAGE_UPLOADED,
+                        'character_id': obj.character.id
+                        }
+            return Response(data=data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 
 class CharacterViewSet(viewsets.ModelViewSet):
