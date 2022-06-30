@@ -75,15 +75,6 @@ class GenUser(models.Model):
         return self.user.username
 
 
-class Teacher(models.Model):
-    gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='teacher')
-    profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True)
-    classes = models.ManyToManyField('genplus.Class', related_name='teachers', blank=True)
-
-    def __str__(self):
-        return self.gen_user.user.username
-
-
 class Student(models.Model):
     gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='student')
     character = models.ForeignKey(Character, on_delete=models.SET_NULL, null=True, blank=True)
@@ -93,12 +84,16 @@ class Student(models.Model):
         return self.gen_user.user.username
 
 
+class ClassManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_visible=True)
+
+
 class Class(TimeStampedModel):
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes')
     group_id = models.CharField(primary_key=True, max_length=128)
     name = models.CharField(max_length=128)
     is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
-    students = models.ManyToManyField(Student, related_name='classes', blank=True)
 
     @property
     def current_program(self):
@@ -109,3 +104,20 @@ class Class(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+
+class Teacher(models.Model):
+    gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='teacher')
+    profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True)
+    classes = models.ManyToManyField(Class, related_name='teachers')
+    favourite_classes = models.ManyToManyField(Class, through='TeacherFavoriteClass')
+
+    def __str__(self):
+        return self.gen_user.user.username
+
+
+class TeacherFavoriteClass(models.Model):
+    class Meta:
+        unique_together = ("rm_class", "teacher")
+    rm_class = models.ForeignKey(Class, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)

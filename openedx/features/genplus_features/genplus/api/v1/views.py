@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Teacher, Student
-from .serializers import CharacterSerializer
-from .permissions import IsStudent
+from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
+from .serializers import CharacterSerializer, ClassSerializer, FavoriteClassSerializer
+from .permissions import IsStudent, IsTeacher
 from .messages import SuccessMessage, ErrorMessages
 
 
@@ -38,7 +38,7 @@ class UserInfo(views.APIView):
             'role': gen_user.role,
             'first_name': gen_user.user.first_name,
             'last_name': gen_user.user.last_name,
-            'email': gen_user.user.email, 
+            'email': gen_user.user.email,
             'school': gen_user.school.name,
             'on_board': '',
             'character_id': '',
@@ -48,21 +48,21 @@ class UserInfo(views.APIView):
         if gen_user.is_student:
             student = {
                 'on_board': gen_user.student.onboarded,
-                'character_id': gen_user.student.character.id 
+                'character_id': gen_user.student.character.id
                                 if gen_user.student.character else None,
-                'profile_image': gen_user.student.character.profile_pic.url 
+                'profile_image': gen_user.student.character.profile_pic.url
                                  if gen_user.student.character else None
             }
             user_info.update(student)
         if gen_user.is_teacher:
             teacher = {
-                'profile_image': gen_user.teacher.profile_image.url 
+                'profile_image': gen_user.teacher.profile_image.url
                                  if gen_user.teacher.profile_image else None
             }
             user_info.update(teacher)
 
         return Response(status=status.HTTP_200_OK, data=user_info)
-    
+
     def post(self, *args, **kwargs):  # pylint: disable=unused-argument
         """
         update user's profile image
