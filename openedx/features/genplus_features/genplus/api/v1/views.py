@@ -130,12 +130,12 @@ class ClassViewSet(viewsets.ModelViewSet):
         return Class.visible_objects.filter(school=self.request.user.genuser.school)
 
     def list(self, request, *args, **kwargs):  # pylint: disable=unused-argument
-        genuser = GenUser.objects.get(user=self.request.user)
-        favourite_classes = genuser.teacher.favourite_classes.all()
+        gen_user = self.request.user.gen_user
+        favourite_classes = gen_user.teacher.favourite_classes.all()
         favourite_classes_serializer = self.get_serializer(favourite_classes, many=True)
         class_queryset = self.filter_queryset(self.get_queryset())
         class_serializer = self.get_serializer(
-            class_queryset.exclude(group_id__in=genuser.teacher.favourite_classes.values('group_id', )),
+            class_queryset.exclude(group_id__in=gen_user.teacher.favourite_classes.values('group_id', )),
             many=True)
         data = {
             'favourite_classes': favourite_classes_serializer.data,

@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-from .constants import GenUserRoles
+from .constants import GenUserRoles, ClassColors
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
@@ -90,8 +90,11 @@ class ClassManager(models.Manager):
 
 
 class Class(TimeStampedModel):
+    COLOR_CHOICES = ClassColors.__MODEL_CHOICES__
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes')
     group_id = models.CharField(primary_key=True, max_length=128)
+    color = models.CharField(blank=True, null=True, max_length=32, choices=COLOR_CHOICES)
+    image = models.ImageField(upload_to='gen_plus_classes', null=True)
     name = models.CharField(max_length=128)
     is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
 
@@ -110,14 +113,7 @@ class Teacher(models.Model):
     gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='teacher')
     profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True)
     classes = models.ManyToManyField(Class, related_name='teachers')
-    favourite_classes = models.ManyToManyField(Class, through='TeacherFavoriteClass')
+    favourite_classes = models.ManyToManyField(Class)
 
     def __str__(self):
         return self.gen_user.user.username
-
-
-class TeacherFavoriteClass(models.Model):
-    class Meta:
-        unique_together = ("rm_class", "teacher")
-    rm_class = models.ForeignKey(Class, on_delete=models.CASCADE)
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
