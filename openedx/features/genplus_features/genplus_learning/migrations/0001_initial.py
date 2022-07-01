@@ -14,9 +14,9 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('course_overviews', '0024_overview_adds_has_highlights'),
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('genplus', '0001_initial'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('course_overviews', '0024_overview_adds_has_highlights'),
         ('student', '0041_registration_activation_timestamp'),
     ]
 
