@@ -1,5 +1,6 @@
 class SuccessMessages:
     CHARACTER_SELECTED = 'Your character has been selected.'
+    PROFILE_IMAGE_UPDATED = 'Your profile image has been updated successfully.'
     CLASS_ADDED_TO_FAVORITES = '{class_name} has been added to your classes.'
     CLASS_REMOVED_FROM_FAVORITES = '{class_name} has been removed from your classes.'
     LESSON_UNLOCKED = 'Lesson unlocked successfully.'

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Class
+from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
 from .serializers import CharacterSerializer, ClassSerializer, FavoriteClassSerializer
 from .permissions import IsStudent, IsTeacher
 from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
@@ -86,7 +86,7 @@ class UserInfo(views.APIView):
                 student.character  = new_character
                 student.save()
 
-            return Response(SuccessMessage.PROFILE_IMAGE_UPDATED, status=status.HTTP_200_OK)
+            return Response(SuccessMessages.PROFILE_IMAGE_UPDATED, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
