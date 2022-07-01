@@ -19,7 +19,7 @@ router.register('classes', ClassViewSet, basename='classes')
 
 urlpatterns = [
     url(r'^userinfo/$', UserInfo.as_view()),
-    url(r'^characters/select/(?P<pk>\d+)/$', CharacterViewSet.as_view({"post": "select_character"})),
+    url(r'^characters/select/(?P<pk>\d+)/$', CharacterViewSet.as_view({"put": "select_character"})),
     url(r'^classes/add_class/(?P<group_id>\w+)/$', ClassViewSet.as_view({"put": "add_my_class"})),
     path('', include(router.urls)),
 ]

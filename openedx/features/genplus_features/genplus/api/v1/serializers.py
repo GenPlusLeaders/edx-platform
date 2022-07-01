@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from openedx.features.genplus_features.genplus.models import Character, Skill, Class
-from .messages import ErrorMessages
+from openedx.features.genplus_features.genplus.display_messages import ErrorMessages
 
 
 class SkillSerializer(serializers.ModelSerializer):

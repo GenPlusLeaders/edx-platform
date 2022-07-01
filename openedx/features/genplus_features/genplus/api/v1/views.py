@@ -1,6 +1,6 @@
 from django.middleware import csrf
 from django.utils.decorators import method_decorator
-
+from django.db import IntegrityError
 from rest_framework import generics, status, views, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
+from openedx.features.genplus_features.genplus.models import GenUser, Character, Class
 from .serializers import CharacterSerializer, ClassSerializer, FavoriteClassSerializer
 from .permissions import IsStudent, IsTeacher
-from .messages import SuccessMessage, ErrorMessages
+from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
 
 
 class UserInfo(views.APIView):
@@ -114,4 +114,51 @@ class CharacterViewSet(viewsets.ModelViewSet):
             gen_user.student.onboarded = True
 
         gen_user.student.save()
-        return Response(SuccessMessage.CHARACTER_SELECTED, status=status.HTTP_204_NO_CONTENT)
+        return Response(SuccessMessages.CHARACTER_SELECTED, status=status.HTTP_204_NO_CONTENT)
+
+
+class ClassViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for class APIs
+    """
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsTeacher]
+    serializer_class = ClassSerializer
+    lookup_field = 'group_id'
+
+    def get_queryset(self):
+        return Class.visible_objects.filter(school=self.request.user.genuser.school)
+
+    def list(self, request, *args, **kwargs):  # pylint: disable=unused-argument
+        genuser = GenUser.objects.get(user=self.request.user)
+        favourite_classes = genuser.teacher.favourite_classes.all()
+        favourite_classes_serializer = self.get_serializer(favourite_classes, many=True)
+        class_queryset = self.filter_queryset(self.get_queryset())
+        class_serializer = self.get_serializer(
+            class_queryset.exclude(group_id__in=genuser.teacher.favourite_classes.values('group_id', )),
+            many=True)
+        data = {
+            'favourite_classes': favourite_classes_serializer.data,
+            'classes': class_serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['put'])
+    def add_my_class(self, request, group_id=None):  # pylint: disable=unused-argument
+        """
+        add classes to the my classes for teacher
+        """
+        serializer = FavoriteClassSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.data
+        rm_class = self.get_object()
+        genuser = GenUser.objects.get(user=self.request.user)
+        if data['action'] == 'add':
+            genuser.teacher.favourite_classes.add(rm_class)
+            return Response(SuccessMessages.CLASS_ADDED_TO_FAVORITES.format(class_name=rm_class.name),
+                            status=status.HTTP_204_NO_CONTENT)
+        else:
+            genuser.teacher.favourite_classes.remove(rm_class)
+            return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=rm_class.name),
+                            status=status.HTTP_204_NO_CONTENT)
