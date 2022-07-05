@@ -25,11 +25,12 @@ class UserInfoSerializer(serializers.ModelSerializer):
                     gen_user.student.character.profile_pic.url)
                 if gen_user.student.character else None
             }
-        ret['teacher'] = {
-            'profile_image': request.build_absolute_uri(
-                gen_user.teacher.profile_image.url)
-            if gen_user.teacher.profile_image else None
-        }
+        elif instance.gen_user.is_teacher:
+            ret['teacher'] = {
+                'profile_image': request.build_absolute_uri(
+                    gen_user.teacher.profile_image.url)
+                if gen_user.teacher.profile_image else None
+            }
         return ret
 
     def get_csrf_token(self, instance):
