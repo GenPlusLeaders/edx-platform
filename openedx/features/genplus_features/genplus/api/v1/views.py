@@ -116,12 +116,12 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         data = serializer.data
-        rm_class = self.get_object()
+        gen_class = self.get_object()
         if data['action'] == 'add':
-            self.teacher.favourite_classes.add(rm_class)
-            return Response(SuccessMessages.CLASS_ADDED_TO_FAVORITES.format(class_name=rm_class.name),
+            self.teacher.favourite_classes.add(gen_class)
+            return Response(SuccessMessages.CLASS_ADDED_TO_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
         else:
-            self.teacher.favourite_classes.remove(rm_class)
-            return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=rm_class.name),
+            self.teacher.favourite_classes.remove(gen_class)
+            return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
