@@ -424,7 +424,7 @@ class CoursewareIndex(View):
 
         courseware_context = {
             'csrf': csrf(self.request)['csrf_token'],
-            'course': self.course,
+            'course': self.course.display_name_with_default,
             'course_url': course_url,
             'chapter': self.chapter,
             'section': self.section,
@@ -445,6 +445,7 @@ class CoursewareIndex(View):
             'disable_accordion': settings.DISABLE_ACCORDION,
             'show_search': show_search,
             'genplus_social_auth_redirect_url': settings.GENPLUS_FRONTEND_URL + 'lessons/',
+            'uses_bootstrap': True,
         }
         courseware_context.update(
             get_experiment_user_metadata_context(
