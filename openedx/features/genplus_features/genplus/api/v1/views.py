@@ -42,17 +42,19 @@ class UserInfo(GenzMixin, views.APIView):
                 image = self.request.data.get('image', None)
                 if not image:
                     raise ValueError('image field was empty')
-                self.teacher.profile_image = image
-                self.teacher.save()
+                teacher = Teacher.objects.get(gen_user=self.gen_user)
+                teacher.profile_image = image
+                teacher.save()
 
             if self.gen_user.is_student:
                 character = self.request.data.get('character', None)
                 if not character:
                     raise ValueError('character field was empty')
                 new_character = Character.objects.get(id=int(character))
-                self.student.character = new_character
-                self.student.save()
-
+                student = Student.objects.get(gen_user=self.gen_user)
+                student.character = new_character
+                student.save()
+                
             return Response(SuccessMessages.PROFILE_IMAGE_UPDATED, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -74,11 +76,12 @@ class CharacterViewSet(GenzMixin, viewsets.ModelViewSet):
         the profile
         """
         character = self.get_object()
-        self.student.character = character
+        student = Student.objects.get(gen_user=self.gen_user)
+        student.character = character
         if request.data.get("onboarded") and not self.gen_user.student.onboarded:
-            self.student.onboarded = True
+            student.onboarded = True
 
-        self.student.save()
+        student.save()
         return Response(SuccessMessages.CHARACTER_SELECTED, status=status.HTTP_204_NO_CONTENT)
 
 
@@ -117,11 +120,12 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         data = serializer.data
         gen_class = self.get_object()
+        teacher = Teacher.objects.get(gen_user=self.gen_user)
         if data['action'] == 'add':
-            self.teacher.favourite_classes.add(gen_class)
+            teacher.favourite_classes.add(gen_class)
             return Response(SuccessMessages.CLASS_ADDED_TO_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
         else:
-            self.teacher.favourite_classes.remove(gen_class)
+            teacher.favourite_classes.remove(gen_class)
             return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)

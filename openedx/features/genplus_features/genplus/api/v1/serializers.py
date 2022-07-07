@@ -13,11 +13,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
     csrf_token = serializers.SerializerMethodField('get_csrf_token')
 
     def to_representation(self, instance):
-        ret = super(UserInfoSerializer, self).to_representation(instance)
+        user_info = super(UserInfoSerializer, self).to_representation(instance)
         request = self.context.get('request')
         gen_user = self.context.get('gen_user')
         if instance.gen_user.is_student:
-            ret['student'] = {
+            student_profile = {
                 'on_board': gen_user.student.onboarded,
                 'character_id': gen_user.student.character.id
                 if gen_user.student.character else None,
@@ -25,15 +25,20 @@ class UserInfoSerializer(serializers.ModelSerializer):
                     gen_user.student.character.profile_pic.url)
                 if gen_user.student.character else None
             }
-        ret['teacher'] = {
-            'profile_image': request.build_absolute_uri(
-                gen_user.teacher.profile_image.url)
-            if gen_user.teacher.profile_image else None
-        }
-        return ret
+            user_info.update(student_profile)
+        elif instance.gen_user.is_teacher:
+            teacher_profile = {
+                'character_id': '',
+                'on_board': '',
+                'profile_image': request.build_absolute_uri(
+                    gen_user.teacher.profile_image.url)
+                if gen_user.teacher.profile_image else None
+            }
+            user_info.update(teacher_profile)
+        return user_info
 
     def get_csrf_token(self, instance):
-        return csrf.get_token(self.context.get('request'))
+        return self.context.get('request').COOKIES.get('csrftoken')
 
     class Meta:
         model = get_user_model()
