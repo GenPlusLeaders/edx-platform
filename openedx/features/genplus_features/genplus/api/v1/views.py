@@ -1,18 +1,19 @@
-from django.middleware import csrf
-from django.utils.decorators import method_decorator
-from django.db import IntegrityError
-from rest_framework import generics, status, views, viewsets
-from rest_framework.authentication import SessionAuthentication
+from rest_framework import status, views, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
-from .serializers import CharacterSerializer, ClassSerializer, FavoriteClassSerializer, UserInfoSerializer
-from .permissions import IsStudent, IsTeacher
-from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.genplus.display_messages import \
+    SuccessMessages
+from openedx.features.genplus_features.genplus.models import (Character, Class,
+                                                              Student, Teacher)
+
 from .mixins import GenzMixin
+from .permissions import IsStudent, IsTeacher
+from .serializers import (CharacterSerializer, ClassSerializer,
+                          FavoriteClassSerializer, UserInfoSerializer)
 
 
 class UserInfo(GenzMixin, views.APIView):
@@ -54,7 +55,7 @@ class UserInfo(GenzMixin, views.APIView):
                 student = Student.objects.get(gen_user=self.gen_user)
                 student.character = new_character
                 student.save()
-                
+
             return Response(SuccessMessages.PROFILE_IMAGE_UPDATED, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -78,7 +79,7 @@ class CharacterViewSet(GenzMixin, viewsets.ModelViewSet):
         character = self.get_object()
         student = Student.objects.get(gen_user=self.gen_user)
         student.character = character
-        if request.data.get("onboarded") and not self.gen_user.student.onboarded:
+        if request.data.get('onboarded') and not self.gen_user.student.onboarded:
             student.onboarded = True
 
         student.save()
