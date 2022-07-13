@@ -445,7 +445,6 @@ class CoursewareIndex(View):
             'disable_accordion': settings.DISABLE_ACCORDION,
             'show_search': show_search,
             'genplus_social_auth_redirect_url': settings.GENPLUS_FRONTEND_URL + 'lessons/',
-            'uses_bootstrap': True,
         }
         courseware_context.update(
             get_experiment_user_metadata_context(
