@@ -424,7 +424,7 @@ class CoursewareIndex(View):
 
         courseware_context = {
             'csrf': csrf(self.request)['csrf_token'],
-            'course': self.course.display_name_with_default,
+            'course': self.course,
             'course_url': course_url,
             'chapter': self.chapter,
             'section': self.section,
