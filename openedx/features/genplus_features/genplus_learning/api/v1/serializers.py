@@ -80,4 +80,4 @@ class ClassSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClassUnit
-        fields = ('id', 'display_name', 'class_unit_progress', 'is_locked', 'class_lessons')
+        fields = ('id', 'display_name', 'is_locked', 'class_lessons')

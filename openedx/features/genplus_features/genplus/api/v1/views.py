@@ -1,3 +1,4 @@
+import statistics
 from django.middleware import csrf
 from django.utils.decorators import method_decorator
 from django.db import IntegrityError
@@ -121,6 +122,12 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
         class_units = ClassUnit.objects.select_related('gen_class', 'unit').prefetch_related('class_lessons')
         class_units = class_units.filter(gen_class=gen_class)
         data = ClassSummarySerializer(class_units, many=True).data
+
+        for i in range(len(data)):
+            lessons = data[i]['class_lessons']
+            data[i]['unit_progress'] = round(statistics.fmean([lesson['class_lesson_progress']
+                                                               for lesson in lessons])) if lessons else 0
+
         return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['put'])
