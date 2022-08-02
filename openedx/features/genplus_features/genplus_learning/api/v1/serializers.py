@@ -71,7 +71,7 @@ class ProgramSerializer(serializers.ModelSerializer):
 class ClassLessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClassLesson
-        fields = ('id', 'is_locked', 'class_lesson_progress')
+        fields = ('id', 'is_locked', 'class_lesson_progress', 'lms_url')
 
 
 class ClassSummarySerializer(serializers.ModelSerializer):

@@ -145,3 +145,7 @@ class ClassLesson(models.Model):
     @property
     def class_lesson_progress(self):
         return get_class_lesson_progress(self.usage_key, self.class_unit.gen_class)
+
+    @property
+    def lms_url(self):
+        return f"{settings.LMS_ROOT_URL}/courses/{str(self.course_key)}/jump_to/{str(self.usage_key)}"
