@@ -7,6 +7,7 @@ import logging
 from copy import deepcopy
 
 import requests
+from urllib.parse import urlparse
 from django.contrib.sites.models import Site
 from django.http import Http404
 from django.utils.functional import cached_property
@@ -54,6 +55,10 @@ class SAMLAuthBackend(SAMLAuth):  # pylint: disable=abstract-method
         """
         if idp:
             abs_completion_url = self.redirect_uri
+            parsed_url = urlparse(abs_completion_url)
+            if parsed_url.scheme == 'http':
+                abs_completion_url = parsed_url._replace(scheme='https').geturl()
+
             config = {
                 'contactPerson': {
                     'technical': self.get_idp_setting(idp, 'TECHNICAL_CONTACT'),
