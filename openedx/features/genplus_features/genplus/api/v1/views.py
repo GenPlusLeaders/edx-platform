@@ -41,6 +41,10 @@ class UserInfo(GenzMixin, views.APIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        responses={200: UserInfoSerializer},
+        tags=['Users'],
+    )
     def get(self, *args, **kwargs):  # pylint: disable=unused-argument
         """
         get user's basic info
@@ -52,6 +56,20 @@ class UserInfo(GenzMixin, views.APIView):
 
         return Response(status=status.HTTP_200_OK, data=user_info.data)
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'Image',
+                openapi.IN_QUERY,
+                description='Profile image (should be in body, it shows\
+                 query because only serializers or schema are allowed)',
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_BASE64,
+            ),
+        ],
+        responses={200: SuccessMessages.PROFILE_IMAGE_UPDATED},
+        tags=['Users'],
+    )
     def post(self, *args, **kwargs):  # pylint: disable=unused-argument
         """
         update user's profile image
