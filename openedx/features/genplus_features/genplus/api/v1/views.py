@@ -30,7 +30,7 @@ from .serializers import (
     StudentPostSerializer,
     TeacherFeedbackSerializer,
 )
-from .permissions import IsStudent, IsTeacher, IsStudentOrTeacher
+from .permissions import IsStudent, IsTeacher, IsStudentOrTeacher, IsGenUser
 from .mixins import GenzMixin
 
 
@@ -39,7 +39,7 @@ class UserInfo(GenzMixin, views.APIView):
     API for genplus user information
     """
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsGenUser]
 
     @swagger_auto_schema(
         responses={200: UserInfoSerializer},
