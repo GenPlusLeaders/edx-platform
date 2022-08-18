@@ -1,4 +1,5 @@
 import uuid
+
 from django.conf import settings
 from django.db import models
 from django.template.defaultfilters import slugify
@@ -14,6 +15,12 @@ from openedx.features.genplus_features.genplus_learning.constants import Program
 from openedx.features.genplus_features.genplus.models import Student, Class
 from openedx.features.genplus_features.genplus_learning.utils import (get_class_unit_progress,
                                                                       get_class_lesson_progress)
+USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+
+
+def validate_percent(value):
+    if (value is None) or (not 0 <= value <= 100):
+        raise ValidationError(_('{value} must be between 0 and 100').format(value=value))
 
 
 class YearGroup(models.Model):
@@ -116,7 +123,7 @@ class ProgramUnitEnrollment(TimeStampedModel):
 
 class ClassUnit(models.Model):
     class Meta:
-        unique_together = ("gen_class", "unit")
+        unique_together = ("gen_class", "unit",)
 
     gen_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name="class_units")
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="class_units")
@@ -135,7 +142,7 @@ class ClassUnit(models.Model):
 
 class ClassLesson(models.Model):
     class Meta:
-        unique_together = ("class_unit", "usage_key")
+        unique_together = ("class_unit", "usage_key",)
 
     class_unit = models.ForeignKey(ClassUnit, on_delete=models.CASCADE, related_name="class_lessons")
     course_key = CourseKeyField(max_length=255)
@@ -149,3 +156,27 @@ class ClassLesson(models.Model):
     @property
     def lms_url(self):
         return f"{settings.LMS_ROOT_URL}/courses/{str(self.course_key)}/jump_to/{str(self.usage_key)}"
+
+
+class UnitCompletion(models.Model):
+    class Meta:
+        unique_together = ('user', 'course_key',)
+
+    user = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    is_complete = models.BooleanField(default=False)
+    completion_date = models.DateTimeField(blank=True, null=True)
+    progress = models.FloatField(validators=[validate_percent])
+
+
+class UnitBlockCompletion(models.Model):
+    class Meta:
+        unique_together = ('user', 'course_key', 'usage_key',)
+
+    user = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    usage_key = UsageKeyField(max_length=255, db_index=True)
+    block_type = models.CharField(max_length=64)
+    is_complete = models.BooleanField(default=False)
+    completion_date = models.DateTimeField(blank=True, null=True)
+    progress = models.FloatField(validators=[validate_percent])

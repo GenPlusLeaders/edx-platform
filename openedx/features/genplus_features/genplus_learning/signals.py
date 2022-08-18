@@ -1,15 +1,22 @@
 import logging
-
+from datetime import datetime
 from django.conf import settings
 from django.dispatch import receiver
 from xmodule.modulestore.django import SignalHandler, modulestore
 from django.db.models.signals import post_save, m2m_changed, pre_save
 
+from completion.models import BlockCompletion
+from opaque_keys.edx.keys import UsageKey
 from openedx.features.genplus_features.genplus.models import Class, Teacher
-from .models import ClassLesson, Program, Unit, ClassUnit
-from .constants import ProgramEnrollmentStatuses
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
+from openedx.features.genplus_features.genplus_learning.models import (
+    ClassLesson, Program, Unit, ClassUnit, UnitCompletion, UnitBlockCompletion
+)
+from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.access import allow_access
+from openedx.features.genplus_features.genplus_learning.utils import (
+    get_course_completion, get_progress_and_completion_status
+)
 from openedx.features.genplus_features.genplus_learning.roles import ProgramInstructorRole
 
 log = logging.getLogger(__name__)
@@ -93,3 +100,57 @@ def class_students_changed(sender, instance, action, **kwargs):
                 },
                 countdown=settings.PROGRAM_ENROLLMENT_COUNTDOWN
             )
+
+
+@receiver(post_save, sender=BlockCompletion)
+def set_unit_and_block_completions(sender, instance, created, **kwargs):
+    block_type = instance.block_type
+
+    aggregator_types = ['course', 'chapter', 'sequential', 'vertical']
+    if created and block_type not in aggregator_types:
+        course_key = str(instance.context_key)
+        if not instance.context_key.is_course:
+            return
+
+        block_id = instance.block_key.block_id
+        user = instance.user
+        course_completion = get_course_completion(course_key, user, ['course'], block_id)
+
+        if not (course_completion and course_completion.get('attempted')):
+            return
+
+        progress, is_complete = get_progress_and_completion_status(
+            course_completion.get('total_completed_blocks'),
+            course_completion.get('total_blocks')
+        )
+        defaults = {
+            'progress': progress,
+            'is_complete': is_complete,
+        }
+        if is_complete:
+            defaults['completion_date'] = datetime.now()
+
+        UnitCompletion.objects.update_or_create(
+            user=user, course_key=instance.context_key,
+            defaults=defaults
+        )
+
+        for block in course_completion['children']:
+            if block['attempted']:
+                progress, is_complete = get_progress_and_completion_status(
+                    block.get('total_completed_blocks'),
+                    block.get('total_blocks')
+                )
+                usage_key = UsageKey.from_string(block['id'])
+                defaults = {
+                    'progress': progress,
+                    'is_complete': is_complete,
+                    'block_type': block.get('block_type'),
+                }
+                if is_complete:
+                    defaults['completion_date'] = datetime.now()
+
+                UnitBlockCompletion.objects.update_or_create(
+                    user=user, course_key=instance.context_key, usage_key=usage_key,
+                    defaults=defaults
+                )
