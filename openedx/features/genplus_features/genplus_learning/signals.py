@@ -107,7 +107,7 @@ def set_unit_and_block_completions(sender, instance, created, **kwargs):
     block_type = instance.block_type
 
     aggregator_types = ['course', 'chapter', 'sequential', 'vertical']
-    if created and block_type not in aggregator_types:
+    if block_type not in aggregator_types:
         course_key = str(instance.context_key)
         if not instance.context_key.is_course:
             return
@@ -154,3 +154,4 @@ def set_unit_and_block_completions(sender, instance, created, **kwargs):
                     user=user, course_key=instance.context_key, usage_key=usage_key,
                     defaults=defaults
                 )
+                return

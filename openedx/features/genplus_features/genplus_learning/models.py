@@ -13,8 +13,7 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from xmodule.modulestore.django import modulestore
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus.models import Student, Class
-from openedx.features.genplus_features.genplus_learning.utils import (get_class_unit_progress,
-                                                                      get_class_lesson_progress)
+
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
@@ -135,10 +134,6 @@ class ClassUnit(models.Model):
     def __str__(self):
         return f"{self.gen_class.name}-{self.unit.course.display_name}"
 
-    @property
-    def class_unit_progress(self):
-        return get_class_unit_progress(self.unit.course.id, self.gen_class)
-
 
 class ClassLesson(models.Model):
     class Meta:
@@ -148,10 +143,6 @@ class ClassLesson(models.Model):
     course_key = CourseKeyField(max_length=255)
     usage_key = UsageKeyField(max_length=255)
     is_locked = models.BooleanField(default=True)
-
-    @property
-    def class_lesson_progress(self):
-        return get_class_lesson_progress(self.usage_key, self.class_unit.gen_class)
 
     @property
     def lms_url(self):
