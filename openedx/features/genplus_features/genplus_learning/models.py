@@ -8,6 +8,7 @@ from django_extensions.db.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField, UsageKeyField
 from simple_history.models import HistoricalRecords
 
+from openedx.core.djangoapps.signals.signals import COURSE_COMPLETED
 from common.djangoapps.student.models import CourseEnrollment
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xmodule.modulestore.django import modulestore
@@ -158,6 +159,15 @@ class UnitCompletion(models.Model):
     is_complete = models.BooleanField(default=False)
     completion_date = models.DateTimeField(blank=True, null=True)
     progress = models.FloatField(validators=[validate_percent])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_complete:
+            COURSE_COMPLETED.send_robust(
+                sender=self.__class__,
+                user=self.user,
+                course_key=self.course_key
+            )
 
 
 class UnitBlockCompletion(models.Model):
