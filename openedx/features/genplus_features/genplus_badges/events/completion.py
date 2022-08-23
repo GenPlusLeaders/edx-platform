@@ -37,7 +37,7 @@ def unit_badge_check(user, course_key):
     if not course.issue_badges:
         LOGGER.info("Course is not configured to issue badges.")
         return
-    badge_class = get_completion_badge(course_key, user)
+    badge_class = get_completion_badge(user, course_key)
     if not badge_class:
         LOGGER.info("BadgeClass not found.")
         return

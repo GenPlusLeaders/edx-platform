@@ -11,6 +11,7 @@ import logging
 import mimetypes
 
 import requests
+from django.core.files.storage import default_storage as storage
 from cryptography.fernet import Fernet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -111,14 +112,15 @@ class BadgrBackend(BadgeBackend):
         image = badge_class.image
         # We don't want to bother validating the file any further than making sure we can detect its MIME type,
         # for HTTP. The Badgr-Server should tell us if there's anything in particular wrong with it.
-        content_type, __ = mimetypes.guess_type(image.name)
+        image_name = image.name
+        content_type, __ = mimetypes.guess_type(image_name)
         if not content_type:
             raise ValueError(
                 "Could not determine content-type of image! Make sure it is a properly named .png file. "
                 "Filename was: {}".format(image.name)
             )
-        with open(image.path, 'rb') as image_file:
-            files = {'image': (image.name, image_file, content_type)}
+        with storage.open(image_name, 'rb') as image_file:
+            files = {'image': (image_name, image_file, content_type)}
             data = {
                 'name': badge_class.display_name,
                 'criteriaUrl': badge_class.criteria,
