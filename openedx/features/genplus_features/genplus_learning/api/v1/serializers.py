@@ -123,16 +123,15 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         results = []
         class_units = self.context.get('class_units')
         for class_unit in class_units:
-            progress = {'unit_display_name': class_unit.unit.display_name,
-                        'course_key': str(class_unit.unit.course.id), }
-            chapter_keys = class_unit.class_lessons.all().values_list('usage_key', flat=True)
+            progress = {'unit_display_name': class_unit.unit.display_name}
+            chapters = class_unit.class_lessons.all()
+            chapter_keys = chapters.values_list('usage_key', flat=True)
+            chapter_count = chapters.count()
             completion_qs = UnitBlockCompletion.objects.filter(user=obj.user,
                                                                usage_key__in=chapter_keys,
                                                                block_type='chapter')
-            block_completions = list(completion_qs.values_list('is_complete', flat=True))
-            remaining = len(chapter_keys) - len(block_completions)
-            for i in range(remaining):
-                block_completions.append(False)
-            progress['lessons'] = block_completions
+            block_completions = completion_qs.values_list('is_complete', flat=True)
+            progress['lessons_completions'] = block_completions
+            progress['total_lessons'] = chapter_count
             results.append(progress)
         return results
