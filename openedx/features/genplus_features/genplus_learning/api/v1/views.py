@@ -58,7 +58,7 @@ class ClassStudentViewSet(mixins.ListModelMixin,
         if group_id:
             gen_class = get_object_or_404(Class, group_id=group_id)
             class_units = ClassUnit.objects.select_related('unit').prefetch_related('class_lessons')
-            context['class_units'] = class_units.filter(gen_class=gen_class)
+            context['class_units'] = class_units.filter(gen_class=gen_class).order_by('unit__order')
             return context
 
     def get_queryset(self):
