@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 @receiver(SignalHandler.course_published)
 def _listen_for_course_publish(sender, course_key, **kwargs):
     # retrieve units for all classes with course_key
-    class_units = ClassUnit.objects.filter(unit__course__id=course_key)
+    class_units = ClassUnit.objects.filter(course_key=course_key)
 
     course = modulestore().get_course(course_key)
     new_lesson_usage_keys = set(course.children)  # children has list of section usage keys
@@ -62,24 +62,10 @@ def gen_class_changed(sender, instance, *args, **kwargs):
 
         # create class_units for units in this program
         class_units = [
-            ClassUnit(gen_class=instance, unit=unit)
+            ClassUnit(gen_class=instance, unit=unit, course_key=unit.course.id)
             for unit in instance.program.units.all()
         ]
         ClassUnit.objects.bulk_create(class_units)
-
-
-@receiver(post_save, sender=Unit)
-def program_unit_added(sender, instance, created, **kwargs):
-    if created and instance.program:
-        program_class_ids = instance.program.classes.all().values_list('pk', flat=True)
-        for class_id in program_class_ids:
-            genplus_learning_tasks.enroll_class_students_to_program.apply_async(
-                args=[class_id, instance.program.pk],
-                kwargs={
-                    'program_unit_ids': [str(instance.course.id)]
-                },
-                countdown=settings.PROGRAM_ENROLLMENT_COUNTDOWN
-            )
 
 
 @receiver(m2m_changed, sender=Class.students.through)
