@@ -159,6 +159,7 @@ class ClassLesson(models.Model):
         unique_together = ("class_unit", "usage_key",)
 
     class_unit = models.ForeignKey(ClassUnit, on_delete=models.CASCADE, related_name="class_lessons")
+    order = models.PositiveIntegerField(default=0, blank=False, null=False)
     course_key = CourseKeyField(max_length=255)
     usage_key = UsageKeyField(max_length=255)
     is_locked = models.BooleanField(default=True)

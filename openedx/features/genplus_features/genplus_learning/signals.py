@@ -8,39 +8,17 @@ from xmodule.modulestore.django import SignalHandler, modulestore
 from openedx.features.genplus_features.genplus.models import Class, Teacher
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
 from openedx.features.genplus_features.genplus_learning.models import (
-    ClassLesson, Program, Unit, ClassUnit
+    Program, Unit, ClassUnit
 )
 from openedx.features.genplus_features.genplus_learning.access import allow_access
 from openedx.features.genplus_features.genplus_learning.roles import ProgramInstructorRole
-
+from openedx.features.genplus_features.genplus_learning.utils import update_class_lessons
 log = logging.getLogger(__name__)
 
 
 @receiver(SignalHandler.course_published)
 def _listen_for_course_publish(sender, course_key, **kwargs):
-    # retrieve units for all classes with course_key
-    class_units = ClassUnit.objects.filter(course_key=course_key)
-
-    course = modulestore().get_course(course_key)
-    new_lesson_usage_keys = set(course.children)  # children has list of section usage keys
-
-    old_lessons = ClassLesson.objects.filter(course_key=course_key)
-    old_lesson_usage_keys = set(old_lessons.values_list('usage_key', flat=True))
-
-    removed_usage_keys = old_lesson_usage_keys - new_lesson_usage_keys
-    # delete removed section_usage_keys records
-    ClassLesson.objects.filter(course_key=course_key, usage_key__in=removed_usage_keys).delete()
-
-    new_usage_keys = new_lesson_usage_keys - old_lesson_usage_keys
-
-    new_class_lessons = [
-        ClassLesson(class_unit=class_unit, course_key=course_key, usage_key=usage_key)
-        for class_unit in class_units
-        for usage_key in new_usage_keys
-    ]
-
-    # bulk create new class lessons
-    ClassLesson.objects.bulk_create(new_class_lessons)
+    update_class_lessons(course_key)
 
 
 @receiver(pre_save, sender=Class)
