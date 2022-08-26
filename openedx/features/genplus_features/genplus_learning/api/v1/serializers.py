@@ -127,7 +127,8 @@ class ClassStudentSerializer(serializers.ModelSerializer):
             chapters = modulestore().get_course(class_unit.course_key).children
             completion_qs = UnitBlockCompletion.objects.filter(user=obj.user,
                                                                usage_key__in=chapters,
-                                                               block_type='chapter')
+                                                               block_type='chapter',
+                                                               is_complete=True)
             completions = completion_qs.values_list('usage_key', flat=True)
             for index, key in enumerate(chapters):
                 chapters[index] = True if key in completions else False
