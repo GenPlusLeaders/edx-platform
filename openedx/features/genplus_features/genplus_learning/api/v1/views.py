@@ -47,7 +47,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
 class ClassStudentViewSet(mixins.ListModelMixin,
                           viewsets.GenericViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+    permission_classes = [IsAuthenticated, IsTeacher]
     serializer_class = ClassStudentSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['gen_user__user__username']
@@ -57,7 +57,7 @@ class ClassStudentViewSet(mixins.ListModelMixin,
         group_id = self.kwargs.get('group_id', None)
         if group_id:
             gen_class = get_object_or_404(Class, group_id=group_id)
-            class_units = ClassUnit.objects.select_related('unit').prefetch_related('class_lessons')
+            class_units = ClassUnit.objects.select_related('unit')
             context['class_units'] = class_units.filter(gen_class=gen_class).order_by('unit__order')
             context['request'] = self.request
             return context
