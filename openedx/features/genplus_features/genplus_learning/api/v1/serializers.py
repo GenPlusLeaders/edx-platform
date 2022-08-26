@@ -1,7 +1,7 @@
-import random
 from rest_framework import serializers
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from xmodule.modulestore.django import modulestore
 from openedx.features.genplus_features.genplus_learning.models import (
     Program,
     ProgramEnrollment,
@@ -12,7 +12,10 @@ from openedx.features.genplus_features.genplus_learning.models import (
     UnitBlockCompletion,
 )
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
-from openedx.features.genplus_features.genplus_learning.utils import calculate_class_lesson_progress
+from openedx.features.genplus_features.genplus_learning.utils import (
+    calculate_class_lesson_progress,
+    get_absolute_url,
+)
 from openedx.features.genplus_features.genplus.models import Student
 
 
@@ -101,20 +104,17 @@ class ClassSummarySerializer(serializers.ModelSerializer):
 class ClassStudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     profile_pic = serializers.SerializerMethodField()
-    total_badges = serializers.SerializerMethodField()
     skills_assessment = serializers.SerializerMethodField()
     unit_lesson_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
-        fields = ('username', 'profile_pic', 'total_badges', 'skills_assessment', 'unit_lesson_completion')
+        fields = ('username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
 
     def get_profile_pic(self, obj):
         profile = obj.character.profile_pic if obj.character else None
-        return profile.url if profile else None
-
-    def get_total_badges(self, obj):
-        return random.randint(0, 5)
+        request = self.context.get('request')
+        return get_absolute_url(request, profile)
 
     def get_skills_assessment(self, obj):
         return True
@@ -124,14 +124,13 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         class_units = self.context.get('class_units')
         for class_unit in class_units:
             progress = {'unit_display_name': class_unit.unit.display_name}
-            chapters = class_unit.class_lessons.all().order_by('order')
-            chapter_keys = chapters.values_list('usage_key', flat=True)
-            chapter_count = chapters.count()
+            chapters = modulestore().get_course(class_unit.course_key).children
             completion_qs = UnitBlockCompletion.objects.filter(user=obj.user,
-                                                               usage_key__in=chapter_keys,
+                                                               usage_key__in=chapters,
                                                                block_type='chapter')
-            block_completions = completion_qs.values_list('is_complete', flat=True)
-            progress['lesson_completions'] = block_completions
-            progress['total_lessons'] = chapter_count
+            completions = completion_qs.values_list('usage_key', flat=True)
+            for index, key in enumerate(chapters):
+                chapters[index] = True if key in completions else False
+            progress['lesson_completions'] = chapters
             results.append(progress)
         return results
