@@ -19,7 +19,7 @@ from openedx.features.genplus_features.genplus.models import (
     GenUser, Character, Class, Teacher, Student, TeacherClass, JournalPost, Skill
 )
 from openedx.features.genplus_features.genplus.constants import JournalTypes
-from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
+from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus_learning.models import ClassUnit, ClassLesson
 from openedx.features.genplus_features.genplus_learning.api.v1.serializers import ClassSummarySerializer
 from .serializers import (
@@ -197,7 +197,7 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
         try:
             lesson = ClassLesson.objects.get(pk=pk)
         except ClassLesson.DoesNotExist:
-            return Response(ErrorMessages.LESSON_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+            return Response(ErrorMessages.LESSON_NOT_FOUND.format(pk), status=status.HTTP_404_NOT_FOUND)
         if not lesson.is_locked:
             return Response(ErrorMessages.LESSON_ALREADY_UNLOCKED, status.HTTP_204_NO_CONTENT)
         lesson.is_locked = False
