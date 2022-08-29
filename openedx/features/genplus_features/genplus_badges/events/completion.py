@@ -9,9 +9,6 @@ from openedx.features.genplus_features.genplus_learning.models import Unit
 
 LOGGER = logging.getLogger(__name__)
 
-def get_or_create_badge_class():
-
-
 
 def _get_unit_completion_badge(user, course_key):
     from common.djangoapps.student.models import CourseEnrollment
