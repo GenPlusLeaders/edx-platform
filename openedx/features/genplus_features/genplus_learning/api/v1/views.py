@@ -8,7 +8,7 @@ from openedx.features.genplus_features.genplus.models import GenUser, Student, C
 from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,
-                                                                       ClassUnit, ClassLesson)
+                                                                       ClassUnit,)
 from .serializers import ProgramSerializer, ClassStudentSerializer
 
 
@@ -43,21 +43,6 @@ class ProgramViewSet(viewsets.ModelViewSet):
         else:
             permission_classes.append(IsTeacher)
         return [permission() for permission in permission_classes]
-
-    @action(detail=True, methods=['put'])
-    def unlock_lesson(self, request, pk=None):  # pylint: disable=unused-argument
-        """
-       unlock the lesson of the unit
-        """
-        try:
-            lesson = ClassLesson.objects.get(pk=pk)
-        except ClassLesson.DoesNotExist:
-            return Response(ErrorMessages.LESSON_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        if not lesson.is_locked:
-            return Response(ErrorMessages.LESSON_ALREADY_UNLOCKED, status.HTTP_204_NO_CONTENT)
-        lesson.is_locked = False
-        lesson.save()
-        return Response(SuccessMessages.LESSON_UNLOCKED, status.HTTP_204_NO_CONTENT)
 
 
 class ClassStudentViewSet(mixins.ListModelMixin,

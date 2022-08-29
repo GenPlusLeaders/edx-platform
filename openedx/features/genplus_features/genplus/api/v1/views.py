@@ -20,7 +20,7 @@ from openedx.features.genplus_features.genplus.models import (
 )
 from openedx.features.genplus_features.genplus.constants import JournalTypes
 from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
-from openedx.features.genplus_features.genplus_learning.models import ClassUnit
+from openedx.features.genplus_features.genplus_learning.models import ClassUnit, ClassLesson
 from openedx.features.genplus_features.genplus_learning.api.v1.serializers import ClassSummarySerializer
 from .serializers import (
     CharacterSerializer,
@@ -188,6 +188,21 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
             teacher_class.save()
             return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['put'])
+    def unlock_lesson(self, request, pk=None):  # pylint: disable=unused-argument
+        """
+       unlock the lesson of the unit
+        """
+        try:
+            lesson = ClassLesson.objects.get(pk=pk)
+        except ClassLesson.DoesNotExist:
+            return Response(ErrorMessages.LESSON_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        if not lesson.is_locked:
+            return Response(ErrorMessages.LESSON_ALREADY_UNLOCKED, status.HTTP_204_NO_CONTENT)
+        lesson.is_locked = False
+        lesson.save()
+        return Response(SuccessMessages.LESSON_UNLOCKED, status.HTTP_204_NO_CONTENT)
 
 
 class JournalViewSet(GenzMixin, viewsets.ModelViewSet):
