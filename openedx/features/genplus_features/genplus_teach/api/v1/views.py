@@ -1,6 +1,8 @@
 from rest_framework import generics, status, views, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.db.models import F
 from rest_framework import filters
 from rest_framework.response import Response
@@ -10,9 +12,11 @@ from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeach
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, FavoriteArticle, ReflectionAnswer, Reflection, ArticleViewLog
 from openedx.features.genplus_features.genplus.api.v1.mixins import GenzMixin
-from openedx.features.genplus_features.genplus.models import Teacher
+from openedx.features.genplus_features.genplus.models import Teacher, Skill
 from openedx.features.genplus_features.genplus.display_messages import SuccessMessages, ErrorMessages
-from .serializers import ArticleSerializer, FavoriteArticleSerializer, ArticleRatingSerializer, ReflectionAnswerSerializer, PortfolioSerializer, ArticleViewLogSerializer
+from .serializers import ArticleSerializer, FavoriteArticleSerializer, ArticleRatingSerializer, ReflectionAnswerSerializer,\
+    PortfolioSerializer, ArticleViewLogSerializer, GtcsSerializer, MediaTypeSerializer
+from openedx.features.genplus_features.genplus.api.v1.serializers import SkillSerializer
 from .filters import ArticleFilter
 
 
@@ -25,7 +29,7 @@ class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
     serializer_class = ArticleSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['title', 'content']
-    filter_fields = ('skills', 'media_type', 'gtcs')
+    filter_fields = ('skill', 'media_type', 'gtcs')
     filterset_class = ArticleFilter
     queryset = Article.objects.exclude(is_draft=True)
 
@@ -41,7 +45,7 @@ class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
         if self.action == 'list':
             teacher = Teacher.objects.get(gen_user=self.gen_user)
             queryset = queryset.exclude(id__in=teacher.favorite_articles.values('article_id'))
-        return queryset
+        return queryset.order_by('-created')
 
     @action(detail=True, methods=['get'])
     def favorite_articles(self, request, pk=None):  # pylint: disable=unused-argument
@@ -50,7 +54,7 @@ class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
         """
         teacher = Teacher.objects.get(gen_user=self.gen_user)
         queryset = self.queryset.filter(id__in=teacher.favorite_articles.values('article_id'))
-        serializer = self.serializer_class(queryset, many=True)
+        serializer = self.serializer_class(queryset, many=True, context={'request': request})
         return Response(status=status.HTTP_200_OK, data=serializer.data)
 
     @action(detail=True, methods=['put'])
@@ -103,18 +107,18 @@ class ReflectionAnswerViewSet(viewsets.ViewSet, GenzMixin):
     portfolio_serializer_class = PortfolioSerializer
 
     @action(detail=True, methods=['put'])
-    def answer(self, request, reflection_id=None):
+    def answer(self, request, article_id=None):
         """
         answer the reflection
         """
-        reflection = get_object_or_404(Reflection, pk=reflection_id)
+        article = get_object_or_404(Article, pk=article_id)
         teacher = Teacher.objects.get(gen_user=self.gen_user)
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         ReflectionAnswer.objects.update_or_create(
-            reflection=reflection, teacher=teacher,
+            article=article, teacher=teacher,
             defaults={"answer": serializer.data.get('answer')}
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -162,3 +166,20 @@ class ArticleViewLogViewSet(viewsets.ViewSet, GenzMixin):
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+class FiltersViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    @method_decorator(cache_page(60))
+    @action(detail=True, methods=['get'])
+    def list(self, request, *args, **kwargs):
+        gtcs_serializer = GtcsSerializer(Gtcs.objects.all(), many=True)
+        skills_serializer = SkillSerializer(Skill.objects.all(), many=True)
+        media_type_serializer = MediaTypeSerializer(MediaType.objects.all(), many=True)
+        data = {
+            'gtcs': gtcs_serializer.data,
+            'skills': skills_serializer.data,
+            'media_types': media_type_serializer.data
+        }
+        return Response(data)

@@ -3163,6 +3163,8 @@ TINYMCE_DEFAULT_CONFIG = {
                "removeformat | help",
     'cleanup_on_startup': True,
     'custom_undo_redo_levels': 10,
+    'width': '100%',
+    'height': 750
 }
 
 ######################### CSRF #########################################

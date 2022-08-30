@@ -40,7 +40,7 @@ def dump_gtcs(apps, schema_editor):
         Gtcs.objects.create(name=gtcs)
 
     for media_type in MEDIA_TYPES:
-        MediaType.objects.create(media_type)
+        MediaType.objects.create(name=media_type)
 
 
 
@@ -52,5 +52,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(dump_gtcs),
+        migrations.RunPython(dump_gtcs, migrations.RunPython.noop),
     ]
+

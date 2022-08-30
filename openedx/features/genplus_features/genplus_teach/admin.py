@@ -11,7 +11,7 @@ class ReflectionAdminInline(admin.TabularInline):
 class ArticleAdmin(admin.ModelAdmin):
     inlines = (ReflectionAdminInline,)
     filter_horizontal = ('skills', 'gtcs', 'media_types')
-    list_display = ('title', 'reflections', )
+    list_display = ('title', 'reflections', 'time', 'favorites_count', 'rating_average')
 
     def reflections(self, obj):
         url = reverse('admin:genplus_teach_reflection_changelist')

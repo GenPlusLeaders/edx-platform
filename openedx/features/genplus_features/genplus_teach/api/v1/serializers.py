@@ -76,7 +76,7 @@ class ArticleSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = Article
-        fields = ('id', 'title', 'cover', 'skills', 'gtcs', 'media_types',
+        fields = ('id', 'title', 'cover', 'skills', 'gtcs', 'media_types', 'time',
                   'content', 'author', 'is_completed', 'is_rated', 'reflections')
 
 

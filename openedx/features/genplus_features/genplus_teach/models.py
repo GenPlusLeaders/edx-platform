@@ -2,6 +2,7 @@ import re
 import logging
 import pafy
 from django.db import models
+from django.db.models import Avg
 from django_extensions.db.models import TimeStampedModel
 from html import unescape
 from django.utils.html import strip_tags
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Gtcs(TimeStampedModel):
-    name = models.CharField(unique=True, max_length=1024)
+    name = models.CharField(max_length=1024)
 
     def __str__(self):
         return self.name
@@ -41,13 +42,24 @@ class Article(TimeStampedModel):
     def __str__(self):
         return self.title
 
+    @property
+    def favorites_count(self):
+        return FavoriteArticle.objects.filter(article=self.id).count()
+
+    @property
+    def rating_average(self):
+        avg_rating = self.ratings.filter(article=self.id).aggregate(Avg('rating')).get('rating__avg')
+        return avg_rating if avg_rating else 0
+
     def is_completed(self, teacher):
-        return ReflectionAnswer.objects.filter(reflection__article=self,
-                                               teacher=teacher).exists()
+        return self.reflections_answers.filter(article=self, teacher=teacher).exists()
 
     def is_rated(self, teacher):
         return ArticleRating.objects.filter(article=self,
                                             teacher=teacher).exists()
+
+    def is_favorite(self, teacher):
+        return teacher.favorite_articles.filter(article=self.pk).count() > 0
 
     def save(self, **kwargs):
         read_time = self.get_read_time(self.title, self.content)
@@ -91,12 +103,12 @@ class Reflection(TimeStampedModel):
 
 
 class ReflectionAnswer(TimeStampedModel):
-    reflection = models.ForeignKey(Reflection, on_delete=models.CASCADE)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reflections_answers')
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     answer = models.TextField()
 
     class Meta:
-        unique_together = ('reflection', 'teacher')
+        unique_together = ('article', 'teacher')
 
 
 class FavoriteArticle(models.Model):
@@ -106,17 +118,24 @@ class FavoriteArticle(models.Model):
 
 class ArticleRating(TimeStampedModel):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='ratings')
     rating = models.PositiveIntegerField(default=0)
     comment = models.TextField()
 
     class Meta:
         unique_together = ('teacher', 'article')
 
+    def __str__(self):
+        return '{} has rated {} stars to article {}'.format(
+            self.teacher.gen_user.user.get_full_name(),
+            self.rating,
+            self.article.title
+        )
+
 
 # model to log the view, view count and engagement time on an article
 class ArticleViewLog(TimeStampedModel):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='view_logs')
     count = models.PositiveIntegerField(default=0, help_text='Views count on each article.')
     engagement = models.PositiveIntegerField(default=0, help_text='Length of engagement (minutes/seconds)')
