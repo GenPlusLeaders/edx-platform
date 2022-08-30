@@ -10,6 +10,7 @@ from openedx.features.genplus_features.common.display_messages import SuccessMes
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,
                                                                        ClassUnit, ClassLesson,)
+from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url
 from .serializers import ProgramSerializer, ClassStudentSerializer, ClassSummarySerializer
 
 
@@ -95,7 +96,14 @@ class ClassSummaryViewSet(mixins.RetrieveModelMixin,
             data[i]['unit_progress'] = round(statistics.fmean([lesson['class_lesson_progress']
                                                                for lesson in lessons])) if lessons else 0
 
-        return Response(data, status=status.HTTP_200_OK)
+        gen_class_data = {
+            'school_name': gen_class.school.name,
+            'class_name': gen_class.name,
+            'class_image': get_absolute_url(request, gen_class.image),
+            'results': data,
+        }
+
+        return Response(gen_class_data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['put'])
     def unlock_lesson(self, request, lesson_id=None):  # pylint: disable=unused-argument
