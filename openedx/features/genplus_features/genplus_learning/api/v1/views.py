@@ -110,10 +110,7 @@ class ClassSummaryViewSet(mixins.RetrieveModelMixin,
         """
        unlock the lesson of the unit
         """
-        try:
-            lesson = ClassLesson.objects.get(pk=lesson_id)
-        except ClassLesson.DoesNotExist:
-            return Response(ErrorMessages.LESSON_NOT_FOUND.format(lesson_id), status=status.HTTP_404_NOT_FOUND)
+        lesson = get_object_or_404(ClassLesson, pk=lesson_id)
         if not lesson.is_locked:
             return Response(ErrorMessages.LESSON_ALREADY_UNLOCKED, status.HTTP_204_NO_CONTENT)
         lesson.is_locked = False

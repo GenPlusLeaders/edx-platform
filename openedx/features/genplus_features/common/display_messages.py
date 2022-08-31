@@ -15,7 +15,6 @@ class ErrorMessages:
     ACTION_VALIDATION_ERROR = 'Action can only be add or remove'
     CLASS_ALREADY_ADDED = '{class_name} is already added in your classes.'
     LESSON_ALREADY_UNLOCKED = 'You cannot lock the lesson which is already unlocked.'
-    LESSON_NOT_FOUND = 'Lesson {} does not exist.'
     STUDENT_POST_ENTRY_FAILED = 'Journal post could not be added.'
     TEACHER_FEEDBACK_ENTRY_FAILED = 'Your feedback could not be added to this journal.'
     STUDENT_POST_UPDATE_FAILED = 'Your journal post could not be updated.'
