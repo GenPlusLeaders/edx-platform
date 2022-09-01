@@ -20,11 +20,11 @@ class UnitBadgeSerializer(serializers.ModelSerializer):
         fields = ('slug', 'display_name', 'course_id', 'image_url', 'awarded', 'awarded_on',)
 
     def get_awarded(self, obj):
-        assertion = obj.get_for_user(self.context.get('user'))
+        assertion = obj.get_for_user(self.context.get('user')).first()
         return True if assertion else False
 
     def get_awarded_on(self, obj):
-        assertion = obj.get_for_user(self.context.get('user'))
+        assertion = obj.get_for_user(self.context.get('user')).first()
         return assertion.created if assertion else None
 
 
@@ -49,9 +49,9 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
         return UnitBadgeSerializer(unit_badges, many=True, read_only=True, context=self.context).data
 
     def get_awarded(self, obj):
-        assertion = obj.get_for_user(self.context.get('user'))
+        assertion = obj.get_for_user(self.context.get('user')).first()
         return True if assertion else False
 
     def get_awarded_on(self, obj):
-        assertion = obj.get_for_user(self.context.get('user'))
+        assertion = obj.get_for_user(self.context.get('user')).first()
         return assertion.created if assertion else None

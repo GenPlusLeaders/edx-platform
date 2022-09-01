@@ -1,24 +1,8 @@
 from django.db import models
-
+from django.contrib.auth.models import User
+from django_extensions.db.models import TimeStampedModel
 from openedx.features.genplus_features.genplus.models import Skill
-
-def validate_badge_image(image):
-    """
-    Validates that a particular image is small enough to be a badge and square.
-    """
-    if image.width != image.height:
-        raise ValidationError(_("The badge image must be square."))
-    if not image.size < (250 * 1024):
-        raise ValidationError(_("The badge image file size must be less than 250KB."))
-
-
-def validate_lowercase(string):
-    """
-    Validates that a string is lowercase.
-    """
-    if not string.islower():
-        raise ValidationError(_("This value must be all lowercase."))
-
+from openedx.features.genplus_features.genplus_badges.utils import validate_lowercase, validate_badge_image
 
 class BoosterBadge(models.Model):
     slug = models.SlugField(max_length=255, unique=True, validators=[validate_lowercase])
@@ -34,17 +18,14 @@ class BoosterBadge(models.Model):
         self.slug = self.slug and self.slug.lower()
         super().save(**kwargs)
 
-    class Meta:
-        verbose_name_plural = "Booster Badges"
-
 
 class BoosterBadgeAward(TimeStampedModel):
     class Meta:
         unique_together = ('user', 'badge',)
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='booster_badges')
     badge = models.ForeignKey(BoosterBadge, on_delete=models.CASCADE)
-    awarded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    awarded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='teacher_awards')
     feedback = models.TextField()
     image_url = models.URLField()
 
