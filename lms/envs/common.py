@@ -3129,6 +3129,7 @@ INSTALLED_APPS = [
     # in the LMS process at the moment, so anything that has Django admin access
     # permissions needs to be listed as an LMS app or the script will fail.
     'user_tasks',
+    'adminsortable2',
 ]
 
 ######################### GENPLUS APPS #################################
@@ -3142,9 +3143,29 @@ GENPLUS_INSTALLED_APPS = [
 
     # genplus teach app
     'openedx.features.genplus_features.genplus_teach',
+
+    # genplus badges app
+    'openedx.features.genplus_features.genplus_badges',
+
+    # installed third party apps
+    'tinymce'
 ]
 
 INSTALLED_APPS.extend(GENPLUS_INSTALLED_APPS)
+
+TINYMCE_DEFAULT_CONFIG = {
+    'plugins': "advlist,autolink,lists,link,image,charmap,print,preview,anchor,"
+    "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
+    "code,help,wordcount",
+    "toolbar": "undo redo | formatselect | "
+               "bold italic backcolor | alignleft aligncenter "
+               "alignright alignjustify | bullist numlist outdent indent | "
+               "removeformat | help",
+    'cleanup_on_startup': True,
+    'custom_undo_redo_levels': 10,
+    'width': '100%',
+    'height': 750
+}
 
 ######################### CSRF #########################################
 
