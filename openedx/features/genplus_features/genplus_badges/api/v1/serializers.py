@@ -2,12 +2,12 @@
 Serializers for Badges
 """
 
-
 from rest_framework import serializers
-
+from django.contrib.auth.models import User
 from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadge, BoosterBadgeAward
 from openedx.features.genplus_features.genplus_learning.models import Program
+from openedx.features.genplus_features.genplus_badges.utils import get_absolute_url
 
 
 class UnitBadgeSerializer(serializers.ModelSerializer):
@@ -55,3 +55,49 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
     def get_awarded_on(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
         return assertion.created if assertion else None
+
+
+class AwardBoosterBadgesSerializer(serializers.ModelSerializer):
+    user = serializers.ListField(child=serializers.CharField())
+    badge = serializers.ListField(child=serializers.CharField())
+    feedback = serializers.CharField()
+
+    class Meta:
+        model = BoosterBadgeAward
+        fields = ('user', 'badge', 'feedback')
+
+    def create(self, validated_data):
+        users = validated_data.pop('user')
+        badges = validated_data.pop('badge')
+        feedback = validated_data.pop('feedback')
+        request = self.context.get('request')
+
+        user_qs = User.objects.filter(username__in=users)
+        badge_qs = BoosterBadge.objects.filter(pk__in=badges)
+        awards = []
+
+        for user in user_qs:
+            for badge in badge_qs:
+                award = BoosterBadgeAward(user=user, badge=badge, awarded_by=request.user,
+                                          feedback=feedback, image_url=get_absolute_url(request, badge.image))
+                awards.append(award)
+
+        return BoosterBadgeAward.objects.bulk_create(awards, ignore_conflicts=True)
+
+    def validate_user(self, value):
+        if not value or len(value) < 1:
+            raise serializers.ValidationError('This field may not be blank.')
+        return value
+
+    def validate_badge(self, value):
+        if not value or len(value) < 1:
+            raise serializers.ValidationError('This field may not be blank.')
+        return value
+
+
+class BoosterBadgeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BoosterBadge
+        fields = ('id', 'slug', 'skill', 'display_name')
+

@@ -8,6 +8,8 @@ class SuccessMessages:
     TEACHER_FEEDBACK_ADDED = 'Your feedback has been added successfully.'
     STUDENT_POST_UPDATED = 'Your journal post has been updated successfully.'
     TEACHER_FEEDBACK_UPDATED = 'Your feedback has been updated successfully.'
+    BADGE_AWARDED = 'Badges have been awarded successfully.'
+
 
 class ErrorMessages:
     INTERNAL_SERVER = 'Some error occur on the server. The request can not be completed for now.'
