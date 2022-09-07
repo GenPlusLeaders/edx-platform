@@ -4,6 +4,7 @@ from django_extensions.db.models import TimeStampedModel
 from openedx.features.genplus_features.genplus.models import Skill
 from openedx.features.genplus_features.genplus_badges.utils import validate_lowercase, validate_badge_image
 
+
 class BoosterBadge(models.Model):
     slug = models.SlugField(max_length=255, unique=True, validators=[validate_lowercase])
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True, blank=True)
