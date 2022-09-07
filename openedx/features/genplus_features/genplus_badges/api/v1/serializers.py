@@ -96,8 +96,16 @@ class AwardBoosterBadgesSerializer(serializers.ModelSerializer):
 
 
 class BoosterBadgeSerializer(serializers.ModelSerializer):
+    skill_name = serializers.CharField(source='skill.name')
 
     class Meta:
         model = BoosterBadge
-        fields = ('id', 'slug', 'skill', 'display_name')
+        fields = ('id', 'slug', 'skill_name', 'display_name')
+
+
+class ClassBoosterBadgesSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BoosterBadgeAward
+        fields = ('user', 'badge', 'awarded_by', 'feedback', 'image_url')
 

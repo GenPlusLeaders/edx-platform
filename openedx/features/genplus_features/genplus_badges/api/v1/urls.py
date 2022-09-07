@@ -9,13 +9,15 @@ from .views import (
     StudentProgramBadgeView,
     AwardBoosterBadgesView,
     BoosterBadgeView,
+    ClassBoosterBadgeView,
 )
 
 app_name = 'genplus_badges_api_v1'
 
 
 urlpatterns = [
-    url('^program-badges/$', StudentProgramBadgeView.as_view(), name='student-program-badges'),
-    url('^award-badges/$', AwardBoosterBadgesView.as_view(), name='assign-booster-badges'),
-    url('^booster-badges/$', BoosterBadgeView.as_view(), name='booster-badges-view')
+    url(r'^program-badges/$', StudentProgramBadgeView.as_view(), name='student-program-badges'),
+    url(r'^award-badges/$', AwardBoosterBadgesView.as_view(), name='assign-booster-badges'),
+    url(r'^booster-badges/$', BoosterBadgeView.as_view(), name='booster-badges-view'),
+    url(r'^booster-badges/student/(?P<username>\w+)/$', ClassBoosterBadgeView.as_view(), name='class-booster-badges'),
 ]

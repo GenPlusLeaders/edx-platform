@@ -1,6 +1,8 @@
 """
 API views for badges
 """
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -8,10 +10,11 @@ from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus_learning.models import Program, ProgramEnrollment, YearGroup
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses, ProgramStatuses
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudent, IsTeacher
+from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudent, IsTeacher, IsStudentOrTeacher
 from openedx.features.genplus_features.genplus.display_messages import SuccessMessages
-from openedx.features.genplus_features.genplus_badges.models import BoosterBadge
-from .serializers import ProgramBadgeSerializer, AwardBoosterBadgesSerializer, BoosterBadgeSerializer
+from openedx.features.genplus_features.genplus_badges.models import BoosterBadge, BoosterBadgeAward
+from .serializers import (ProgramBadgeSerializer, AwardBoosterBadgesSerializer,
+                          BoosterBadgeSerializer, ClassBoosterBadgesSerializer)
 
 
 class StudentProgramBadgeView(generics.ListAPIView):
@@ -65,5 +68,18 @@ class BoosterBadgeView(generics.ListAPIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
     pagination_class = None
-    queryset = BoosterBadge.objects.all()
+    queryset = BoosterBadge.objects.select_related('skill').all()
+
+
+class ClassBoosterBadgeView(generics.ListAPIView):
+    serializer_class = ClassBoosterBadgesSerializer
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+    pagination_class = None
+    lookup_url_kwarg = 'username'
+
+    def get_queryset(self):
+        username = self.kwargs.get(self.lookup_url_kwarg, None)
+        user = get_object_or_404(User, username=username)
+        return BoosterBadgeAward.objects.filter(user=user)
 
