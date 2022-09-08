@@ -121,10 +121,15 @@ class AwardBoosterBadgesSerializer(serializers.ModelSerializer):
 
 class BoosterBadgeSerializer(serializers.ModelSerializer):
     skill_name = serializers.CharField(source='skill.name')
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BoosterBadge
-        fields = ('id', 'slug', 'skill_name', 'display_name')
+        fields = ('id', 'slug', 'skill_name', 'display_name', 'image_url')
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        return get_absolute_url(request, obj.image)
 
 
 class ClassBoosterBadgesSerializer(serializers.ModelSerializer):

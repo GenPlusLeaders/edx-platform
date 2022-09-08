@@ -3,7 +3,7 @@ API views for badges
 """
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
@@ -73,7 +73,14 @@ class BoosterBadgeView(generics.ListAPIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
     pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['display_name']
     queryset = BoosterBadge.objects.select_related('skill').all()
+
+    def get_serializer_context(self):
+        context = super(BoosterBadgeView, self).get_serializer_context()
+        context.update({'request': self.request})
+        return context
 
 
 class ClassBoosterBadgeView(generics.ListAPIView):

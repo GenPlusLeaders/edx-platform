@@ -12,6 +12,9 @@ class BoosterBadge(models.Model):
     description = models.TextField()
     image = models.ImageField(upload_to='booster_badge_classes', validators=[validate_badge_image])
 
+    def __str__(self):
+        return f'{self.skill} - {self.display_name}'
+
     def get_for_user(self, user):
         return self.boosterbadgeaward_set.filter(user=user).first()
 
