@@ -121,7 +121,7 @@ class ReflectionAnswerViewSet(viewsets.ViewSet, GenzMixin):
             article=article, teacher=teacher,
             defaults={"answer": serializer.data.get('answer')}
         )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(SuccessMessages.REFLECTION_ADDED, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])
     def portfolio(self, request):
