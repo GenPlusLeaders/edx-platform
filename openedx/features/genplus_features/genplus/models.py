@@ -85,8 +85,8 @@ class GenUser(models.Model):
     def is_teacher(self):
         return self.role == GenUserRoles.TEACHING_STAFF
 
-    def __str__(self):
-        return self.user.username
+    # def __str__(self):
+    #     return self.user.username
 
 
 class Student(models.Model):
@@ -98,8 +98,8 @@ class Student(models.Model):
     def user(self):
         return self.gen_user.user
 
-    def __str__(self):
-        return self.user.username
+    # def __str__(self):
+    #     return self.user.username
 
 
 class ClassManager(models.Manager):

@@ -45,6 +45,10 @@ class ClassAdmin(admin.ModelAdmin):
     )
     search_fields = ('name',)
     filter_horizontal = ('students',)
+    actions = ['mark_visible']
+
+    def mark_visible(modeladmin, request, queryset):
+        queryset.update(is_visible=True)
 
     def get_readonly_fields(self, request, obj=None):
         if not obj:
@@ -70,6 +74,7 @@ class TeacherClassAdmin(admin.ModelAdmin):
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     filter_horizontal = ('classes',)
+
 
 admin.site.register(Student)
 
