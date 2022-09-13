@@ -58,7 +58,7 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
         program = Program.objects.filter(slug=obj.slug).first()
         unit_badges = BadgeClass.objects.none()
         if program:
-            unit_ids = program.units.all().order_by('order').values_list(
+            unit_ids = program.units.all().values_list(
                 'course', flat=True)
             unit_badges = BadgeClass.objects.prefetch_related(
                 'badgeassertion_set').filter(course_id__in=unit_ids,
