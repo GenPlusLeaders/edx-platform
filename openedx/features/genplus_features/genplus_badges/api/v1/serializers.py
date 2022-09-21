@@ -1,7 +1,7 @@
 """
 Serializers for Badges
 """
-
+from django.conf import settings
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
@@ -42,6 +42,7 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
     unit_badges = serializers.SerializerMethodField()
     awarded = serializers.SerializerMethodField()
     awarded_on = serializers.SerializerMethodField()
+    banner_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BadgeClass
@@ -52,17 +53,22 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
             'unit_badges',
             'awarded',
             'awarded_on',
+            'banner_image_url',
         )
 
     def get_unit_badges(self, obj):
         program = Program.objects.filter(slug=obj.slug).first()
         unit_badges = BadgeClass.objects.none()
         if program:
-            unit_ids = program.units.all().order_by('order').values_list(
-                'course', flat=True)
+            units = program.units.all().values(
+                'course', 'order')
+            unit_ids = units.values_list('course', flat=True)
+            unit_order = {unit['course']: unit['order'] for unit in units}
             unit_badges = BadgeClass.objects.prefetch_related(
                 'badgeassertion_set').filter(course_id__in=unit_ids,
                                              issuing_component='genplus__unit')
+
+            unit_badges = sorted(unit_badges, key=lambda unit: unit_order[unit.course_id])
 
         return UnitBadgeSerializer(unit_badges,
                                    many=True,
@@ -76,6 +82,10 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
     def get_awarded_on(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
         return assertion.created if assertion else None
+
+    def get_banner_image_url(self, obj):
+        program = Program.objects.filter(slug=obj.slug).first()
+        return f"{settings.LMS_ROOT_URL}{program.banner_image.url}" if program.banner_image else ''
 
 
 class AwardBoosterBadgesSerializer(serializers.Serializer):
