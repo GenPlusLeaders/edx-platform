@@ -1,31 +1,20 @@
 from django.core.management.base import BaseCommand, CommandError
 from openedx.features.genplus_features.genplus.rmunify import RmUnify
-
-from openedx.features.genplus_features.genplus.models import School, Class
+from openedx.features.genplus_features.genplus.constants import ClassTypes
 
 
 class Command(BaseCommand):
     help = 'Fetch Classes against each school RmUnify'
-    argument_options = ['teachinggroup', 'registration']
+    argument_options = [ClassTypes.REGISTRATION_GROUP, ClassTypes.TEACHING_GROUP]
 
     def add_arguments(self, parser):
-        parser.add_argument("-f", "--from", type=str)
+        parser.add_argument("-f", type=str)
 
     def handle(self, *args, **options):
-        if options['from'] in self.argument_options:
+        if 'f' not in options or options['f'] not in self.argument_options:
+            self.stdout.write(
+                self.style.ERROR(f'please provide a argument -f with values {str(self.argument_options)}'))
+        else:
             rm_unify = RmUnify()
-            for school in School.objects.all():
-                if options['from'] == 'teachinggroup':
-                    url = RmUnify.TEACHING_GROUP.format(RmUnify.ORGANISATION, school.guid)
-                else:
-                    url = RmUnify.REGISTRATION_GROUP.format(RmUnify.ORGANISATION, school.guid)
-
-                classes = rm_unify.fetch(url)
-
-                for gen_class in classes:
-                    Class.objects.update_or_create(
-                        school=school,
-                        group_id=gen_class['GroupId'],
-                        defaults={"name": gen_class['DisplayName']}
-                    )
-                self.stdout.write(self.style.SUCCESS('Successfully fetched classes for "%s"' % school.name))
+            rm_unify.fetch_classes(options['f'])
+            self.stdout.write(self.style.SUCCESS('Successfully fetched classes'))

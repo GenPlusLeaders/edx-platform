@@ -3179,7 +3179,7 @@ CSRF_TRUSTED_ORIGINS = []
 CROSS_DOMAIN_CSRF_COOKIE_DOMAIN = ''
 CROSS_DOMAIN_CSRF_COOKIE_NAME = ''
 
-RM_UNIFY_API = 'https://api.platform.rmunify.com/graph/'
+RM_UNIFY_URL = 'https://api.platform.rmunify.com/graph/'
 RM_UNIFY_KEY = 'place-rmunify-key-here'
 RM_UNIFY_SECRET = 'rmunify-secret'
 
@@ -3488,6 +3488,33 @@ BADGR_API_TOKEN = None
 # .. setting_description: The base URL for the Badgr server.
 # .. setting_warning: DO NOT include a trailing slash. Review FEATURES['ENABLE_OPENBADGES'] for further context.
 BADGR_BASE_URL = "http://localhost:8005"
+
+
+# .. setting_name: BADGR_USERNAME
+# .. setting_default: None
+# .. setting_description: The username for Badgr. You should set up an issuer application with Badgr
+#    (https://badgr.org/app-developers/). The username and password will then be used to create or renew
+#    OAuth2 tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_USERNAME = None
+
+# .. setting_name: BADGR_PASSWORD
+# .. setting_default: None
+# .. setting_description: The password for Badgr. You should set up an issuer application with Badgr
+#    (https://badgr.org/app-developers/). The username and password will then be used to create or renew
+#    OAuth2 tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_PASSWORD = None
+
+# .. setting_name: BADGR_TOKENS_CACHE_KEY
+# .. setting_default: None
+# .. setting_description: The cache key for Badgr API tokens. Once created, the tokens will be stored in cache.
+#    Define the key here for setting and retrieveing the tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_TOKENS_CACHE_KEY = None
+
+
+
 
 # .. setting_name: BADGR_ISSUER_SLUG
 # .. setting_default: 'example-issuer'

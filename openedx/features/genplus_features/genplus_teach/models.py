@@ -34,6 +34,7 @@ class Article(TimeStampedModel):
     skills = models.ManyToManyField(Skill, related_name='articles')
     gtcs = models.ManyToManyField(Gtcs, related_name='articles')
     media_types = models.ManyToManyField(MediaType, related_name='articles')
+    summary = HTMLField()
     content = HTMLField()
     author = models.CharField(max_length=1024, help_text='Add name of the author')
     time = models.PositiveIntegerField(default=0, help_text='Time required to read/watch/listen the article')
