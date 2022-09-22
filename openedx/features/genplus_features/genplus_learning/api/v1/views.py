@@ -13,7 +13,7 @@ from openedx.features.genplus_features.genplus.api.v1.permissions import IsStude
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,
                                                                        ClassUnit, ClassLesson,)
 from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url
-from .serializers import ProgramSerializer, ClassStudentSerializer, ActivitySerializer
+from .serializers import ProgramSerializer, ClassStudentSerializer, ActivitySerializer, ClassUnitSerializer
 from openedx.features.genplus_features.genplus.api.v1.serializers import ClassSummarySerializer
 
 
