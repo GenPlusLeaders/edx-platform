@@ -18,5 +18,5 @@ urlpatterns = [
     url(r'^program-badges/$', StudentProgramBadgeView.as_view(), name='student-program-badges'),
     url(r'^award-badges/$', AwardBoosterBadgesView.as_view(), name='assign-booster-badges'),
     url(r'^booster-badges/$', BoosterBadgeView.as_view(), name='booster-badges-view'),
-    url(r'^booster-badges/student/$', StudentBoosterBadgeView.as_view(), name='class-booster-badges'),
+    url(r'^booster-badges/student/$', StudentBoosterBadgeView.as_view(), name='student-booster-badges'),
 ]
