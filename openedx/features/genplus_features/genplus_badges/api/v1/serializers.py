@@ -108,16 +108,14 @@ class AwardBoosterBadgesSerializer(serializers.Serializer):
         user_qs = User.objects.filter(pk__in=users)
         badge_qs = BoosterBadge.objects.filter(pk__in=badges)
 
-        for user in user_qs:
-            awards = [BoosterBadgeAward(user=user,
-                                        badge=badge,
-                                        awarded_by=request.user,
-                                        feedback=feedback,
-                                        image_url=get_absolute_url(
-                                            request, badge.image)) for badge in badge_qs]
-            return BoosterBadgeAward.objects.bulk_create(awards,
-                                                         ignore_conflicts=True)
-
+        awards = [BoosterBadgeAward(user=user,
+                                    badge=badge,
+                                    awarded_by=request.user,
+                                    feedback=feedback,
+                                    image_url=get_absolute_url(
+                                        request, badge.image))
+                                    for badge in badge_qs
+                                    for user in user_qs]
         if feedback and users:
             students = Student.objects.filter(gen_user__user__pk__in=users)
             teacher = Teacher.objects.get(gen_user__user=request.user)
@@ -125,7 +123,8 @@ class AwardBoosterBadgesSerializer(serializers.Serializer):
                                          type=JournalTypes.TEACHER_FEEDBACK,
                                          description=feedback)
                              for student in students]
-            return JournalPost.objects.bulk_create(journal_posts)
+            JournalPost.objects.bulk_create(journal_posts)
+        return BoosterBadgeAward.objects.bulk_create(awards, ignore_conflicts=True)
 
     def validate(self, data):
         feedback = data['feedback']
