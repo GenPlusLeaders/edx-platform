@@ -86,9 +86,9 @@ class GenUser(models.Model):
         return self.role == GenUserRoles.TEACHING_STAFF
 
     def __str__(self):
-        if self.gen_user.user:
+        if self.user:
             return self.user.username
-        elif self.gen_user.temp_user:
+        elif self.temp_user:
             return self.temp_user.username
         else:
             return str(self.pk)

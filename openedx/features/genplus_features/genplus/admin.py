@@ -79,7 +79,14 @@ class ClassAdmin(admin.ModelAdmin):
     list_filter = ('school', 'is_visible', 'program', 'type')
     search_fields = ('name',)
     filter_horizontal = ('students',)
-    actions = ['mark_visible']
+    actions = ['mark_visible', 'sync_students']
+
+
+    def sync_students(modeladmin, request, queryset):
+        rm_unify = RmUnify()
+        print(rm_unify)
+        rm_unify.fetch_students(query=queryset)
+        messages.add_message(request, messages.INFO, 'Students synced successfully.')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         db = kwargs.get('using')
@@ -161,7 +168,10 @@ class StudentAdmin(admin.ModelAdmin):
         return obj.__str__()
 
     def school(self, obj):
-        return obj.gen_user.school.name
+        try:
+            return obj.gen_user.school.name
+        except:
+            return '-'
 
     def enrolled_classes(self, obj):
         url = reverse('admin:genplus_class_changelist')
@@ -172,3 +182,4 @@ class StudentAdmin(admin.ModelAdmin):
 
 admin.site.register(JournalPost)
 admin.site.register(Activity)
+admin.site.register(ClassStudents)
