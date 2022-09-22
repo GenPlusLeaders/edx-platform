@@ -79,17 +79,12 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 
 class ClassLessonSerializer(serializers.ModelSerializer):
-    class_lesson_progress = serializers.SerializerMethodField()
-
     class Meta:
         model = ClassLesson
-        fields = ('id', 'is_locked', 'class_lesson_progress', 'lms_url')
-
-    def get_class_lesson_progress(self, obj):
-        return calculate_class_lesson_progress(obj.course_key, obj.usage_key, obj.class_unit.gen_class)
+        fields = ('id', 'display_name', 'is_locked', 'lms_url')
 
 
-class ClassSummarySerializer(serializers.ModelSerializer):
+class ClassUnitSerializer(serializers.ModelSerializer):
     class_lessons = ClassLessonSerializer(many=True, read_only=True)
     display_name = serializers.CharField(source="unit.display_name")
 
@@ -100,13 +95,14 @@ class ClassSummarySerializer(serializers.ModelSerializer):
 
 class ClassStudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
+    user_id = serializers.CharField(source='user.id')
     profile_pic = serializers.SerializerMethodField()
     skills_assessment = serializers.SerializerMethodField()
     unit_lesson_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
-        fields = ('id', 'username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
+        fields = ('id', 'user_id', 'username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
 
     def get_profile_pic(self, obj):
         profile = obj.character.profile_pic if obj.character else None

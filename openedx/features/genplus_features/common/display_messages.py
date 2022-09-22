@@ -29,3 +29,4 @@ class ErrorMessages:
     ARTICLE_ALREADY_ADDED = 'This article is already added to your favorite.'
     ARTICLE_ALREADY_RATED = 'You have already rated this article.'
     MAX_FAVORITE = 'You can only favorite {max} articles at a time.'
+    NOT_A_PART_OF_PROGRAMME = 'You are currently not a part of any programme.'
