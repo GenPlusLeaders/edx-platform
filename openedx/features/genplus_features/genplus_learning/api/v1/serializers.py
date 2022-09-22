@@ -11,12 +11,13 @@ from openedx.features.genplus_features.genplus_learning.models import (
     UnitCompletion,
     UnitBlockCompletion,
 )
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.utils import (
     calculate_class_lesson_progress,
     get_absolute_url,
 )
-from openedx.features.genplus_features.genplus.models import Student
+from openedx.features.genplus_features.genplus.models import Student, JournalPost,  Activity, Teacher
+from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
+from openedx.features.genplus_features.genplus.api.v1.serializers import TeacherSerializer
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -79,17 +80,12 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 
 class ClassLessonSerializer(serializers.ModelSerializer):
-    class_lesson_progress = serializers.SerializerMethodField()
-
     class Meta:
         model = ClassLesson
-        fields = ('id', 'is_locked', 'class_lesson_progress', 'lms_url')
-
-    def get_class_lesson_progress(self, obj):
-        return calculate_class_lesson_progress(obj.course_key, obj.usage_key, obj.class_unit.gen_class)
+        fields = ('id', 'display_name', 'is_locked', 'lms_url')
 
 
-class ClassSummarySerializer(serializers.ModelSerializer):
+class ClassUnitSerializer(serializers.ModelSerializer):
     class_lessons = ClassLessonSerializer(many=True, read_only=True)
     display_name = serializers.CharField(source="unit.display_name")
 
@@ -100,13 +96,14 @@ class ClassSummarySerializer(serializers.ModelSerializer):
 
 class ClassStudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
+    user_id = serializers.CharField(source='user.id')
     profile_pic = serializers.SerializerMethodField()
     skills_assessment = serializers.SerializerMethodField()
     unit_lesson_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
-        fields = ('id', 'username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
+        fields = ('id', 'user_id', 'username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
 
     def get_profile_pic(self, obj):
         profile = obj.character.profile_pic if obj.character else None
@@ -132,3 +129,48 @@ class ClassStudentSerializer(serializers.ModelSerializer):
             progress['lesson_completions'] = chapters
             results.append(progress)
         return results
+
+
+def get_generic_serializer(model_arg):
+    class GenericSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = model_arg
+            fields = '__all__'
+            depth = 1
+
+    return GenericSerializer
+
+
+StudentSerializer = get_generic_serializer(Student)
+JournalPostSerializer  = get_generic_serializer(JournalPost)
+UnitBlockCompletionSerializer = get_generic_serializer(UnitBlockCompletion)
+BoosterBadgeAwardSerializer = get_generic_serializer(BoosterBadgeAward)
+
+
+class ContentObjectRelatedField(serializers.RelatedField):
+
+    def to_representation(self, value):
+        if isinstance(value, Student):
+            serializer = StudentSerializer(value)
+        elif isinstance(value, Teacher):
+            serializer = TeacherSerializer(value)
+        elif isinstance(value, UnitBlockCompletion):
+            serializer = UnitBlockCompletionSerializer(value)
+        elif isinstance(value, BoosterBadgeAwardSerializer):
+            serializer = BoosterBadgeAwardSerializer(value)
+        elif isinstance(value, JournalPost):
+            serializer = JournalPostSerializer(value)
+        else:
+            raise Exception('Unexpected type of tagged object')
+
+        return serializer.data
+
+
+class ActivitySerializer(serializers.ModelSerializer):
+    actor = ContentObjectRelatedField(read_only=True)
+    action_object = ContentObjectRelatedField(read_only=True)
+    target = ContentObjectRelatedField(read_only=True)
+
+    class Meta:
+        model = Activity
+        fields = ('id', 'type','actor', 'action_object', 'target', 'created')
