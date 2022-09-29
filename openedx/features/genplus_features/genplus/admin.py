@@ -4,6 +4,7 @@ from openedx.features.genplus_features.genplus_learning.models import Program
 from openedx.features.genplus_features.genplus.rmunify import RmUnify
 from django.contrib import messages
 from openedx.features.genplus_features.genplus.constants import ClassTypes
+import openedx.features.genplus_features.genplus.tasks as genplus_tasks
 from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.safestring import mark_safe
@@ -51,14 +52,18 @@ class SchoolAdmin(admin.ModelAdmin):
         return mark_safe('<a href="%s?gen_user__school__guid__exact=%s">%s</a>' % (url, obj.pk, student_count))
 
     def sync_registration_group_classes(modeladmin, request, queryset):
-        rm_unify = RmUnify()
-        rm_unify.fetch_classes(ClassTypes.REGISTRATION_GROUP, queryset=queryset)
-        messages.add_message(request, messages.INFO, 'Classes synced successfully.')
+        schools_ids = queryset.values_list('guid', flat=True)
+        genplus_tasks.sync_schools.apply_async(
+            args=[ClassTypes.REGISTRATION_GROUP, list(schools_ids)]
+        )
+        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
 
     def sync_teaching_group_classes(modeladmin, request, queryset):
-        rm_unify = RmUnify()
-        rm_unify.fetch_classes(ClassTypes.TEACHING_GROUP, queryset=queryset)
-        messages.add_message(request, messages.INFO, 'Classes synced successfully.')
+        schools_ids = queryset.values_list('guid', flat=True)
+        genplus_tasks.sync_schools.apply_async(
+            args=[ClassTypes.TEACHING_GROUP, list(schools_ids)]
+        )
+        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
 
 
 @admin.register(Character)
@@ -81,12 +86,12 @@ class ClassAdmin(admin.ModelAdmin):
     filter_horizontal = ('students',)
     actions = ['mark_visible', 'sync_students']
 
-
     def sync_students(modeladmin, request, queryset):
-        rm_unify = RmUnify()
-        print(rm_unify)
-        rm_unify.fetch_students(query=queryset)
-        messages.add_message(request, messages.INFO, 'Students synced successfully.')
+        class_ids = queryset.values_list('id', flat=True)
+        genplus_tasks.sync_student.apply_async(
+            args=[list(class_ids)]
+        )
+        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         db = kwargs.get('using')
@@ -177,7 +182,7 @@ class StudentAdmin(admin.ModelAdmin):
         url = reverse('admin:genplus_class_changelist')
         classes = ClassStudents.objects.filter(student=obj)
         return mark_safe('<a href="%s?id__in=%s">%s</a>' % (
-            url, ','.join(map(str, classes.values_list('id', flat=True))), classes.count()))
+            url, ','.join(map(str, classes.values_list('gen_class_id', flat=True))), classes.count()))
 
 
 admin.site.register(JournalPost)
