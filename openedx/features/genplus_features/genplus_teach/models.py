@@ -65,7 +65,7 @@ class Article(TimeStampedModel):
     def save(self, **kwargs):
         read_time = self.get_read_time(self.title, self.content)
         watch_time = self.get_video_time(self.content)
-        self.time = read_time + watch_time
+        self.time = self.time + read_time + watch_time
         super().save(**kwargs)
 
     @staticmethod
@@ -78,7 +78,7 @@ class Article(TimeStampedModel):
         video_time = 0
         links = re.findall(r'(https?://www.youtube.com\S+)', content)
         for link in links:
-            watch_link = link.replace('"', ' ').replace('embed/', '?v=')
+            watch_link = link.replace('"', ' ').replace('embed/', 'watch?v=')
             video_time += self.get_yt_video_time(watch_link)
 
         return video_time
@@ -93,6 +93,7 @@ class Article(TimeStampedModel):
             return t/60
         except Exception as e:
             logger.exception(e)
+            return 0
 
 
 class Reflection(TimeStampedModel):

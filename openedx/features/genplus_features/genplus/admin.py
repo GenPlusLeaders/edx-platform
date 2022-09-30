@@ -56,14 +56,16 @@ class SchoolAdmin(admin.ModelAdmin):
         genplus_tasks.sync_schools.apply_async(
             args=[ClassTypes.REGISTRATION_GROUP, list(schools_ids)]
         )
-        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
+        messages.add_message(request, messages.INFO,
+                             'Classes will be updated on background. Please refresh your page after a while.')
 
     def sync_teaching_group_classes(modeladmin, request, queryset):
         schools_ids = queryset.values_list('guid', flat=True)
         genplus_tasks.sync_schools.apply_async(
             args=[ClassTypes.TEACHING_GROUP, list(schools_ids)]
         )
-        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
+        messages.add_message(request, messages.INFO,
+                             'Classes will be updated on background. Please refresh your page after a while.')
 
 
 @admin.register(Character)
@@ -91,7 +93,8 @@ class ClassAdmin(admin.ModelAdmin):
         genplus_tasks.sync_student.apply_async(
             args=[list(class_ids)]
         )
-        messages.add_message(request, messages.INFO, 'Classes will be updated on background.')
+        messages.add_message(request, messages.INFO,
+                             'Students will be updated on background. Please refresh your page after a while.')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         db = kwargs.get('using')
