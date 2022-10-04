@@ -113,7 +113,7 @@ class StudentDashboardAPIView(APIView):
         """
        student dashboard data
         """
-        gen_class = request.user.gen_user.student.classes.first()
+        gen_class = request.user.gen_user.student.class_set.first()
         if gen_class:
             data = {
                 'progress': self.get_progress(gen_class)
