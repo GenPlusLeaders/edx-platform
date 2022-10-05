@@ -220,4 +220,5 @@ class Activity(TimeStampedModel):
         'action_object_content_type',
         'action_object_object_id'
     )
+    is_read = models.BooleanField(default=False)
     objects = ActivityManager()

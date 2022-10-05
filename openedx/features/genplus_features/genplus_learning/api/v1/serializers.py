@@ -173,4 +173,4 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Activity
-        fields = ('id', 'type','actor', 'action_object', 'target', 'created')
+        fields = ('id', 'type', 'actor', 'action_object', 'target', 'is_read', 'created')
