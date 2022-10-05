@@ -115,6 +115,10 @@ class Student(models.Model):
         else:
             return str(self.gen_user.pk)
 
+    @property
+    def classes(self):
+        return self.class_set
+
 
 class ClassManager(models.Manager):
     def get_queryset(self):

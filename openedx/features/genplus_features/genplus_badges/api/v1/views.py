@@ -115,7 +115,7 @@ class StudentActiveProgramBadgesView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
-        gen_class = self.request.user.gen_user.student.class_set.first()
+        gen_class = self.request.user.gen_user.student.classes.first()
 
         if gen_class:
             program = gen_class.program
