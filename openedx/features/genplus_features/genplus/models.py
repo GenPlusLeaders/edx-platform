@@ -177,7 +177,8 @@ class JournalPost(TimeStampedModel):
 
 class ActivityManager(models.Manager):
     def student_activities(self, student_id=None):
-        return super().get_queryset().filter(target_content_type__model='student', target_object_id=student_id)
+        return super().get_queryset().filter(target_content_type__model='student',
+                                             target_object_id=student_id).order_by('-created')
 
 
 class Activity(TimeStampedModel):
@@ -220,4 +221,5 @@ class Activity(TimeStampedModel):
         'action_object_content_type',
         'action_object_object_id'
     )
+    is_read = models.BooleanField(default=False)
     objects = ActivityManager()
