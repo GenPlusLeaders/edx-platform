@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, FavoriteArticle, ReflectionAnswer, Reflection, \
-    ArticleViewLog, PortfolioEntry
+    ArticleViewLog, PortfolioEntry, Quote
 from openedx.features.genplus_features.genplus.api.v1.mixins import GenzMixin
 from openedx.features.genplus_features.genplus.models import Teacher, Skill
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
@@ -120,8 +120,8 @@ class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
         """
         featured article
         """
-
-        serializer = self.serializer_class(Article.objects.get(is_featured=True), context={'request': request})
+        article = get_object_or_404(Article, is_featured=True)
+        serializer = self.serializer_class(article, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -254,6 +254,18 @@ class PortfolioUpdateAPIView(GenzMixin, generics.UpdateAPIView):
         return PortfolioEntry.objects.filter(teacher=teacher)
 
 
+class QuoteViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsTeacher]
+    serializer_class = get_generic_serializer(Quote)
+
+    # @method_decorator(cache_page(60))
+    @action(detail=True, methods=['get'])
+    def list(self, request, *args, **kwargs):
+        """ Quote of the week """
+        quote = get_object_or_404(Quote, is_current=True)
+        serializer = self.serializer_class(quote)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FiltersViewSet(viewsets.ViewSet):
