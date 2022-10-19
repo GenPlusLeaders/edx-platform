@@ -165,3 +165,19 @@ class PortfolioEntry(TimeStampedModel):
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True)
     gtcs = models.ForeignKey(Gtcs, on_delete=models.SET_NULL, null=True)
     description = models.TextField()
+
+
+class Quote(TimeStampedModel):
+    banner = models.ImageField(upload_to='quote_banners')
+    text = models.TextField()
+    author = models.CharField(max_length=1024)
+    is_current = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text
+
+    def save(self, **kwargs):
+        if self.is_current:
+            # marking the other quote's current false
+            Quote.objects.filter(is_current=True).update(is_current=False)
+        super().save(**kwargs)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Article, Reflection, ReflectionAnswer, ArticleRating, MediaType, Gtcs, ArticleViewLog
+from .models import Article, Reflection, ReflectionAnswer, ArticleRating, MediaType, Gtcs, ArticleViewLog, Quote
 from django.urls import reverse
 from django.contrib import messages
 from django.utils.safestring import mark_safe
@@ -30,11 +30,26 @@ class ArticleAdmin(admin.ModelAdmin):
 
 
 class ReflectionAdmin(admin.ModelAdmin):
-    list_filter = ('article', )
+    list_filter = ('article',)
+
+
+class QuoteAdmin(admin.ModelAdmin):
+    actions = ['mark_as_quote_of_the_week', ]
+    list_display = ['text', 'is_current']
+
+    def mark_as_quote_of_the_week(modeladmin, request, queryset):
+        if queryset.count() > 1:
+            messages.add_message(request, messages.ERROR, 'You cannot mark more than one quote.')
+        else:
+            # marking the other article as non-featured
+            Quote.objects.filter(is_current=True).update(is_current=False)
+            queryset.update(is_current=True)
+            messages.add_message(request, messages.SUCCESS, 'Marked as quote of the week.')
 
 
 admin.site.register(Article, ArticleAdmin)
 admin.site.register(Reflection, ReflectionAdmin)
+admin.site.register(Quote, QuoteAdmin)
 admin.site.register(ReflectionAnswer)
 admin.site.register(ArticleRating)
 admin.site.register(Gtcs)
