@@ -44,17 +44,21 @@ def create_activity_on_onboarded(sender, instance, created, update_fields=None, 
             target=instance.gen_user.student
         )
 
-# TODO: Need to fix this
-# # capturing activity of student/teacher during journal posting
-# @receiver(post_save, sender=JournalPost)
-# def create_activity_for_journal(sender, instance, created, **kwargs):
-#     if created:
-#         activity_type = ActivityTypes.JOURNAL_ENTRY_BY_TEACHER
-#         if instance.journal_type == JournalTypes.STUDENT_POST:
-#             activity_type = ActivityTypes.JOURNAL_ENTRY_BY_STUDENT
-#         Activity.objects.create(
-#             actor=instance.teacher,
-#             type=activity_type,
-#             action_object=instance,
-#             target=instance.student
-#         )
+
+# capturing activity of student/teacher during journal posting
+@receiver(post_save, sender=JournalPost)
+def create_activity_for_journal(sender, instance, created, **kwargs):
+    if created:
+        actor_obj = None
+        if instance.journal_type == JournalTypes.STUDENT_POST:
+            actor_obj = instance.student
+            activity_type = ActivityTypes.JOURNAL_ENTRY_BY_STUDENT
+        elif instance.journal_type == JournalTypes.TEACHER_FEEDBACK:
+            actor_obj = instance.teacher
+            activity_type = ActivityTypes.JOURNAL_ENTRY_BY_TEACHER
+        Activity.objects.create(
+            actor=actor_obj,
+            type=activity_type,
+            action_object=instance,
+            target=instance.student
+        )

@@ -1,17 +1,16 @@
-import statistics
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status, views, viewsets, mixins, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import GenUser, Student, Class, Activity
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,
-                                                                       ClassUnit, ClassLesson,)
+                                                                       ClassUnit, ClassLesson, UnitCompletion,
+                                                                       UnitBlockCompletion)
 from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url
 from .serializers import ProgramSerializer, ClassStudentSerializer, ActivitySerializer, ClassUnitSerializer
 from openedx.features.genplus_features.genplus.api.v1.serializers import ClassSummarySerializer
@@ -116,11 +115,16 @@ class StudentDashboardAPIView(APIView):
         """
        student dashboard data
         """
-        gen_class = request.user.gen_user.student.classes.first()
+        student = request.user.gen_user.student
+        gen_class = student.classes.first()
         if gen_class:
             data = {
-                'progress': self.get_progress(gen_class)
+                'progress': self.get_progress(gen_class),
+                'next_lesson': self.get_next_lesson(gen_class)
             }
+            program_progress = data['progress']['average_progress']
+            character_state = student.character.get_state(program_progress)
+            data.update({'character_video_url': get_absolute_url(request, character_state)})
             return Response(data, status.HTTP_200_OK)
 
         return Response(ErrorMessages.NOT_A_PART_OF_PROGRAMME, status.HTTP_400_BAD_REQUEST)
@@ -131,15 +135,33 @@ class StudentDashboardAPIView(APIView):
         average_progress = 0
         program_data = ProgramSerializer(gen_class.program, context={'gen_user': gen_user}).data
         if program_data and units_count > 0:
-            average_progress += sum(item['progress'] for item in program_data['units']) / units_count
+            average_progress += sum(item['progress'] for item in program_data['units']) // units_count
 
         return {
             'average_progress': average_progress,
             'units_progress': program_data
         }
 
+    def get_next_lesson(self, gen_class):
+        class_units = gen_class.class_units.all()
+        course_keys = class_units.values_list('course_key', flat=True)
+        incomplete_unit_completion = UnitCompletion.objects.filter(user=self.request.user,
+                                                                   is_complete=False,
+                                                                   course_key__in=course_keys).first()
 
-class ActivityAPIView(ListAPIView):
+        if incomplete_unit_completion:
+            next_unit = class_units.filter(course_key=incomplete_unit_completion.course_key).first()
+            next_unit_lessons = next_unit.class_lessons.filter(is_locked=False)
+            for lesson in next_unit_lessons:
+                lesson_completion = UnitBlockCompletion.objects.filter(user=self.request.user,
+                                                                       usage_key=lesson.usage_key).first()
+                if not lesson_completion or not lesson_completion.is_complete:
+                    return {'url': lesson.lms_url, 'display_name': lesson.display_name}
+        return None
+
+
+class ActivityViewSet(mixins.ListModelMixin,
+                      viewsets.GenericViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudent]
     serializer_class = ActivitySerializer
@@ -148,3 +170,9 @@ class ActivityAPIView(ListAPIView):
         student = self.request.user.gen_user.student
         return Activity.objects.student_activities(student_id=student.id)
 
+    @action(detail=True, methods=['put'])
+    def read_activity(self, request, pk=None):  # pylint: disable=unused-argument
+        instance = self.get_object()
+        instance.is_read = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

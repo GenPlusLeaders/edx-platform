@@ -1,6 +1,4 @@
 from rest_framework import serializers
-
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xmodule.modulestore.django import modulestore
 from openedx.features.genplus_features.genplus_learning.models import (
     Program,
@@ -15,9 +13,10 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     calculate_class_lesson_progress,
     get_absolute_url,
 )
-from openedx.features.genplus_features.genplus.models import Student, JournalPost,  Activity, Teacher
+from openedx.features.genplus_features.genplus.models import Student, JournalPost, Activity, Teacher
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.api.v1.serializers import TeacherSerializer
+from openedx.features.genplus_features.common.utils import get_generic_serializer
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -131,20 +130,13 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         return results
 
 
-def get_generic_serializer(model_arg):
-    class GenericSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = model_arg
-            fields = '__all__'
-            depth = 1
-
-    return GenericSerializer
-
-
-StudentSerializer = get_generic_serializer(Student)
-JournalPostSerializer  = get_generic_serializer(JournalPost)
-UnitBlockCompletionSerializer = get_generic_serializer(UnitBlockCompletion)
-BoosterBadgeAwardSerializer = get_generic_serializer(BoosterBadgeAward)
+StudentSerializer = get_generic_serializer({'name': Student, 'fields': '__all__'})
+JournalPostSerializer = get_generic_serializer({'name': JournalPost, 'fields': '__all__'})
+UnitBlockCompletionSerializer = get_generic_serializer({'name': UnitBlockCompletion,
+                                                        'fields': ('usage_key',
+                                                                   'course_name',
+                                                                   'lesson_name')})
+BoosterBadgeAwardSerializer = get_generic_serializer({'name': BoosterBadgeAward, 'fields': '__all__'})
 
 
 class ContentObjectRelatedField(serializers.RelatedField):
@@ -156,7 +148,7 @@ class ContentObjectRelatedField(serializers.RelatedField):
             serializer = TeacherSerializer(value)
         elif isinstance(value, UnitBlockCompletion):
             serializer = UnitBlockCompletionSerializer(value)
-        elif isinstance(value, BoosterBadgeAwardSerializer):
+        elif isinstance(value, BoosterBadgeAward):
             serializer = BoosterBadgeAwardSerializer(value)
         elif isinstance(value, JournalPost):
             serializer = JournalPostSerializer(value)
@@ -173,4 +165,4 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Activity
-        fields = ('id', 'type','actor', 'action_object', 'target', 'created')
+        fields = ('id', 'type', 'actor', 'action_object', 'target', 'is_read', 'created')

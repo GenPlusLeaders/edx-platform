@@ -55,6 +55,15 @@ class Character(models.Model):
     def __str__(self):
         return self.name
 
+    def get_state(self, progress):
+        if 25 <= progress < 50:
+            return self.running
+        elif 50 <= progress < 75:
+            return self.crouching
+        elif 75 <= progress <= 100:
+            return self.jumping
+        return self.standing
+
 
 class TempUser(TimeStampedModel):
     """
@@ -103,6 +112,10 @@ class Student(models.Model):
     def user(self):
         return self.gen_user.user
 
+    @property
+    def has_access_to_lessons(self):
+        return self.classes.count() > 0
+
     def __str__(self):
         if self.gen_user.user:
             return self.gen_user.user.username
@@ -127,7 +140,7 @@ class Class(TimeStampedModel):
     image = models.ImageField(upload_to='gen_plus_classes', null=True, blank=True)
     name = models.CharField(max_length=128)
     is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
-    students = models.ManyToManyField(Student, blank=True, through="genplus.ClassStudents")
+    students = models.ManyToManyField(Student, blank=True, through="genplus.ClassStudents", related_name='classes')
     program = models.ForeignKey('genplus_learning.Program', on_delete=models.CASCADE, null=True, blank=True, related_name="classes")
     objects = models.Manager()
     visible_objects = ClassManager()
@@ -174,7 +187,8 @@ class JournalPost(TimeStampedModel):
 
 class ActivityManager(models.Manager):
     def student_activities(self, student_id=None):
-        return super().get_queryset().filter(target_content_type__model='student', target_object_id=student_id)
+        return super().get_queryset().filter(target_content_type__model='student',
+                                             target_object_id=student_id).order_by('-created')
 
 
 class Activity(TimeStampedModel):
@@ -217,4 +231,5 @@ class Activity(TimeStampedModel):
         'action_object_content_type',
         'action_object_object_id'
     )
+    is_read = models.BooleanField(default=False)
     objects = ActivityManager()
