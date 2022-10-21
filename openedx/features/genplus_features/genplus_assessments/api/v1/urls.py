@@ -12,7 +12,6 @@ from .views import (
 app_name = 'genplus_learning_api_v1'
 
 urlpatterns = [
-    url(r'^all-students-responses/(?P<class_id>\w+)/$', StudentAnswersView.as_view({'get': 'all_students_problem_response'}), name='all-students-response-view'),
-    url(r'^student-responses/(?P<class_id>\w+)/$', StudentAnswersView.as_view({'get': 'student_problem_response'}), name='student-answer-view'),
+    url(r'^students-response/(?P<class_id>\w+)/$', StudentAnswersView.as_view({'get': 'students_problem_response'}), name='students-response-view'),
     url(r'^genz-filters/(?P<class_id>\w+)/$', ClassFilterViewSet.as_view())
 ]

@@ -30,9 +30,14 @@ class StudentAnswersView(viewsets.ViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
 
-    def all_students_problem_response(self, request, **kwargs):
+    def students_problem_response(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
-        students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
+        student_id = request.GET.get('student_id',None)
+        students = []
+        if student_id == "all":
+            students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
+        else:
+            students.append(student_id)
         course_id = request.GET.get('course_id',None)
         course_keys = CourseKey.from_string(course_id)
         problem_locations = request.GET.get('problem_locations',None)
@@ -46,6 +51,7 @@ class StudentAnswersView(viewsets.ViewSet):
             filter = filter,
         )
 
+        print(response)
         return Response(response)
     
     def build_students_result(self,user_id, course_key, usage_key_str, student_list, filter):
@@ -98,18 +104,9 @@ class StudentAnswersView(viewsets.ViewSet):
                             pass
 
                     responses = {}
+                    
                     if block_key.block_type in ('problem'):
-                        responses['problem_key'] = str(block_key)
-                        responses['problem_id'] = block_key.block_id
-                        raw_data = store.get_item(block_key).data
-                        parser = etree.XMLParser(remove_blank_text=True)
-                        problem = etree.XML(raw_data, parser=parser)
-                        for e in problem.iter("*"):
-                            if e.tag == 'problem':
-                                responses['problem_type'] =  e.attrib.get('class')
-                            elif e.text and e.attrib.get('class') == 'question-text':
-                                responses['question_text'] =  e.text
-                        
+                        responses = self.get_problem_attributes(store, block_key)
                         responses['results'] = []
                         aggregate_result = {}
 
@@ -119,14 +116,14 @@ class StudentAnswersView(viewsets.ViewSet):
                             if user_states:
                                 # For each response in the block, aggregate the result for the problem, and add in the responses
                                 if responses['problem_type'] in ('singleChoice', 'multipleChoice'):
-                                    if filter == "lesson_response":
+                                    if filter == "aggregate_response":
                                         aggregate_result.update(self.students_aggregate_result(user_states, aggregate_result))
-                                    elif filter == "problem_response":
+                                    elif filter == "individual_response":
                                         responses['results'].append(self.students_multiple_choice_response(user_states, user))
                                 else:
                                     responses['results'].append(self.students_short_answer_response(user_states, user))
 
-                        if responses['problem_type'] in ('singleChoice', 'multipleChoice') and filter == "lesson_response":
+                        if responses['problem_type'] in ('singleChoice', 'multipleChoice') and filter == "aggregate_response":
                             for key,value in aggregate_result.items():
                                 responses['results'].append({
                                     'title': key,
@@ -164,6 +161,28 @@ class StudentAnswersView(viewsets.ViewSet):
                 aggregate_result[user_state['Answer']]['count'] += 1
 
         return aggregate_result
+
+    def get_problem_attributes(self, store, block_key):
+        responses = {}
+        responses['problem_key'] = str(block_key)
+        responses['problem_id'] = block_key.block_id
+        raw_data = store.get_item(block_key).data
+        parser = etree.XMLParser(remove_blank_text=True)
+        problem = etree.XML(raw_data, parser=parser)
+        data_dict = {}
+        for e in problem.iter("*"):
+            if e.tag == 'problem':
+                responses['problem_type'] =  e.attrib.get('class')
+            elif e.text and e.attrib.get('class') == 'question-text':
+                responses['question_text'] =  e.text
+            elif e.text and e.tag == 'choice':
+                choice_dict = {}
+                choice_dict['statement'] = e.text
+                choice_dict['correct'] = e.attrib.get('correct')
+                data_dict.update({e.attrib.get('class'): choice_dict})
+        if responses['problem_type'] != "shortAnswers":
+            responses['problem_choices'] = data_dict
+        return responses
 
     def students_short_answer_response(self, user_states, user):
         """
