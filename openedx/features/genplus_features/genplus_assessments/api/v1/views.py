@@ -30,31 +30,27 @@ class StudentAnswersView(viewsets.ViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
 
-    def list(self, request, **kwargs):
-        students = []
+    def all_students_problem_response(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
-        if request.GET.get('students',None) == 'all':
-            students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
-        else:
-            students.append(request.GET.get('students',None))
+        students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
         course_id = request.GET.get('course_id',None)
         course_keys = CourseKey.from_string(course_id)
         problem_locations = request.GET.get('problem_locations',None)
+        filter = request.GET.get('filter',None)
 
-        response = self.build_students_aggregate_result(
+        response = self.build_students_result(
             user_id = self.request.user.id,
             course_key = course_keys,
             usage_key_str = problem_locations,
             student_list = students,
-            filter_types = None,
+            filter = filter,
         )
-        print(response)
+
         return Response(response)
     
-    def build_students_aggregate_result(self,user_id, course_key, usage_key_str, student_list ,filter_types=None,
-    ):
+    def build_students_result(self,user_id, course_key, usage_key_str, student_list, filter):
         """
-        Generate a aggregate result for problem responses for all problem under the
+        Generate a result for problem responses for all problem under the
         ``problem_location`` root.
         Arguments:
             user_id (int): The user id for the user generating the report
@@ -88,9 +84,6 @@ class StudentAnswersView(viewsets.ViewSet):
                     if block_key.block_type in ('sequential', 'chapter'):
                         continue
 
-                    if filter_types is not None and block_key.block_type not in filter_types:
-                        continue
-
                     block = store.get_item(block_key)
                     generated_report_data = defaultdict(list)
 
@@ -106,6 +99,8 @@ class StudentAnswersView(viewsets.ViewSet):
 
                     responses = {}
                     if block_key.block_type in ('problem'):
+                        responses['problem_key'] = str(block_key)
+                        responses['problem_id'] = block_key.block_id
                         raw_data = store.get_item(block_key).data
                         parser = etree.XMLParser(remove_blank_text=True)
                         problem = etree.XML(raw_data, parser=parser)
@@ -114,36 +109,30 @@ class StudentAnswersView(viewsets.ViewSet):
                                 responses['problem_type'] =  e.attrib.get('class')
                             elif e.text and e.attrib.get('class') == 'question-text':
                                 responses['question_text'] =  e.text
+                        
                         responses['results'] = []
                         aggregate_result = {}
+
                         for user_id in student_list:
                             user = get_user_model().objects.get(pk=user_id)
                             user_states = generated_report_data.get(user.username)
                             if user_states:
                                 # For each response in the block, aggregate the result for the problem, and add in the responses
-                                for user_state in user_states:
-                                    user_answer = user_state['Answer']
-                                    if responses['problem_type'] in ('singleChoice', 'multipleChoice'):
-                                        correct_answer = user_state['Correct Answer']
-                                        if user_state['Answer'] not in aggregate_result:
-                                            aggregate_result[user_state['Answer']] = {}
-                                            aggregate_result[user_state['Answer']]['count'] = 1
-                                            aggregate_result[user_state['Answer']]['is_correct'] = correct_answer == user_answer
-                                        else:
-                                            aggregate_result[user_state['Answer']]['count'] += 1
-                                    else:
-                                        responses['results'].append({
-                                            'username': user.username,
-                                            'answer': user_answer,
-                                        })
-                        
-                        for key,value in aggregate_result.items():
-                            responses['results'].append({
-                                'title': key,
-                                'count': value['count'],
-                                'is_correct': value['is_correct'],
-                            })
+                                if responses['problem_type'] in ('singleChoice', 'multipleChoice'):
+                                    if filter == "lesson_response":
+                                        aggregate_result.update(self.students_aggregate_result(user_states, aggregate_result))
+                                    elif filter == "problem_response":
+                                        responses['results'].append(self.students_multiple_choice_response(user_states, user))
+                                else:
+                                    responses['results'].append(self.students_short_answer_response(user_states, user))
 
+                        if responses['problem_type'] in ('singleChoice', 'multipleChoice') and filter == "lesson_response":
+                            for key,value in aggregate_result.items():
+                                responses['results'].append({
+                                    'title': key,
+                                    'count': value['count'],
+                                    'is_correct': value['is_correct'],
+                                }) 
                         student_data.append(responses)
 
                     if max_count is not None:
@@ -152,6 +141,81 @@ class StudentAnswersView(viewsets.ViewSet):
                             break
 
         return student_data
+    
+    def students_aggregate_result(self, user_states, aggregate_result):
+        """
+        Generate aggregate response for problem(Multiple Choices and Single Choices) as per the user state  under the
+        ``problem_location`` root.
+        Arguments:
+            user_State (List): The user id for the user generating the report
+            
+        Returns:
+              [Dict]: Returns a dictionaries
+                containing the student aggregate result data.
+        """
+        for user_state in user_states:
+            user_answer = user_state['Answer']
+            correct_answer = user_state['Correct Answer']
+            if user_state['Answer'] not in aggregate_result:
+                aggregate_result[user_state['Answer']] = {}
+                aggregate_result[user_state['Answer']]['count'] = 1
+                aggregate_result[user_state['Answer']]['is_correct'] = correct_answer == user_answer
+            else:
+                aggregate_result[user_state['Answer']]['count'] += 1
+
+        return aggregate_result
+
+    def students_short_answer_response(self, user_states, user):
+        """
+        Generate response for as per the user state for all short answers under the
+        ``problem_location`` root.
+        Arguments:
+            user_State (List): The user id for the user generating the report
+            
+        Returns:
+              [Dict]: Returns a dictionaries
+                containing the student aggregate result data.
+        """
+        student_response_dict = {}
+        for user_state in user_states:
+            user_answer = user_state['Answer']
+            user_question = user_state['Question']
+            student_response_dict = {
+                'username': user.username,
+                'full_name': user.get_full_name(),
+                'question': user_question,
+                'answer': user_answer,
+            }
+        
+        return student_response_dict
+
+    def students_multiple_choice_response(self, user_states, user):
+        """
+        Generate response for as per the user state for all for problem(Multiple Choices and Single Choices) under the
+        ``problem_location`` root.
+        Arguments:
+            user_State (List): The user id for the user generating the report
+            
+        Returns:
+              [Dict]: Returns a dictionaries
+                containing the student aggregate result data.
+        """
+        student_response_dict = {}
+        for user_state in user_states:
+            user_answer = user_state['Answer']
+            correct_answer = user_state['Correct Answer']
+            user_answer_list = list(user_answer.split(","))
+            correct_answer_list = list(correct_answer.split(","))
+            student_response_dict = {
+                'username': user.username,
+                'full_name': user.get_full_name(),
+                'answer': user_answer,
+                'correct_answer': correct_answer,
+                'earned_score': len(list(set(correct_answer_list).intersection(set(user_answer_list)))),
+                'total_score': len(correct_answer_list),
+            }
+        
+        return student_response_dict      
 
     def list_problem_responses(self, course_key, problem_location, student_list, limit_responses=None):
         """
