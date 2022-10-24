@@ -1,5 +1,4 @@
 import logging
-import json
 from lxml import etree
 from xmodule.modulestore.django import modulestore
 from rest_framework import views, viewsets
@@ -10,10 +9,7 @@ from collections import defaultdict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse
 
-
-from lms.djangoapps.courseware.models import StudentModule
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from lms.djangoapps.courseware.user_state_client import DjangoXBlockUserStateClient
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
@@ -54,6 +50,29 @@ class StudentAnswersView(viewsets.ViewSet):
         print(response)
         return Response(response)
     
+    def build_problem_list(self, course_blocks, root, path=None):
+        """
+        Generate a tuple of display names, block location paths and block keys
+        for all problem blocks under the ``root`` block.
+        Arguments:
+            course_blocks (BlockStructureBlockData): Block structure for a course.
+            root (UsageKey): This block and its children will be used to generate
+                the problem list
+            path (List[str]): The list of display names for the parent of root block
+        Yields:
+            Tuple[str, List[str], UsageKey]: tuple of a block's display name, path, and
+                usage key
+        """
+        name = course_blocks.get_xblock_field(root, 'display_name') or root.block_type
+        if path is None:
+            path = [name]
+
+        yield name, path, root
+
+        for block in course_blocks.get_children(root):
+            name = course_blocks.get_xblock_field(block, 'display_name') or block.block_type
+            yield from self.build_problem_list(course_blocks, block, path + [name])
+
     def build_students_result(self,user_id, course_key, usage_key_str, student_list, filter):
         """
         Generate a result for problem responses for all problem under the
@@ -163,6 +182,18 @@ class StudentAnswersView(viewsets.ViewSet):
         return aggregate_result
 
     def get_problem_attributes(self, store, block_key):
+        """
+        Parse the problem which we got in the form of XML and extract 
+        the problem information(title of problem, problem text and choices)
+        for a paricular problem under the
+        ``problem_location`` root.
+        Arguments:
+            block_key: The block_key so that we get the problem data from mongo DB
+            
+        Returns:
+              [Dict]: Returns a dictionaries
+                containing the problem data.
+        """
         responses = {}
         responses['problem_key'] = str(block_key)
         responses['problem_id'] = block_key.block_id
@@ -235,132 +266,6 @@ class StudentAnswersView(viewsets.ViewSet):
             }
         
         return student_response_dict      
-
-    def list_problem_responses(self, course_key, problem_location, student_list, limit_responses=None):
-        """
-        Return responses to a given problem as a dict.
-
-        list_problem_responses(course_key, problem_location)
-
-        would return [
-            {'username': u'user1', 'state': u'...'},
-            {'username': u'user2', 'state': u'...'},
-            {'username': u'user3', 'state': u'...'},
-        ]
-
-        where `state` represents a student's response to the problem
-        identified by `problem_location`.
-        """
-        if isinstance(problem_location, UsageKey):
-            problem_key = problem_location
-        else:
-            problem_key = UsageKey.from_string(problem_location)
-        # Are we dealing with an "old-style" problem location?
-        run = problem_key.run
-        if not run:
-            problem_key = UsageKey.from_string(problem_location).map_into_course(course_key)
-        if problem_key.course_key != course_key:
-            return []
-
-        smdat = StudentModule.objects.filter(
-            course_id=course_key,
-            module_state_key=problem_key,
-            student_id__in = student_list
-        )
-        smdat = smdat.order_by('student')
-        if limit_responses is not None:
-            smdat = smdat[:limit_responses]
-
-        return [
-        {'username': response.student.username, 'state': self.get_response_state(response)}
-        for response in smdat
-    ]
-    
-    def build_problem_list(self, course_blocks, root, path=None):
-        """
-        Generate a tuple of display names, block location paths and block keys
-        for all problem blocks under the ``root`` block.
-        Arguments:
-            course_blocks (BlockStructureBlockData): Block structure for a course.
-            root (UsageKey): This block and its children will be used to generate
-                the problem list
-            path (List[str]): The list of display names for the parent of root block
-        Yields:
-            Tuple[str, List[str], UsageKey]: tuple of a block's display name, path, and
-                usage key
-        """
-        name = course_blocks.get_xblock_field(root, 'display_name') or root.block_type
-        if path is None:
-            path = [name]
-
-        yield name, path, root
-
-        for block in course_blocks.get_children(root):
-            name = course_blocks.get_xblock_field(block, 'display_name') or block.block_type
-            yield from self.build_problem_list(course_blocks, block, path + [name])
-
-
-    def get_response_state(self, response):
-        """
-        Returns state of a particular response as string.
-
-        This method also does necessary encoding for displaying unicode data correctly.
-        """
-        def get_transformer():
-            """
-            Returns state transformer depending upon the problem type.
-            """
-            problem_state_transformers = {
-                'openassessment': self.transform_ora_state,
-                'problem': self.transform_capa_state
-            }
-            problem_type = response.module_type
-            return problem_state_transformers.get(problem_type)
-
-        problem_state = response.state
-        problem_state_transformer = get_transformer()
-        if not problem_state_transformer:
-            return problem_state
-
-        state = json.loads(problem_state)
-        try:
-            transformed_state = problem_state_transformer(state)
-            return json.dumps(transformed_state, ensure_ascii=False)
-        except TypeError:
-            username = response.student.username
-            err_msg = (
-                'Error occurred while attempting to load learner state '
-                '{username} for state {state}.'.format(
-                    username=username,
-                    state=problem_state
-                )
-            )
-            log.error(err_msg)
-            return problem_state
-    
-    def transform_ora_state(self,state):
-        """
-        ORA problem state transformer transforms the problem states.
-
-        Some state variables values are json dumped strings which needs to be loaded
-        into a python object.
-        """
-        fields_to_transform = ['saved_response', 'saved_files_descriptions']
-
-        for field in fields_to_transform:
-            field_state = state.get(field)
-            if not field_state:
-                continue
-
-            state[field] = json.loads(field_state)
-        return state
-
-
-    def transform_capa_state(self,state):
-        """
-        Transforms the CAPA problem state.
-        """
-        return state
 
 class ClassFilterViewSet(views.APIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
