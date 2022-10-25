@@ -211,7 +211,7 @@ class StudentAnswersView(viewsets.ViewSet):
                 choice_dict['statement'] = e.text
                 choice_dict['correct'] = e.attrib.get('correct')
                 data_dict.update({e.attrib.get('class'): choice_dict})
-        if responses['problem_type'] != "shortAnswers":
+        if responses['problem_type'] != "short_answers":
             responses['problem_choices'] = data_dict
         return responses
 
