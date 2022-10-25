@@ -4,7 +4,7 @@ metadata:
     markdown: !!null
 data: |
     <div class="choices-xblock theme-dark">
-      <problem class="singleChoice">
+      <problem class="single_choice">
         <div class="choices-xblock-wapper">
           <div class="choices-info">
             <img src="https://dev.genplus.co.uk/asset-v1:genplus+GP741+2022_T1+type@asset+block@trophy.png" alt="Trophy" class="align-center" width="280" />

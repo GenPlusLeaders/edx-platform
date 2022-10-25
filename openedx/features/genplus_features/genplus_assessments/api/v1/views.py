@@ -134,7 +134,7 @@ class StudentAnswersView(viewsets.ViewSet):
                             user_states = generated_report_data.get(user.username)
                             if user_states:
                                 # For each response in the block, aggregate the result for the problem, and add in the responses
-                                if responses['problem_type'] in ('singleChoice', 'multipleChoice'):
+                                if responses['problem_type'] in ('single_choice', 'multiple_choice'):
                                     if filter == "aggregate_response":
                                         aggregate_result.update(self.students_aggregate_result(user_states, aggregate_result))
                                     elif filter == "individual_response":
@@ -142,7 +142,7 @@ class StudentAnswersView(viewsets.ViewSet):
                                 else:
                                     responses['results'].append(self.students_short_answer_response(user_states, user))
 
-                        if responses['problem_type'] in ('singleChoice', 'multipleChoice') and filter == "aggregate_response":
+                        if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter == "aggregate_response":
                             for key,value in aggregate_result.items():
                                 responses['results'].append({
                                     'title': key,
