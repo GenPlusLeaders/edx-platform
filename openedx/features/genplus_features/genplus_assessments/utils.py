@@ -207,7 +207,7 @@ def students_short_answer_response(user_states, user):
     return student_response_dict
 
 
-def students_multiple_choice_response( user_states, user):
+def students_multiple_choice_response(user_states, user):
     """
     Generate response for as per the user state for all for problem(Multiple Choices and Single Choices) under the
     ``problem_location`` root.
