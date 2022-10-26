@@ -129,7 +129,7 @@ def students_aggregate_result(user_states, aggregate_result):
         
     Returns:
             [Dict]: Returns a dictionaries
-            containing the student aggregate result data.
+            containing the students aggregate result data.
     """
     for user_state in user_states:
         user_answer = user_state['Answer']
