@@ -23,16 +23,16 @@ class StudentAnswersView(viewsets.ViewSet):
 
     def students_problem_response(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
-        student_id = request.GET.get('student_id',None)
+        student_id = request.query_params.get('student_id',None)
         students = []
         if student_id == "all":
             students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
         else:
             students.append(student_id)
-        course_id = request.GET.get('course_id',None)
+        course_id = request.query_params.get('course_id',None)
         course_keys = CourseKey.from_string(course_id)
-        problem_locations = request.GET.get('problem_locations',None)
-        filter = request.GET.get('filter',None)
+        problem_locations = request.query_params.get('problem_locations',None)
+        filter = request.query_params.get('filter',None)
 
         response = build_students_result(
             user_id = self.request.user.id,
