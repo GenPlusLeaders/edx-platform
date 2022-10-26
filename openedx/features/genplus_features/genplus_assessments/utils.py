@@ -11,7 +11,7 @@ from lms.djangoapps.courseware.user_state_client import DjangoXBlockUserStateCli
 
 
 
-def build_problem_list(self, course_blocks, root, path=None):
+def build_problem_list(course_blocks, root, path=None):
         """
         Generate a tuple of display names, block location paths and block keys
         for all problem blocks under the ``root`` block.
@@ -32,9 +32,9 @@ def build_problem_list(self, course_blocks, root, path=None):
 
         for block in course_blocks.get_children(root):
             name = course_blocks.get_xblock_field(block, 'display_name') or block.block_type
-            yield from self.build_problem_list(course_blocks, block, path + [name])
+            yield from build_problem_list(course_blocks, block, path + [name])
 
-def build_students_result(self,user_id, course_key, usage_key_str, student_list, filter):
+def build_students_result(user_id, course_key, usage_key_str, student_list, filter):
     """
     Generate a result for problem responses for all problem under the
     ``problem_location`` root.
@@ -86,7 +86,7 @@ def build_students_result(self,user_id, course_key, usage_key_str, student_list,
                 responses = {}
                 
                 if block_key.block_type in ('problem'):
-                    responses = self.get_problem_attributes(store, block_key)
+                    responses = get_problem_attributes(store, block_key)
                     responses['results'] = []
                     aggregate_result = {}
 
@@ -120,7 +120,7 @@ def build_students_result(self,user_id, course_key, usage_key_str, student_list,
     return student_data
 
   
-def students_aggregate_result(self, user_states, aggregate_result):
+def students_aggregate_result(user_states, aggregate_result):
     """
     Generate aggregate response for problem(Multiple Choices and Single Choices) as per the user state  under the
     ``problem_location`` root.
@@ -144,7 +144,7 @@ def students_aggregate_result(self, user_states, aggregate_result):
     return aggregate_result
 
 
-def get_problem_attributes(self, store, block_key):
+def get_problem_attributes(store, block_key):
     """
     Parse the problem which we got in the form of XML and extract 
     the problem information(title of problem, problem text and choices)
@@ -160,6 +160,7 @@ def get_problem_attributes(self, store, block_key):
     responses = {}
     responses['problem_key'] = str(block_key)
     responses['problem_id'] = block_key.block_id
+    responses['selection'] = 0
     raw_data = store.get_item(block_key).data
     parser = etree.XMLParser(remove_blank_text=True)
     problem = etree.XML(raw_data, parser=parser)
@@ -173,13 +174,15 @@ def get_problem_attributes(self, store, block_key):
             choice_dict = {}
             choice_dict['statement'] = e.text
             choice_dict['correct'] = e.attrib.get('correct')
+            if e.attrib.get('correct') == 'true':
+                 responses['selection'] += 1
             data_dict.update({e.attrib.get('class'): choice_dict})
     if responses['problem_type'] != "short_answers":
         responses['problem_choices'] = data_dict
     return responses
 
 
-def students_short_answer_response(self, user_states, user):
+def students_short_answer_response(user_states, user):
     """
     Generate response for as per the user state for all short answers under the
     ``problem_location`` root.
@@ -204,7 +207,7 @@ def students_short_answer_response(self, user_states, user):
     return student_response_dict
 
 
-def students_multiple_choice_response(self, user_states, user):
+def students_multiple_choice_response( user_states, user):
     """
     Generate response for as per the user state for all for problem(Multiple Choices and Single Choices) under the
     ``problem_location`` root.
