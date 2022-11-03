@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from openedx.features.genplus_features.genplus.models import Student
@@ -37,7 +38,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
 
     def get_profile_pic_url(self, obj):
         if obj.character is not None and obj.character.profile_pic is not None:
-            return obj.character.profile_pic.url
+            return f"{settings.LMS_ROOT_URL}{obj.character.profile_pic.url}"
         else:
             return None
 
