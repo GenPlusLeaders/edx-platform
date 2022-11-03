@@ -25,16 +25,27 @@ class ClassUnitSerializer(serializers.ModelSerializer):
 class ClassStudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     user_id = serializers.CharField(source='user.id')
+    full_name = serializers.SerializerMethodField()
+    profile_pic_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
-        fields = ('id', 'user_id', 'username')
+        fields = ('id', 'user_id', 'username', 'full_name', 'profile_pic_url')
+
+    def get_full_name(self, obj):
+        return obj.gen_user.user.get_full_name()
+
+    def get_profile_pic_url(self, obj):
+        if obj.character is not None and obj.character.profile_pic is not None:
+            return obj.character.profile_pic.url
+        else:
+            return None
 
 
 class ClassSerializer(serializers.ModelSerializer):
     students = ClassStudentSerializer(many=True, read_only=True)
     class_units = ClassUnitSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Class
         fields = ('group_id', 'name', 'students', 'class_units')
