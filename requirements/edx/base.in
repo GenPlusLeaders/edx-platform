@@ -39,6 +39,7 @@ chem                                # A helper library for chemistry calculation
 contextlib2                         # We need contextlib2.ExitStack so we can stop using contextlib.nested which doesn't exist in python 3
 crowdsourcehinter-xblock
 defusedxml
+pdfkit
 Django                              # Web application framework
 django-appconf
 django-celery-results               # Only used for the CacheBackend for celery results
@@ -58,7 +59,6 @@ django-model-utils
 django-mptt
 django-mysql
 django-oauth-toolkit                # Provides oAuth2 capabilities for Django
-django-pdfkit
 django-pipeline
 django-pyfs
 django-ratelimit

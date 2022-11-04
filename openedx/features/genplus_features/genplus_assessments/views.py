@@ -161,12 +161,12 @@ class AssessmentReportPDFView(TemplateView):
             user_id = self.request.user.id
             student = gen_user.student
         elif gen_user.is_teacher:
-            student_id = self.request.GET.get('student_id')
-            student = Student.objects.filter(id=student_id).first()
-            if not student:
+            user_id = self.request.GET.get('user_id')
+            user = GenUser.objects.filter(user__id=user_id).first()
+            if not (user and user.is_student):
                 raise PermissionDenied()
 
-            user_id = student.gen_user.user.id
+            student = user.student
         else:
             raise PermissionDenied()
 
