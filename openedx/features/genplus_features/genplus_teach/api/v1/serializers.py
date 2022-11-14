@@ -137,7 +137,18 @@ HelpGuideSerializer = get_generic_serializer({'name': HelpGuide, 'fields': '__al
 
 
 class HelpGuideTypeSerializer(serializers.ModelSerializer):
-    help_guides = HelpGuideSerializer(source='helpguide_set', many=True, read_only=True)
+    help_guides = serializers.SerializerMethodField()
+
+    def get_help_guides(self, instance):
+        media_type_id = self.context['request'].query_params.get('media_type')
+
+        if media_type_id:
+            items = HelpGuide.objects.filter(guide_type=instance, media_types__id=media_type_id)
+        else:
+            items = HelpGuide.objects.filter(guide_type=instance)
+
+        serializer = HelpGuideSerializer(instance=items, many=True)
+        return serializer.data
 
     class Meta:
         model = HelpGuideType

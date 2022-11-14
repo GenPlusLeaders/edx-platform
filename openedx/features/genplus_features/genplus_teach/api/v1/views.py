@@ -298,7 +298,8 @@ class HelpGuideView(generics.ListAPIView):
     serializer_class = HelpGuideTypeSerializer
     pagination_class = None
     queryset = serializer_class.Meta.model.objects.all()
-
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['helpguide__title']
 
 class AlertBarEntryView(generics.ListAPIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
