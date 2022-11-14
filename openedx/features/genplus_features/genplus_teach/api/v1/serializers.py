@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, Reflection, \
-    ReflectionAnswer, ArticleViewLog, PortfolioEntry, HelpGuideType, HelpGuide, AlertBarEntry
+    ReflectionAnswer, ArticleViewLog, PortfolioEntry, HelpGuideType, HelpGuide, AlertBarEntry, HelpGuideRating
 from openedx.features.genplus_features.genplus.api.v1.serializers import SkillSerializer
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.common.utils import get_generic_serializer
@@ -133,7 +133,28 @@ class PortfolioEntrySerializer(serializers.ModelSerializer):
         serializer.save(teacher=teacher)
 
 
-HelpGuideSerializer = get_generic_serializer({'name': HelpGuide, 'fields': '__all__'},)
+class GuideRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HelpGuideRating
+        fields = ('rating', 'comment', 'teacher')
+        depth = 1
+
+
+class HelpGuideSerializer(serializers.ModelSerializer):
+    rating = serializers.SerializerMethodField()
+
+    def get_rating(self, instance):
+        teacher = self.context.get('teacher')
+        try:
+            guide_rating = HelpGuideRating.objects.get(teacher=teacher, help_guide=instance)
+            return GuideRatingSerializer(guide_rating).data
+        except HelpGuideRating.DoesNotExist:
+            return
+    
+    class Meta:
+        model = HelpGuide
+        fields = '__all__'
+        depth = 1
 
 
 class HelpGuideTypeSerializer(serializers.ModelSerializer):

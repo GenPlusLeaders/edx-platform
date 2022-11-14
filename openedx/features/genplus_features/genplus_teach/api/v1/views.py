@@ -12,14 +12,14 @@ from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeach
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, \
     FavoriteArticle, ReflectionAnswer, Reflection, \
-    ArticleViewLog, PortfolioEntry, Quote, AlertBarEntry
+    ArticleViewLog, PortfolioEntry, Quote, AlertBarEntry, HelpGuide
 from openedx.features.genplus_features.genplus.api.v1.mixins import GenzMixin
 from openedx.features.genplus_features.genplus.models import Teacher, Skill
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from .serializers import (ArticleSerializer, FavoriteArticleSerializer, ArticleRatingSerializer,
                           ReflectionAnswerSerializer,ArticleViewLogSerializer, GtcsSerializer,
                           MediaTypeSerializer, PortfolioEntrySerializer, HelpGuideTypeSerializer,
-                          AlertBarEntrySerializer, )
+                          AlertBarEntrySerializer, HelpGuideSerializer,)
 from openedx.features.genplus_features.genplus.api.v1.serializers import SkillSerializer
 from openedx.features.genplus_features.common.utils import get_generic_serializer
 from .pagination import PortfolioPagination
@@ -292,7 +292,7 @@ class FiltersViewSet(viewsets.ViewSet):
         return Response(data)
 
 
-class HelpGuideView(generics.ListAPIView):
+class HelpGuideViewSet(viewsets.ReadOnlyModelViewSet, GenzMixin):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
     serializer_class = HelpGuideTypeSerializer
@@ -300,6 +300,12 @@ class HelpGuideView(generics.ListAPIView):
     queryset = serializer_class.Meta.model.objects.all()
     filter_backends = [filters.SearchFilter]
     search_fields = ['helpguide__title']
+    
+    def retrieve(self, request, pk=None):
+        teacher = Teacher.objects.get(gen_user=self.gen_user)
+        guide = get_object_or_404(HelpGuide, pk=pk)
+        serializer = HelpGuideSerializer(instance=guide, context={ 'teacher': teacher })
+        return Response(serializer.data)
 
 class AlertBarEntryView(generics.ListAPIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
