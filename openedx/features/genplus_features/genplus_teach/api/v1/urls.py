@@ -26,5 +26,6 @@ urlpatterns = (
     url(r'^articles/featured/', ArticleViewSet.as_view({"get": "featured"})),
     url(r'^articles/(?P<pk>\d+)/log/', ArticleViewLogViewSet.as_view({"put": "log"})),
     url(r'^articles/(?P<reflection_id>\d+)/answer/', ReflectionAnswerViewSet.as_view({"put": "answer"})),
+    url(r'^help-guides/(?P<pk>\d+)/rate/', HelpGuideViewSet.as_view({"put": "rate_guide"})),
     path('', include(router.urls)),
 )

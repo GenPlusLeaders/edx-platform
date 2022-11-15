@@ -136,8 +136,7 @@ class PortfolioEntrySerializer(serializers.ModelSerializer):
 class GuideRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = HelpGuideRating
-        fields = ('rating', 'comment', 'teacher')
-        depth = 1
+        fields = ('rating', 'comment')
 
 
 class HelpGuideSerializer(serializers.ModelSerializer):
