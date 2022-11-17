@@ -333,11 +333,11 @@ class ContactAPIView(views.APIView):
             'from_email': settings.DEFAULT_FROM_EMAIL,
             'to_email': settings.CONTACT_EMAIL,
             'subject': EmailTypes.MISSING_CLASS_EMAIL,
-            'message': request.data.get('message'),
         }
         serializer = ContactSerailizer(data=email_data)
+        message = request.data.get('message', '')
 
-        if serializer.is_valid():
+        if serializer.is_valid() and message:
             record = serializer.save()
             subject = f'{record.subject} ref:{record.email_reference}'
             email = request.user.email
@@ -345,7 +345,7 @@ class ContactAPIView(views.APIView):
             data = {
                 'name': request.user.profile.name,
                 'school': request.user.gen_user.school.name,
-                'message': serializer.validated_data.get('message')
+                'message': message,
             }
 
             plain_message = get_template('genplus/contact_us_email.txt')

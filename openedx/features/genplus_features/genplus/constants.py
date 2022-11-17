@@ -95,11 +95,11 @@ class ActivityTypes:
 class EmailTypes:
 
     """
-    Activity choices
+    Email type choices
     """
     MISSING_CLASS_EMAIL= 'Missing Class'
 
-    __ALL__ = (MISSING_CLASS_EMAIL)
+    __ALL__ = (MISSING_CLASS_EMAIL,)
     __MODEL_CHOICES__ = (
         (email_type, email_type) for email_type in __ALL__
     )

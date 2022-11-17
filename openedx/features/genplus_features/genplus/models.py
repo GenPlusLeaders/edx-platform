@@ -247,7 +247,7 @@ class EmailRecord(TimeStampedModel):
     def save(self, *args, **kwargs):
         record = EmailRecord.objects.filter(subject=self.subject).order_by('-email_reference').first()
         if record:
-            self.email_reference = obj.email_reference + 1
+            self.email_reference = record.email_reference + 1
         else:
             self.email_reference = 1
 

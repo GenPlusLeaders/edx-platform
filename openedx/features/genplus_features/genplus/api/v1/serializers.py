@@ -138,7 +138,6 @@ class TeacherFeedbackSerializer(serializers.ModelSerializer):
 
 
 class ContactSerailizer(serializers.ModelSerializer):
-    message = serializers.CharField(required=True)
     class Meta:
         model = EmailRecord
         fields = ('from_email', 'to_email', 'subject',)
