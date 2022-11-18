@@ -1,6 +1,7 @@
 from django.contrib import admin
 from adminsortable2.admin import SortableInlineAdminMixin
 from openedx.features.genplus_features.genplus_learning.models import *
+from openedx.features.genplus_features.genplus_learning.constants import ProgramStatuses
 
 
 @admin.register(ClassLesson)
@@ -23,13 +24,6 @@ class YearGroupAdmin(admin.ModelAdmin):
 class ProgramEnrollmentAdmin(admin.ModelAdmin):
     list_display = ('student', 'gen_class', 'program', 'status',)
     readonly_fields = ('student', 'gen_class', 'program',)
-
-
-@admin.register(ProgramUnitEnrollment)
-class ProgramUnitEnrollmentAdmin(admin.ModelAdmin):
-    list_display = ('program_enrollment', 'course',)
-    readonly_fields = ('program_enrollment', 'course', 'course_enrollment',)
-
 
 class UnitInline(SortableInlineAdminMixin, admin.TabularInline):
     model = Unit
@@ -64,6 +58,12 @@ class ProgramAdmin(admin.ModelAdmin):
         'status',
     )
     readonly_fields = ('slug', 'uuid',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status == ProgramStatuses.ACTIVE:
+            return self.readonly_fields + ('intro_unit', 'outro_unit',)
+
+        return self.readonly_fields
 
 
 @admin.register(ClassUnit)
