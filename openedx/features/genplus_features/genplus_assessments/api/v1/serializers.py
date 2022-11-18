@@ -3,6 +3,11 @@ from rest_framework import serializers
 
 from openedx.features.genplus_features.genplus.models import Student
 from openedx.features.genplus_features.genplus.models import Class
+from openedx.features.genplus_features.genplus_assessments.models import (
+    Assessment,
+    UserResponse,
+    UserRating
+)
 from openedx.features.genplus_features.genplus_learning.models import (
     ClassLesson,
     ClassUnit
@@ -50,3 +55,16 @@ class ClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = Class
         fields = ('group_id', 'name', 'students', 'class_units')
+        
+class TextAssessmentSerializer(serializers.ModelSerializer):
+    skill = serializers.CharField(source='skill.name')
+    class Meta:
+        model = UserResponse
+        fields = ('user_id', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'student_response', 'score')
+
+class RatingAssessmentSerializer(serializers.ModelSerializer):
+    skill = serializers.CharField(source='skill.name')
+
+    class Meta:
+        model = UserRating
+        fields = ('user_id', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'rating')
