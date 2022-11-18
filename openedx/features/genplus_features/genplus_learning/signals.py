@@ -5,6 +5,7 @@ from django.db.models.signals import post_save, m2m_changed, pre_save
 
 from completion.models import BlockCompletion
 from xmodule.modulestore.django import SignalHandler, modulestore
+from lms.djangoapps.grades.signals.signals import PROBLEM_RAW_SCORE_CHANGED
 from openedx.features.genplus_features.genplus.models import Class, Teacher, Activity
 from openedx.features.genplus_features.genplus.constants import ActivityTypes
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
@@ -68,21 +69,20 @@ def gen_class_changed(sender, instance, *args, **kwargs):
 #             )
 
 
-@receiver(post_save, sender=BlockCompletion)
-def set_unit_and_block_completions(sender, instance, created, **kwargs):
-    if created:
-        genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
-            args=[instance.pk]
-        )
-
-
 # capture activity on lesson completion
 @receiver(post_save, sender=UnitBlockCompletion)
 def create_activity_on_lesson_completion(sender, instance, created, **kwargs):
-    if instance.is_complete:
+    if instance.is_complete and instance.block_type == 'chapter':
         Activity.objects.create(
             actor=instance.user.gen_user.student,
             type=ActivityTypes.LESSON_COMPLETION,
             action_object=instance,
             target=instance.user.gen_user.student
         )
+
+
+@receiver(PROBLEM_RAW_SCORE_CHANGED)
+def problem_raw_score_changed_handler(sender, **kwargs):
+    genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
+        args=[kwargs.get('user_id'), kwargs.get('course_id'), kwargs.get('usage_id')]
+    )

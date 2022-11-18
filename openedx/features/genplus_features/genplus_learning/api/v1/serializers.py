@@ -97,9 +97,10 @@ class ProgramSerializer(serializers.ModelSerializer):
             units_context[unit.pk] = {}
             if gen_user.is_student:
                 enrollment = gen_user.student.program_enrollments.get(program=obj)
+                is_locked = unit.is_locked(enrollment.gen_class) if enrollment.gen_class else False
                 completion = completions.filter(user=gen_user.user, course_key=unit.course.id).first()
                 units_context[unit.pk] = {
-                    'is_locked': unit.is_locked(enrollment.gen_class),
+                    'is_locked': is_locked,
                     'progress': completion.progress if completion else 0,
                 }
             else:
@@ -135,11 +136,13 @@ class ProgramSerializer(serializers.ModelSerializer):
             'is_complete': False,
         }
         if gen_user.is_student:
-            completion = UnitCompletion.objects.filter(user=gen_user.user, course_key=obj.outro_unit.id).first()
-            context['is_complete'] = completion.is_complete if completion else False
+            outro_completion = UnitCompletion.objects.filter(user=gen_user.user, course_key=obj.outro_unit.id).first()
+            context['is_complete'] = outro_completion.is_complete if outro_completion else False
+
             last_unit = obj.units.last()
-            enrollment = gen_user.student.program_enrollments.get(program=obj)
-            context['is_locked'] = last_unit.is_locked(enrollment.gen_class) if last_unit else False
+            if last_unit:
+                last_unit_completion = UnitCompletion.objects.filter(user=gen_user.user, course_key=last_unit.course.id).first()
+                context['is_locked'] = not last_unit_completion.is_complete if last_unit_completion else True
 
         return AssessmentUnitSerializer(obj.outro_unit, read_only=True, context=context).data
 
