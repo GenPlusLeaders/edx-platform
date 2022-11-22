@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from openedx.features.genplus_features.genplus.models import GenUser
+from openedx.features.genplus_features.genplus.models import GenUserProfile
 
 
 class IsGenUser(permissions.BasePermission):
@@ -8,7 +8,7 @@ class IsGenUser(permissions.BasePermission):
     def has_permission(self, request, view):
         try:
             return request.user and request.user.gen_user
-        except GenUser.DoesNotExist:
+        except GenUserProfile.DoesNotExist:
             return False
 
 

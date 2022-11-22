@@ -9,9 +9,9 @@ from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.safestring import mark_safe
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from .filters import MoreThanOneClassFilter
 
-@admin.register(GenUser)
+
+@admin.register(GenUserProfile)
 class GenUserAdmin(admin.ModelAdmin):
     list_display = (
         'user',
@@ -85,7 +85,6 @@ class ClassAdmin(admin.ModelAdmin):
     )
     list_filter = ('school', 'is_visible', 'program', 'type')
     search_fields = ('name',)
-    filter_horizontal = ('students',)
     actions = ['mark_visible', 'sync_students']
 
     def sync_students(modeladmin, request, queryset):
@@ -156,39 +155,6 @@ class ClassAdmin(admin.ModelAdmin):
         return super(ClassAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(TeacherClass)
-class TeacherClassAdmin(admin.ModelAdmin):
-    list_display = ('teacher', 'gen_class', 'is_favorite')
-
-
-# TODO: Remove after testing the login flow
-@admin.register(Teacher)
-class TeacherAdmin(admin.ModelAdmin):
-    filter_horizontal = ('classes',)
-
-
-@admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
-    list_filter = (MoreThanOneClassFilter, 'gen_user__school', )
-    list_display = ('username', 'school', 'enrolled_classes', )
-
-    def username(self, obj):
-        return obj.__str__()
-
-    def school(self, obj):
-        try:
-            return obj.gen_user.school.name
-        except:
-            return '-'
-
-    def enrolled_classes(self, obj):
-        url = reverse('admin:genplus_class_changelist')
-        classes = ClassStudents.objects.filter(student=obj)
-        return mark_safe('<a href="%s?id__in=%s">%s</a>' % (
-            url, ','.join(map(str, classes.values_list('gen_class_id', flat=True))), classes.count()))
-
-
 admin.site.register(JournalPost)
 admin.site.register(Activity)
-admin.site.register(ClassStudents)
 admin.site.register(TempUser)

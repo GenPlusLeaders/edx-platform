@@ -21,6 +21,29 @@ class School(TimeStampedModel):
         return self.name
 
 
+class ClassManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_visible=True)
+
+
+class Class(TimeStampedModel):
+    COLOR_CHOICES = ClassColors.__MODEL_CHOICES__
+    CLASS_CHOICES = ClassTypes.__MODEL_CHOICES__
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes')
+    type = models.CharField(blank=True, null=True, max_length=32, choices=CLASS_CHOICES)
+    group_id = models.CharField(max_length=128)
+    color = models.CharField(blank=True, null=True, max_length=32, choices=COLOR_CHOICES)
+    image = models.ImageField(upload_to='gen_plus_classes', null=True, blank=True)
+    name = models.CharField(max_length=128)
+    is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
+    program = models.ForeignKey('genplus_learning.Program', on_delete=models.CASCADE, null=True, blank=True, related_name="classes")
+    objects = models.Manager()
+    visible_objects = ClassManager()
+
+    def __str__(self):
+        return self.name
+
+
 class Skill(models.Model):
     name = models.CharField(max_length=128, unique=True)
     image = models.ImageField(upload_to='skill_images', null=True, blank=True)
@@ -78,7 +101,7 @@ class TempUser(TimeStampedModel):
         return self.username
 
 
-class GenUser(models.Model):
+class GenUserProfile(models.Model):
     ROLE_CHOICES = GenUserRoles.__MODEL_CHOICES__
 
     user = models.OneToOneField(USER_MODEL, on_delete=models.CASCADE, null=True, related_name='gen_user')
@@ -86,6 +109,10 @@ class GenUser(models.Model):
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True)
     year_of_entry = models.CharField(max_length=32, null=True, blank=True)
     registration_group = models.CharField(max_length=32, null=True, blank=True)
+    character = models.ForeignKey(Character, on_delete=models.SET_NULL, null=True, blank=True)
+    profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True, blank=True)
+    classes = models.ManyToManyField(Class, blank=True)
+    onboarded = models.BooleanField(default=False)
     temp_user = models.OneToOneField(TempUser, on_delete=models.SET_NULL, null=True, blank=True)
 
     @property
@@ -105,82 +132,37 @@ class GenUser(models.Model):
             return str(self.pk)
 
 
-class Student(models.Model):
-    gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='student')
-    character = models.ForeignKey(Character, on_delete=models.SET_NULL, null=True, blank=True)
-    onboarded = models.BooleanField(default=False)
-
-    @property
-    def user(self):
-        return self.gen_user.user
-
-    @property
-    def has_access_to_lessons(self):
-        return self.classes.count() > 0
-
-    def __str__(self):
-        if self.gen_user.user:
-            return self.gen_user.user.username
-        elif self.gen_user.temp_user:
-            return self.gen_user.temp_user.username
-        else:
-            return str(self.gen_user.pk)
+class StudentManager(models.Manager):
+    def get_queryset(self , *args , **kwargs):
+        queryset = super().get_queryset(*args , **kwargs)
+        queryset = queryset.filter(role=GenUserRoles.STUDENT)
+        return queryset
 
 
-class ClassManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(is_visible=True)
+class Student(GenUserProfile):
+    class Meta :
+        proxy = True
+
+    objects = StudentManager()
+
+class TeacherManager(models.Manager):
+    def get_queryset(self , *args , **kwargs):
+        queryset = super().get_queryset(*args , **kwargs)
+        queryset = queryset.filter(role=GenUserRoles.TEACHING_STAFF)
+        return queryset
 
 
-class Class(TimeStampedModel):
-    COLOR_CHOICES = ClassColors.__MODEL_CHOICES__
-    CLASS_CHOICES = ClassTypes.__MODEL_CHOICES__
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='classes')
-    type = models.CharField(blank=True, null=True, max_length=32, choices=CLASS_CHOICES)
-    group_id = models.CharField(max_length=128)
-    color = models.CharField(blank=True, null=True, max_length=32, choices=COLOR_CHOICES)
-    image = models.ImageField(upload_to='gen_plus_classes', null=True, blank=True)
-    name = models.CharField(max_length=128)
-    is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
-    students = models.ManyToManyField(Student, blank=True, through="genplus.ClassStudents", related_name='classes')
-    program = models.ForeignKey('genplus_learning.Program', on_delete=models.CASCADE, null=True, blank=True, related_name="classes")
-    objects = models.Manager()
-    visible_objects = ClassManager()
+class Teacher(GenUserProfile):
+    class Meta:
+        proxy = True
 
-    def __str__(self):
-        return self.name
-
-
-class Teacher(models.Model):
-    gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='teacher')
-    profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True, blank=True)
-    # TODO : need to remove the through model
-    classes = models.ManyToManyField(Class, related_name='teachers', through="genplus.TeacherClass")
-
-    @property
-    def user(self):
-        return self.gen_user.user
-
-    def __str__(self):
-        return self.user.username
-
-
-class TeacherClass(models.Model):
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    gen_class = models.ForeignKey(Class, on_delete=models.CASCADE)
-    is_favorite = models.BooleanField(default=False)
-
-
-class ClassStudents(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    gen_class = models.ForeignKey(Class, on_delete=models.CASCADE)
-    is_visible = models.BooleanField(default=True)
+    objects = TeacherManager()
 
 
 class JournalPost(TimeStampedModel):
     JOURNAL_TYPE_CHOICES = JournalTypes.__MODEL_CHOICES__
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="journal_posts")
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, related_name="journal_feedbacks")
+    student = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name="journal_posts")
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, null=True, related_name="journal_feedbacks")
     title = models.CharField(max_length=128)
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True)
     description = models.TextField()

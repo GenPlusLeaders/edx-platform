@@ -13,7 +13,7 @@ from common.djangoapps.student.models import CourseEnrollment
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from xmodule.modulestore.django import modulestore
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses, ProgramStatuses
-from openedx.features.genplus_features.genplus.models import Student, Class, Skill
+from openedx.features.genplus_features.genplus.models import Class, Skill
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
@@ -123,7 +123,7 @@ class ProgramEnrollment(TimeStampedModel):
     class Meta:
         unique_together = ('student', 'program',)
 
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="program_enrollments")
+    student = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name="program_enrollments")
     gen_class = models.ForeignKey(Class, on_delete=models.SET_NULL, null=True, related_name="program_enrollments")
     program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="program_enrollments")
     status = models.CharField(max_length=9, choices=STATUS_CHOICES)
@@ -137,7 +137,7 @@ class ClassUnit(models.Model):
 
     gen_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name="class_units")
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="class_units")
-    course_key = CourseKeyField(max_length=255)
+    course_key = CourseKeyField(max_length=255, db_index=True)
 
     @property
     def is_locked(self):
@@ -154,8 +154,8 @@ class ClassLesson(models.Model):
 
     class_unit = models.ForeignKey(ClassUnit, on_delete=models.CASCADE, related_name="class_lessons")
     order = models.PositiveIntegerField(default=0, blank=False, null=False)
-    course_key = CourseKeyField(max_length=255)
-    usage_key = UsageKeyField(max_length=255)
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    usage_key = UsageKeyField(max_length=255, db_index=True)
     is_locked = models.BooleanField(default=True)
 
     @property

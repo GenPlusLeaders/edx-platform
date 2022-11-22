@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Student, Class, Activity
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, Class, Activity
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,

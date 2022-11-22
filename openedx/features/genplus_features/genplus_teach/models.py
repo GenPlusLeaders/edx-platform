@@ -3,12 +3,13 @@ import logging
 import pafy
 from django.db import models
 from django.db.models import Avg
+from django.conf import settings
 from django_extensions.db.models import TimeStampedModel
 from html import unescape
 from django.utils.html import strip_tags
 from tinymce.models import HTMLField
-from openedx.features.genplus_features.genplus.models import Skill, Teacher
-
+from openedx.features.genplus_features.genplus.models import Skill
+USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ class Reflection(TimeStampedModel):
 
 class ReflectionAnswer(TimeStampedModel):
     reflection = models.ForeignKey(Reflection, on_delete=models.CASCADE, related_name='answers')
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
     answer = models.TextField()
 
     class Meta:
@@ -122,12 +123,12 @@ class ReflectionAnswer(TimeStampedModel):
 
 class FavoriteArticle(models.Model):
     MAX_FAVORITE = 10
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='favorite_articles')
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name='favorite_articles')
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
 
 
 class ArticleRating(TimeStampedModel):
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='ratings')
     rating = models.PositiveIntegerField(default=0)
     comment = models.TextField()
@@ -145,7 +146,7 @@ class ArticleRating(TimeStampedModel):
 
 # model to log the view, view count and engagement time on an article
 class ArticleViewLog(TimeStampedModel):
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='view_logs')
     count = models.PositiveIntegerField(default=0, help_text='Views count on each article.')
     engagement = models.PositiveIntegerField(default=0, help_text='Length of engagement in seconds')
@@ -161,7 +162,7 @@ class ArticleViewLog(TimeStampedModel):
 
 class PortfolioEntry(TimeStampedModel):
     title = models.CharField(max_length=1024)
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='portfolio_entries')
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE, related_name='portfolio_entries')
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True)
     gtcs = models.ForeignKey(Gtcs, on_delete=models.SET_NULL, null=True)
     description = models.TextField()
@@ -202,7 +203,7 @@ class HelpGuide(TimeStampedModel):
 
 
 class HelpGuideRating(TimeStampedModel):
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
     help_guide = models.ForeignKey(HelpGuide, on_delete=models.CASCADE, related_name='ratings')
     rating = models.PositiveIntegerField(default=0)
     comment = models.TextField()

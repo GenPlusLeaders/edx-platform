@@ -13,7 +13,7 @@ from opaque_keys.edx.keys import UsageKey, CourseKey
 from completion.models import BlockCompletion
 from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.course_modes.models import CourseMode
-from openedx.features.genplus_features.genplus.models import Class, Student
+from openedx.features.genplus_features.genplus.models import Class
 from openedx.features.genplus_features.genplus_learning.models import (
     Program, ProgramEnrollment, UnitCompletion, UnitBlockCompletion
 )

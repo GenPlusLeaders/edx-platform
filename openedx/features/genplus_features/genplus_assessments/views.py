@@ -18,7 +18,7 @@ from django.contrib.staticfiles import finders
 
 from opaque_keys.edx.keys import CourseKey
 from .utils import build_course_report_for_students, get_absolute_url
-from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, JournalPost, Teacher
 from openedx.features.genplus_features.genplus_learning.models import Unit, UnitCompletion
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.constants import JournalTypes
@@ -153,7 +153,7 @@ class AssessmentReportPDFView(TemplateView):
         if not self.request.user.is_authenticated:
             raise PermissionDenied()
 
-        gen_user = GenUser.objects.filter(user=self.request.user).first()
+        gen_user = GenUserProfile.objects.filter(user=self.request.user).first()
         if not gen_user:
             raise PermissionDenied()
 
@@ -162,7 +162,7 @@ class AssessmentReportPDFView(TemplateView):
             student = gen_user.student
         elif gen_user.is_teacher:
             user_id = self.request.GET.get('user_id')
-            user = GenUser.objects.filter(user__id=user_id).first()
+            user = GenUserProfile.objects.filter(user__id=user_id).first()
             if not (user and user.is_student):
                 raise PermissionDenied()
 

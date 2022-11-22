@@ -7,7 +7,7 @@ import requests
 import base64
 import hmac
 from datetime import datetime
-from openedx.features.genplus_features.genplus.models import GenUser, Student, TempUser, School, Class
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, TempUser, School, Class
 from openedx.features.genplus_features.genplus.constants import SchoolTypes, ClassTypes, GenUserRoles
 
 
@@ -107,7 +107,7 @@ class RmUnify:
                             # create a gen_user with tempuser
                             temp_user = TempUser.objects.get_or_create(username=student_username,
                                                                        email=student_email)
-                            gen_user = GenUser.objects.create(
+                            gen_user = GenUserProfile.objects.create(
                                 role=GenUserRoles.STUDENT,
                                 school=gen_class.school,
                                 temp_user=temp_user[0])

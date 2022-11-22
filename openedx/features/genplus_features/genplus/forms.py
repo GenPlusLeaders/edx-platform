@@ -1,17 +1,17 @@
 from django import forms
 
-from openedx.features.genplus_features.genplus.models import GenUser, School
+from openedx.features.genplus_features.genplus.models import GenUserProfile, School
 
 
 class GenUserRegistrationForm(forms.ModelForm):
     """
-    The fields on this form are derived from the GenUser model in models.py.
+    The fields on this form are derived from the GenUserProfile model in models.py.
     """
     organisation_id = forms.CharField(required=False)
     organisation_name = forms.CharField(required=False)
 
     class Meta(object):
-        model = GenUser
+        model = GenUserProfile
         fields = ('role', 'year_of_entry', 'registration_group')
 
     def save(self, commit=True):
