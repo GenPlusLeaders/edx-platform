@@ -14,14 +14,12 @@ class Assessment(models.Model):
     assessment_time = models.CharField(max_length=500, blank=True, null=True, default=None) 
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateField(auto_now_add=True, blank=True)
-
     class Meta:
         abstract = True
 
 class UserResponse(Assessment):
     student_response = models.TextField(blank=True, null=True, default=None)
     score = models.IntegerField(blank=True, null=True, default=0)
-    
     class Meta:
         verbose_name = 'Response Model'
 
@@ -30,7 +28,6 @@ class UserResponse(Assessment):
     
 class UserRating(Assessment):
     rating = models.IntegerField(db_index=True, default=1, validators=[MaxValueValidator(5),MinValueValidator(1)])
-
     class Meta:
         verbose_name = 'Rating Model'
 
