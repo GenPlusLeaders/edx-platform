@@ -49,9 +49,8 @@ def index(request):
             dashboard_url = frontend_url if frontend_url else dashboard_url
             return redirect(dashboard_url)
     
-    # redirect to frontend if not authenticated, which will take to the user to login
-    if (frontend_url):
-        return redirect(frontend_url)
+    # redirect to signin page if not authenticated
+    return redirect('signin_user')
 
     enable_mktg_site = configuration_helpers.get_value(
         'ENABLE_MKTG_SITE',
