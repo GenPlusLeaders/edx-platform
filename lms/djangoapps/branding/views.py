@@ -34,8 +34,6 @@ def index(request):
     """
     Redirects to main page -- info page if user authenticated, or marketing if not
     """
-    frontend_url = settings.GENPLUS_FRONTEND_URL
-    
     if request.user.is_authenticated:
         # Only redirect to dashboard if user has
         # courses in their dashboard. Otherwise UX is a bit cryptic.
@@ -46,6 +44,7 @@ def index(request):
                 settings.FEATURES.get('ALWAYS_REDIRECT_HOMEPAGE_TO_DASHBOARD_FOR_AUTHENTICATED_USER', True)):
             dashboard_url = 'dashboard'
             # redirect to custom dashboard of genplus if authenticated
+            frontend_url = settings.GENPLUS_FRONTEND_URL
             dashboard_url = frontend_url if frontend_url else dashboard_url
             return redirect(dashboard_url)
     
