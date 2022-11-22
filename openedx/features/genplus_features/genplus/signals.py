@@ -2,7 +2,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save
-from .models import GenUser, Student, Teacher, Class, JournalPost, Activity
+from .models import GenUserProfile, Student, Teacher, TempUser, Class, JournalPost, Activity
 from .constants import JournalTypes, ActivityTypes
 import logging
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
@@ -10,7 +10,7 @@ USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 logger = logging.getLogger(__name__)
 
 
-@receiver(post_save, sender=GenUser)
+@receiver(post_save, sender=GenUserProfile)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         if instance.is_student:

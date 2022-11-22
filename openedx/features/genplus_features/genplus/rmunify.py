@@ -7,7 +7,7 @@ import requests
 import base64
 import hmac
 from datetime import datetime
-from openedx.features.genplus_features.genplus.models import GenUser, Student, School, Class
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, TempUser, School, Class
 from openedx.features.genplus_features.genplus.constants import SchoolTypes, ClassTypes, GenUserRoles
 
 

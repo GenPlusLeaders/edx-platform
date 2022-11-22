@@ -9,7 +9,7 @@ class IsGenUser(permissions.BasePermission):
     def has_permission(self, request, view):
         try:
             return request.user and request.user.gen_user
-        except GenUser.DoesNotExist:
+        except GenUserProfile.DoesNotExist:
             return False
 
 

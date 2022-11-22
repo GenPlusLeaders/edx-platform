@@ -22,7 +22,7 @@ from drf_multiple_model.mixins import FlatMultipleModelMixin
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import (
-    GenUser, Character, Class, Teacher, Student, TeacherClass, JournalPost, Skill
+    GenUserProfile, Character, Class, Teacher, Student, JournalPost, Skill
 )
 from openedx.features.genplus_features.genplus.constants import JournalTypes, EmailTypes
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages

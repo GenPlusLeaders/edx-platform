@@ -1,6 +1,3 @@
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
-
-
 class GenzMixin:
     @property
     def gen_user(self):
