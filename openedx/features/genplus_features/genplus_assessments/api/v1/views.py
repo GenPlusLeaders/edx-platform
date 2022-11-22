@@ -69,13 +69,12 @@ class SkillAssessmentView(viewsets.ViewSet):
     def aggregate_assessments_response(self, request, **kwargs):
         class_id = kwargs.get('class_id')
         student_id = request.query_params.get('student_id',None)
-        if student_id is not None:
-            text_assessment = UserResponse.objects.filter(user_id=student_id,class_id=class_id)
-            rating_assessment = UserRating.objects.filter(user_id=student_id,class_id=class_id)
-        else:
+        if student_id == "all":
             text_assessment = UserResponse.objects.filter(class_id=class_id)
             rating_assessment = UserRating.objects.filter(class_id=class_id)
-
+        else:
+            text_assessment = UserResponse.objects.filter(user_id=student_id,class_id=class_id)
+            rating_assessment = UserRating.objects.filter(user_id=student_id,class_id=class_id)
         text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
         rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
         raw_data = text_assessment_data + rating_assessment_data
