@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from common.djangoapps.student.models import UserProfile
-from openedx.features.genplus_features.genplus.models import Teacher, Character, Skill, Class, JournalPost, Student
+from openedx.features.genplus_features.genplus.models import Teacher, Character, Skill, Class, JournalPost, EmailRecord
 from openedx.features.genplus_features.common.display_messages import ErrorMessages
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.forms import SetPasswordForm
@@ -138,10 +138,6 @@ class TeacherFeedbackSerializer(serializers.ModelSerializer):
         extra_kwargs = {'teacher': {'required': True, 'allow_null': False}}
 
 
-class ContactSerailizer(serializers.Serializer):
-    message = serializers.CharField(required=True)
-
-
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length=128)
     new_password1 = serializers.CharField(max_length=128)
@@ -186,3 +182,7 @@ class ChangePasswordByTeacherSerializer(serializers.Serializer):
     password = serializers.CharField(required=True)
 
 
+class ContactSerailizer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailRecord
+        fields = ('from_email', 'to_email', 'subject',)
