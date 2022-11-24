@@ -38,4 +38,4 @@ class FromPrivateSchool(permissions.BasePermission):
     message = 'Current user is not from a private School'
 
     def has_permission(self, request, view):
-        return request.user.gen_user.school.type == SchoolTypes.RM_UNIFY
+        return request.user.gen_user.from_private_school
