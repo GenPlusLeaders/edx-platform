@@ -4,8 +4,9 @@ from openedx.features.genplus_features.genplus_assessments.models import UserRes
 
 @admin.register(UserResponse)
 class UserResponseAdmin(admin.ModelAdmin):
-    list_display = ('user_id', 'course_id', 'usage_id', 'class_id', 'problem_id', 'assessment_time', 'skill', 'student_response', 'score')
+    	list_display = [field.name for field in UserResponse._meta.get_fields()]
+
 
 @admin.register(UserRating)
 class UserResponseAdmin(admin.ModelAdmin):
-    list_display = ('user_id', 'course_id', 'usage_id', 'class_id', 'problem_id', 'assessment_time', 'skill', 'rating')
+    list_display = [field.name for field in UserRating._meta.get_fields()]

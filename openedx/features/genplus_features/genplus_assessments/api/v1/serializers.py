@@ -62,7 +62,7 @@ class TextAssessmentSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     class Meta:
         model = UserResponse
-        fields = ('user_id', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'full_name', 'student_response', 'score')
+        fields = ('user', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'full_name', 'student_response', 'score')
 
     def get_full_name(self, obj):
         return get_user_model().objects.get(pk=obj.user_id).get_full_name()
@@ -72,7 +72,7 @@ class RatingAssessmentSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     class Meta:
         model = UserRating
-        fields = ('user_id', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'full_name', 'rating')
+        fields = ('user', 'course_id', 'usage_id', 'course_id', 'problem_id', 'assessment_time', 'skill', 'full_name', 'rating')
     
     def get_full_name(self, obj):
         return get_user_model().objects.get(pk=obj.user_id).get_full_name()

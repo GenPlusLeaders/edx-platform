@@ -1,13 +1,14 @@
+import json
 import logging
+from django.db.models import Q
+
 from rest_framework import views, viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import UsageKey, CourseKey
 
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-
+from openedx.features.course_experience.utils import get_course_outline_block_tree
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import Class
 from openedx.features.genplus_features.genplus_assessments.models import UserResponse, UserRating
@@ -67,14 +68,16 @@ class SkillAssessmentView(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def aggregate_assessments_response(self, request, **kwargs):
+        import pdb
+        pdb.set_trace()
         class_id = kwargs.get('class_id')
         student_id = request.query_params.get('student_id',None)
-        if student_id == "all":
-            text_assessment = UserResponse.objects.filter(class_id=class_id)
-            rating_assessment = UserRating.objects.filter(class_id=class_id)
+        if student_id != "all" and student_id is not None:
+            text_assessment = UserResponse.objects.filter(user=student_id,gen_class=class_id)
+            rating_assessment = UserRating.objects.filter(user=student_id,gen_class=class_id)
         else:
-            text_assessment = UserResponse.objects.filter(user_id=student_id,class_id=class_id)
-            rating_assessment = UserRating.objects.filter(user_id=student_id,class_id=class_id)
+            text_assessment = UserResponse.objects.filter(gen_class=class_id)
+            rating_assessment = UserRating.objects.filter(gen_class=class_id)
         text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
         rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
         raw_data = text_assessment_data + rating_assessment_data
@@ -94,21 +97,39 @@ class SkillAssessmentView(viewsets.ViewSet):
         start_year_usasge_key = request.query_params.get('start_year_usasge_key',None)
         end_year_usasge_key = request.query_params.get('end_year_usasge_key',None)
         assessment_type = request.query_params.get('assessment_type',None)
-        if assessment_type == "text_assessment":
-            text_assessment = UserResponse.objects.filter(Q(class_id=class_id) & Q(usage_id=start_year_usasge_key) | Q(usage_id=end_year_usasge_key))
-            text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
-            raw_data = text_assessment_data
-        else:
-            rating_assessment = UserRating.objects.filter(Q(class_id=class_id) & Q(usage_id=start_year_usasge_key) | Q(usage_id=end_year_usasge_key))
-            rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
-            raw_data = rating_assessment_data
+        usage_key = UsageKey.from_string(start_year_usasge_key)
         response = {}
-        for data in raw_data:
-            if data['user_id'] not in response:
-                response[data['user_id']] = []
-                response[data['user_id']].append(data)
+        store = modulestore()
+        try:
+            gen_class = Class.objects.get(pk=class_id)
+            response['total_respones'] = gen_class.students.count() * 2
+            response['question_statement'] = store.get_item(usage_key).question_statement
+            response['assessment_type'] = assessment_type
+            response['availaible_respones'] = 0
+            if assessment_type == "text_assessment":
+                text_assessment = UserResponse.objects.filter(Q(program=gen_class.program) & Q(gen_class=class_id) & Q(usage_id=start_year_usasge_key) | Q(usage_id=end_year_usasge_key))
+                text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
+                raw_data = text_assessment_data
             else:
-                response[data['user_id']].append(data)
+                rating_assessment = UserRating.objects.filter(Q(program=gen_class.program) & Q(gen_class=class_id) & Q(usage_id=start_year_usasge_key) | Q(usage_id=end_year_usasge_key))
+                rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
+                raw_data = rating_assessment_data
+
+            students = gen_class.students.all()
+            #prepare response against all the students in a class
+            for student in students:
+                response[str(student.gen_user.user_id)] = {}
+                response[str(student.gen_user.user_id)]['full_name'] = student.gen_user.user.get_full_name()
+                response[str(student.gen_user.user_id)]['score_start_of_year'] = 0
+                response[str(student.gen_user.user_id)]['score_end_of_year'] = 0
+                response[str(student.gen_user.user_id)]['total_score'] = 5
+                if assessment_type == "text_assessment":
+                    response[str(student.gen_user.user_id)]['response_start_of_year'] = None
+                    response[str(student.gen_user.user_id)]['response_end_of_year'] = None
+
+            response.update(self.get_single_assessment_response(raw_data, response))
+        except Exception as e:
+            response['error'] = type(e)
 
         return Response(response)
 
@@ -234,5 +255,34 @@ class SkillAssessmentView(viewsets.ViewSet):
                     aggregate_result[data['problem_id']]['count_response_end_of_year'] += 1
 
         return aggregate_result
+
+    def get_single_assessment_response(self, raw_data, response):
+        """
+        update response for single assessment for every student in a class under the
+        ``problem_location`` root.
+        Arguments:
+            raw_data (list): data get from UserResponse OR UserRating models.
+            response(dict): 
+        Returns:
+                [Dict]: Returns a dictionaries
+                containing the students updated response.
+        """
+        for data in raw_data:
+            if data['assessment_time'] == "start_of_year":
+                response['availaible_respones'] += 1
+                if 'student_response' in data:
+                    response[str(data['user'])]['response_start_of_year'] = json.loads(data['student_response'])
+                    response[str(data['user'])]['score_start_of_year'] = data['score']
+                else:
+                    response[str(data['user'])]['score_start_of_year'] = data['rating']
+            else:
+                response['availaible_respones'] += 1
+                if 'student_response' in data:
+                    response[str(data['user'])]['response_end_of_year'] = json.loads(data['student_response'])
+                    response[str(data['user'])]['score_end_of_year'] = data['score']
+                else:
+                    response[str(data['user'])]['score_end_of_year'] = data['rating']
+
+        return response
 
     
