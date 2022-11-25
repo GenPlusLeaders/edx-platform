@@ -74,26 +74,15 @@ class Character(models.Model):
         return self.dance1
 
 
-class TempUser(TimeStampedModel):
-    """
-    To store temporary unregister user data
-    """
-    username = models.CharField(max_length=128, unique=True)
-    email = models.EmailField(unique=True)
-
-    def __str__(self):
-        return self.username
-
-
 class GenUser(models.Model):
     ROLE_CHOICES = GenUserRoles.__MODEL_CHOICES__
 
+    email = models.EmailField(unique=True)
     user = models.OneToOneField(USER_MODEL, on_delete=models.CASCADE, null=True, related_name='gen_user')
     role = models.CharField(blank=True, null=True, max_length=32, choices=ROLE_CHOICES)
     school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True)
     year_of_entry = models.CharField(max_length=32, null=True, blank=True)
     registration_group = models.CharField(max_length=32, null=True, blank=True)
-    temp_user = models.OneToOneField(TempUser, on_delete=models.SET_NULL, null=True, blank=True)
 
     @property
     def is_student(self):
