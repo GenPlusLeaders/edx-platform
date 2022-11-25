@@ -102,10 +102,11 @@ class SkillAssessmentView(viewsets.ViewSet):
         store = modulestore()
         try:
             gen_class = Class.objects.get(pk=class_id)
-            response['total_respones'] = gen_class.students.count() * 2
             response['question_statement'] = store.get_item(usage_key).question_statement
             response['assessment_type'] = assessment_type
+            response['total_respones'] = gen_class.students.count() * 2
             response['availaible_respones'] = 0
+            response['student_response'] = {}
             if assessment_type == "text_assessment":
                 text_assessment = UserResponse.objects.filter(Q(program=gen_class.program) & Q(gen_class=class_id) & Q(usage_id=start_year_usasge_key) | Q(usage_id=end_year_usasge_key))
                 text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
@@ -118,18 +119,18 @@ class SkillAssessmentView(viewsets.ViewSet):
             students = gen_class.students.all()
             #prepare response against all the students in a class
             for student in students:
-                response[str(student.gen_user.user_id)] = {}
-                response[str(student.gen_user.user_id)]['full_name'] = student.gen_user.user.get_full_name()
-                response[str(student.gen_user.user_id)]['score_start_of_year'] = 0
-                response[str(student.gen_user.user_id)]['score_end_of_year'] = 0
-                response[str(student.gen_user.user_id)]['total_score'] = 5
+                response['student_response']['user_'+str(student.gen_user.user_id)] = {}
+                response['student_response']['user_'+str(student.gen_user.user_id)]['full_name'] = student.gen_user.user.get_full_name()
+                response['student_response']['user_'+str(student.gen_user.user_id)]['score_start_of_year'] = 0
+                response['student_response']['user_'+str(student.gen_user.user_id)]['score_end_of_year'] = 0
+                response['student_response']['user_'+str(student.gen_user.user_id)]['total_score'] = 5
                 if assessment_type == "text_assessment":
-                    response[str(student.gen_user.user_id)]['response_start_of_year'] = None
-                    response[str(student.gen_user.user_id)]['response_end_of_year'] = None
+                    response['student_response']['user_'+str(student.gen_user.user_id)]['response_start_of_year'] = None
+                    response['student_response']['user_'+str(student.gen_user.user_id)]['response_end_of_year'] = None
 
             response.update(self.get_single_assessment_response(raw_data, response))
         except Exception as e:
-            response['error'] = type(e)
+            print(type(e))
 
         return Response(response)
 
@@ -271,17 +272,17 @@ class SkillAssessmentView(viewsets.ViewSet):
             if data['assessment_time'] == "start_of_year":
                 response['availaible_respones'] += 1
                 if 'student_response' in data:
-                    response[str(data['user'])]['response_start_of_year'] = json.loads(data['student_response'])
-                    response[str(data['user'])]['score_start_of_year'] = data['score']
+                    response['student_response']['user_'+str(data['user'])]['response_start_of_year'] = json.loads(data['student_response'])
+                    response['student_response']['user_'+str(data['user'])]['score_start_of_year'] = data['score']
                 else:
-                    response[str(data['user'])]['score_start_of_year'] = data['rating']
+                    response['student_response']['user_'+str(data['user'])]['score_start_of_year'] = data['rating']
             else:
                 response['availaible_respones'] += 1
                 if 'student_response' in data:
-                    response[str(data['user'])]['response_end_of_year'] = json.loads(data['student_response'])
-                    response[str(data['user'])]['score_end_of_year'] = data['score']
+                    response['student_response']['user_'+str(data['user'])]['response_end_of_year'] = json.loads(data['student_response'])
+                    response['student_response']['user_'+str(data['user'])]['score_end_of_year'] = data['score']
                 else:
-                    response[str(data['user'])]['score_end_of_year'] = data['rating']
+                    response['student_response']['user_'+str(data['user'])]['score_end_of_year'] = data['rating']
 
         return response
 
