@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from common.djangoapps.student.models import UserProfile
-from openedx.features.genplus_features.genplus.models import Teacher, Character, Skill, Class, JournalPost, EmailRecord
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Character, Skill, Class, JournalPost, EmailRecord
 from openedx.features.genplus_features.common.display_messages import ErrorMessages
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.forms import SetPasswordForm
@@ -8,39 +8,26 @@ from openedx.core.djangoapps.oauth_dispatch.api import destroy_oauth_tokens
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='profile.name')
+    name = serializers.CharField(source='profile.name', default=None)
     role = serializers.CharField(source='gen_user.role')
+    on_board = serializers.BooleanField(source='gen_user.onboarded')
+    character_id = serializers.IntegerField(source='gen_user.character.id', default=None)
     school = serializers.CharField(source='gen_user.school.name')
     school_type = serializers.CharField(source='gen_user.school.type')
-    csrf_token = serializers.SerializerMethodField('get_csrf_token')
+    profile_image = serializers.SerializerMethodField()
+    csrf_token = serializers.SerializerMethodField()
+    has_access_to_lessons = serializers.BooleanField(source='gen_user.has_access_to_lessons')
 
-    def to_representation(self, instance):
-        user_info = super(UserInfoSerializer, self).to_representation(instance)
+    def get_profile_image(self, instance):
         request = self.context.get('request')
-        gen_user = self.context.get('gen_user')
-        if instance.gen_user.is_student:
-            student_profile = {
-                'on_board': gen_user.student.onboarded,
-                'character_id': gen_user.student.character.id
-                if gen_user.student.character else None,
-                'profile_image': request.build_absolute_uri(
-                    gen_user.student.character.profile_pic.url)
-                if gen_user.student.character else None
-            }
+        gen_user = instance.gen_user
+        url = None
+        if gen_user.is_student and gen_user.character:
+            url = request.build_absolute_uri(gen_user.character.profile_pic.url)
+        elif gen_user.is_teacher and gen_user.profile_image:
+            url = request.build_absolute_uri(gen_user.profile_image.url)
 
-            user_info.update(student_profile)
-        elif instance.gen_user.is_teacher:
-            teacher_profile = {
-                'on_board': '',
-                'character_id': '',
-                'profile_image': request.build_absolute_uri(
-                    gen_user.teacher.profile_image.url)
-                if gen_user.teacher.profile_image else None
-            }
-
-            user_info.update(teacher_profile)
-        return user_info
-
+        return url
 
     def get_csrf_token(self, instance):
         return self.context.get('request').COOKIES.get('csrftoken')
@@ -48,23 +35,19 @@ class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('id', 'name', 'username', 'csrf_token', 'role',
-                  'first_name', 'last_name', 'email', 'school', 'school_type')
+                  'first_name', 'last_name', 'email', 'school', 'school_type',
+                  'on_board', 'character_id', 'profile_image', 'has_access_to_lessons',)
 
 class TeacherSerializer(serializers.ModelSerializer):
-    user_id = serializers.SerializerMethodField()
-    name = serializers.SerializerMethodField()
+    name = serializers.CharField(source='profile.name', default=None)
+    profile_image = serializers.SerializerMethodField()
     class Meta:
-        model = Teacher
-        fields = ('id', 'user_id', 'name', 'profile_image')
+        model = get_user_model()
+        fields = ('id', 'name', 'profile_image')
 
-    def get_user_id(self, obj):
-        return obj.gen_user.user.id
-
-    def get_name(self, obj):
-        profile = UserProfile.objects.filter(user=obj.gen_user.user).first()
-        if profile:
-            return profile.name
-        return None
+    def get_profile_image(self, instance):
+        gen_user = GenUserProfile.objects.filter(user=instance).first()
+        return gen_user.profile_image.url if gen_user else None
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -122,6 +105,7 @@ class JournalListSerializer(serializers.ModelSerializer):
     class Meta:
         model = JournalPost
         fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'created')
+
 
 class StudentPostSerializer(serializers.ModelSerializer):
     class Meta:

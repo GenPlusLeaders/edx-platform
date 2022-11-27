@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from xmodule.modulestore.django import modulestore
 from common.djangoapps.student.models import CourseEnrollment
@@ -16,9 +17,8 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     calculate_class_lesson_progress,
     get_absolute_url,
 )
-from openedx.features.genplus_features.genplus.models import Student, JournalPost, Activity, Teacher
+from openedx.features.genplus_features.genplus.models import GenUserProfile, JournalPost, Activity
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
-from openedx.features.genplus_features.genplus.api.v1.serializers import TeacherSerializer
 from openedx.features.genplus_features.common.utils import get_generic_serializer
 
 
@@ -86,10 +86,10 @@ class ProgramSerializer(serializers.ModelSerializer):
         fields = ('program_name', 'year_group_name', 'intro_unit', 'units', 'outro_unit')
 
     def get_units(self, obj):
-        gen_user = self.context.get('gen_user')
+        user = self.context.get('user')
         units = obj.units.all()
         completions = UnitCompletion.objects.filter(
-            user=gen_user.user,
+            user=user,
             course_key__in=units.values_list('course', flat=True)
         )
         units_context = {}
@@ -98,11 +98,11 @@ class ProgramSerializer(serializers.ModelSerializer):
             is_locked = False
             progress = None
 
-            if gen_user.is_student:
-                enrollment = gen_user.student.program_enrollments.get(program=obj)
-                completion = completions.filter(user=gen_user.user, course_key=unit.course.id).first()
+            if user.gen_user.is_student:
+                enrollment = user.program_enrollments.get(program=obj)
+                completion = completions.filter(user=user, course_key=unit.course.id).first()
                 progress = completion.progress if completion else 0
-                if CourseEnrollment.is_enrolled(gen_user.user, unit.course.id):
+                if CourseEnrollment.is_enrolled(user, unit.course.id):
                     is_locked = unit.is_locked(enrollment.gen_class)
                 else:
                     is_locked = True
@@ -118,13 +118,13 @@ class ProgramSerializer(serializers.ModelSerializer):
         if not obj.intro_unit:
             return None
 
-        gen_user = self.context.get('gen_user')
+        user = self.context.get('user')
         context = {
             'is_locked': False,
             'is_complete': False,
         }
-        if gen_user.is_student:
-            completion = UnitCompletion.objects.filter(user=gen_user.user, course_key=obj.intro_unit.id).first()
+        if user.gen_user.is_student:
+            completion = UnitCompletion.objects.filter(user=user, course_key=obj.intro_unit.id).first()
             context['is_complete'] = completion.is_complete if completion else False
 
         return AssessmentUnitSerializer(obj.intro_unit, read_only=True, context=context).data
@@ -133,13 +133,13 @@ class ProgramSerializer(serializers.ModelSerializer):
         if not obj.outro_unit:
             return None
 
-        gen_user = self.context.get('gen_user')
+        user = self.context.get('user')
         context = {
             'is_locked': False,
             'is_complete': False,
         }
-        if gen_user.is_student:
-            completion = UnitCompletion.objects.filter(user=gen_user.user, course_key=obj.outro_unit.id).first()
+        if user.gen_user.is_student:
+            completion = UnitCompletion.objects.filter(user=user, course_key=obj.outro_unit.id).first()
             context['is_complete'] = completion.is_complete if completion else False
 
         return AssessmentUnitSerializer(obj.outro_unit, read_only=True, context=context).data
@@ -173,7 +173,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
     unit_lesson_completion = serializers.SerializerMethodField()
 
     class Meta:
-        model = Student
+        model = GenUserProfile
         fields = ('id', 'user_id', 'username', 'profile_pic', 'skills_assessment', 'unit_lesson_completion')
 
     def get_profile_pic(self, obj):
@@ -202,7 +202,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         return results
 
 
-StudentSerializer = get_generic_serializer({'name': Student, 'fields': '__all__'})
+UserSerializer = get_generic_serializer({'name': get_user_model(), 'fields': '__all__'})
 JournalPostSerializer = get_generic_serializer({'name': JournalPost, 'fields': '__all__'})
 UnitBlockCompletionSerializer = get_generic_serializer({'name': UnitBlockCompletion,
                                                         'fields': ('usage_key',
@@ -214,10 +214,8 @@ BoosterBadgeAwardSerializer = get_generic_serializer({'name': BoosterBadgeAward,
 class ContentObjectRelatedField(serializers.RelatedField):
 
     def to_representation(self, value):
-        if isinstance(value, Student):
-            serializer = StudentSerializer(value)
-        elif isinstance(value, Teacher):
-            serializer = TeacherSerializer(value)
+        if isinstance(value, get_user_model()):
+            serializer = UserSerializer(value)
         elif isinstance(value, UnitBlockCompletion):
             serializer = UnitBlockCompletionSerializer(value)
         elif isinstance(value, BoosterBadgeAward):

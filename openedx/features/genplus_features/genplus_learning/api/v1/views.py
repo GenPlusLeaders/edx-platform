@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.genplus.constants import GenUserRoles
 from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, Class, Activity
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent
@@ -25,9 +26,9 @@ class ProgramViewSet(viewsets.ModelViewSet):
     serializer_class = ProgramSerializer
 
     def get_queryset(self):
-        gen_user = self.request.user.gen_user
-        if gen_user.is_student:
-            enrollments = ProgramEnrollment.visible_objects.filter(student=gen_user.student)
+        user = self.request.user
+        if user.gen_user.is_student:
+            enrollments = ProgramEnrollment.visible_objects.filter(student=user)
             program_ids = enrollments.values_list('program', flat=True)
             qs = Program.objects.filter(id__in=program_ids)
         else:
@@ -37,12 +38,12 @@ class ProgramViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         context = super(ProgramViewSet, self).get_serializer_context()
         context.update({
-            "gen_user": self.request.user.gen_user,
+            "user": self.request.user,
         })
         return context
 
     def get_permissions(self):
-        permission_classes = [IsAuthenticated, ]
+        permission_classes = [IsAuthenticated,]
         if self.action == 'list':
             permission_classes.append(IsStudentOrTeacher)
         else:
@@ -56,25 +57,24 @@ class ClassStudentViewSet(mixins.ListModelMixin,
     permission_classes = [IsAuthenticated, IsTeacher]
     serializer_class = ClassStudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['gen_user__user__username']
+    search_fields = ['user__username']
 
     def get_serializer_context(self):
         context = super(ClassStudentViewSet, self).get_serializer_context()
         class_id = self.kwargs.get('pk', None)
         if class_id:
             gen_class = get_object_or_404(Class, pk=class_id)
-            class_units = ClassUnit.objects.select_related('unit')
-            context['class_units'] = class_units.filter(gen_class=gen_class)
+            context['class_units'] = ClassUnit.objects.select_related('unit').filter(gen_class=gen_class)
             context['request'] = self.request
-            return context
+        return context
 
     def get_queryset(self):
         class_id = self.kwargs.get('pk', None)
         try:
-            gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
+            gen_class = Class.objects.prefetch_related('gen_users').get(pk=class_id)
         except Class.DoesNotExist:
             return Student.objects.none()
-        return gen_class.students.select_related('gen_user__user').all()
+        return gen_class.gen_users.select_related('user').filter(role=GenUserRoles.STUDENT)
 
 
 class ClassSummaryViewSet(viewsets.ModelViewSet):
@@ -116,12 +116,12 @@ class StudentDashboardAPIView(APIView):
         """
        student dashboard data
         """
-        student = request.user.gen_user.student
-        gen_class = student.classes.first()
-        if gen_class:
+        user = request.user
+        gen_class = user.gen_user.active_class
+        if gen_class and gen_class.program:
             data = {
-                'progress': self.get_progress(gen_class),
-                'next_lesson': self.get_next_lesson(gen_class)
+                'progress': self.get_progress(user, gen_class),
+                'next_lesson': self.get_next_lesson(user, gen_class)
             }
             program_progress = data['progress']['average_progress']
             character_state = student.character.get_state(program_progress)
@@ -130,11 +130,10 @@ class StudentDashboardAPIView(APIView):
 
         return Response(ErrorMessages.NOT_A_PART_OF_PROGRAMME, status.HTTP_400_BAD_REQUEST)
 
-    def get_progress(self, gen_class):
-        gen_user = self.request.user.gen_user
+    def get_progress(self, user, gen_class):
         units_count = gen_class.program.units.count()
         average_progress = 0
-        program_data = ProgramSerializer(gen_class.program, context={'gen_user': gen_user}).data
+        program_data = ProgramSerializer(gen_class.program, context={'user': user}).data
         if program_data and units_count > 0:
             average_progress += sum(item['progress'] for item in program_data['units']) // units_count
 
@@ -143,10 +142,10 @@ class StudentDashboardAPIView(APIView):
             'units_progress': program_data
         }
 
-    def get_next_lesson(self, gen_class):
+    def get_next_lesson(self, user, gen_class):
         class_units = gen_class.class_units.all()
         course_keys = class_units.values_list('course_key', flat=True)
-        user_completions = UnitCompletion.objects.filter(user=self.request.user)
+        user_completions = UnitCompletion.objects.filter(user=user)
 
         # User has not started a course yet.
         if not user_completions:
@@ -161,7 +160,7 @@ class StudentDashboardAPIView(APIView):
             next_unit = class_units.filter(course_key=incomplete_unit_completion.course_key).first()
             next_unit_lessons = next_unit.class_lessons.filter(is_locked=False)
             for lesson in next_unit_lessons:
-                lesson_completion = UnitBlockCompletion.objects.filter(user=self.request.user,
+                lesson_completion = UnitBlockCompletion.objects.filter(user=user,
                                                                        usage_key=lesson.usage_key).first()
                 if not lesson_completion or not lesson_completion.is_complete:
                     return {'url': lesson.lms_url, 'display_name': lesson.display_name}
@@ -175,8 +174,8 @@ class ActivityViewSet(mixins.ListModelMixin,
     serializer_class = ActivitySerializer
 
     def get_queryset(self):
-        student = self.request.user.gen_user.student
-        return Activity.objects.student_activities(student_id=student.id)
+        user = self.request.user
+        return Activity.objects.student_activities(user_id=user.id)
 
     @action(detail=True, methods=['put'])
     def read_activity(self, request, pk=None):  # pylint: disable=unused-argument

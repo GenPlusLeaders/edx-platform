@@ -1,6 +1,6 @@
 from django.core.validators import ValidationError
 
-from openedx.features.genplus_features.genplus.models import GenUser, School
+from openedx.features.genplus_features.genplus.models import GenUserProfile, School
 from openedx.features.genplus_features.genplus.constants import GenUserRoles
 from openedx.features.genplus_features.genplus_learning.utils import (
     process_pending_student_program_enrollments,
@@ -30,7 +30,7 @@ def register_gen_user(user, gen_user_data):
     registration_group = gen_user_data.get('registration_group')
 
     try:
-        gen_user = GenUser.objects.get(email=user.email)
+        gen_user = GenUserProfile.objects.get(email=user.email)
         gen_user.user = user
         gen_user.school = school
         gen_user.save()
@@ -40,8 +40,8 @@ def register_gen_user(user, gen_user_data):
         elif gen_user.is_teacher:
             process_pending_teacher_program_access(gen_user)
 
-    except GenUser.DoesNotExist:
-        gen_user = GenUser.objects.create(
+    except GenUserProfile.DoesNotExist:
+        gen_user = GenUserProfile.objects.create(
             email=user.email,
             user=user,
             role=role,

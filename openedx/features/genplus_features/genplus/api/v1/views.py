@@ -44,7 +44,6 @@ from .serializers import (
     ChangePasswordSerializer
 )
 from .permissions import IsStudent, IsTeacher, IsStudentOrTeacher, IsGenUser, FromPrivateSchool
-from .mixins import GenzMixin
 from .pagination import JournalListPagination
 
 
@@ -55,7 +54,7 @@ sensitive_post_parameters_m = method_decorator(
 )
 
 
-class UserInfo(GenzMixin, views.APIView):
+class UserInfo(views.APIView):
     """
     API for genplus user information
     """
@@ -72,7 +71,6 @@ class UserInfo(GenzMixin, views.APIView):
         """
         user_info = UserInfoSerializer(self.request.user, context={
             'request': self.request,
-            'gen_user': self.gen_user
         })
 
         return Response(status=status.HTTP_200_OK, data=user_info.data)
@@ -96,29 +94,28 @@ class UserInfo(GenzMixin, views.APIView):
         update user's profile image
         """
         try:
-            if self.gen_user.is_teacher:
+            gen_user = self.request.user.gen_user
+            if gen_user.is_teacher:
                 image = self.request.data.get('image', None)
                 if not image:
                     raise ValueError('image field was empty')
-                teacher = Teacher.objects.get(gen_user=self.gen_user)
-                teacher.profile_image = image
-                teacher.save()
 
-            if self.gen_user.is_student:
+                Teacher.objects.filter(id=gen_user.id).update(profile_image=image)
+
+            if gen_user.is_student:
                 character = self.request.data.get('character', None)
                 if not character:
                     raise ValueError('character field was empty')
+
                 new_character = Character.objects.get(id=int(character))
-                student = Student.objects.get(gen_user=self.gen_user)
-                student.character = new_character
-                student.save()
+                Student.objects.filter(id=gen_user.id).update(character=new_character)
 
             return Response(SuccessMessages.PROFILE_IMAGE_UPDATED, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 
-class CharacterViewSet(GenzMixin, viewsets.ModelViewSet):
+class CharacterViewSet(viewsets.ModelViewSet):
     """
     Viewset for character APIs
     """
@@ -133,17 +130,18 @@ class CharacterViewSet(GenzMixin, viewsets.ModelViewSet):
         select character at the time of onboarding or changing character from
         the profile
         """
+        gen_user = self.request.user.gen_user
         character = self.get_object()
-        student = Student.objects.get(gen_user=self.gen_user)
+        student = Student.objects.get(id=gen_user.id)
         student.character = character
-        if request.data.get("onboarded") and not self.gen_user.student.onboarded:
+        if request.data.get("onboarded") and not gen_user.onboarded:
             student.onboarded = True
 
         student.save(update_fields=['onboarded', 'character'])
         return Response(SuccessMessages.CHARACTER_SELECTED, status=status.HTTP_204_NO_CONTENT)
 
 
-class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
+class ClassViewSet(viewsets.ModelViewSet):
     """
     Viewset for class APIs
     """
@@ -151,10 +149,11 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_queryset(self):
-        return Class.visible_objects.filter(school=self.school)
+        return Class.visible_objects.filter(school=self.request.user.gen_user.school)
 
     def list(self, request, *args, **kwargs):  # pylint: disable=unused-argument
-        favourite_classes = self.gen_user.teacher.classes.filter(teacherclass__is_favorite=True)
+
+        favourite_classes = self.request.user.gen_user.classes.all()
         favourite_classes_serializer = self.get_serializer(favourite_classes, many=True)
         class_queryset = self.filter_queryset(self.get_queryset())
         class_serializer = self.get_serializer(
@@ -175,18 +174,15 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        data = serializer.data
+        gen_user = self.request.user.gen_user
         gen_class = self.get_object()
-        teacher = Teacher.objects.get(gen_user=self.gen_user)
-        teacher_class = TeacherClass.objects.get(teacher=teacher, gen_class=gen_class)
+        data = serializer.data
         if data['action'] == 'add':
-            teacher_class.is_favorite = True
-            teacher_class.save()
+            gen_user.classes.add(gen_class)
             return Response(SuccessMessages.CLASS_ADDED_TO_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
         else:
-            teacher_class.is_favorite = False
-            teacher_class.save()
+            gen_user.classes.remove(gen_class)
             return Response(SuccessMessages.CLASS_REMOVED_FROM_FAVORITES.format(class_name=gen_class.name),
                             status=status.HTTP_204_NO_CONTENT)
 
@@ -196,7 +192,7 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
 
         return ClassSummarySerializer
 
-class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
+class JournalViewSet(FlatMultipleModelMixin, viewsets.ModelViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudentOrTeacher]
     queryset = JournalPost.objects.none()
@@ -231,16 +227,16 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
     def get_querylist(self):
         query_params = self.request.query_params
         journal_posts = JournalPost.objects.select_related('student', 'teacher', 'skill')
+        user = self.request.user
 
-        if self.gen_user.is_student:
-            student = self.gen_user.student
-            journal_posts = journal_posts.filter(student=student)
-            booster_badges = BoosterBadgeAward.objects.filter(user=self.gen_user.user)
-        else:
+        if user.gen_user.is_student:
+            journal_posts = journal_posts.filter(student=user)
+            booster_badges = BoosterBadgeAward.objects.filter(user=user)
+        elif user.gen_user.is_teacher:
             student_id = query_params.get('student_id')
-            student = get_object_or_404(Student, pk=student_id)
-            journal_posts = journal_posts.filter(student=student)
-            booster_badges = BoosterBadgeAward.objects.filter(user__gen_user=student.gen_user)
+            student = get_object_or_404(GenUserProfile, pk=student_id)
+            journal_posts = journal_posts.filter(student=student.user)
+            booster_badges = BoosterBadgeAward.objects.filter(user=student.user)
 
         return [
             {
@@ -266,17 +262,19 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
 
 
     def create(self, request, *args, **kwargs):
-        if self.gen_user.is_student:
+        gen_user = self.request.user.gen_user
+        data = {}
+
+        if gen_user.is_student:
             data = self._create_journal_post_data(request.data, JournalTypes.STUDENT_POST)
             success_message = SuccessMessages.STUDENT_POST_CREATED
             error_message = ErrorMessages.STUDENT_POST_ENTRY_FAILED
-        elif self.gen_user.is_teacher:
+        elif gen_user.is_teacher:
             data = self._create_journal_post_data(request.data, JournalTypes.TEACHER_FEEDBACK)
             success_message = SuccessMessages.TEACHER_FEEDBACK_ADDED
             error_message = ErrorMessages.TEACHER_FEEDBACK_ENTRY_FAILED
 
         serializer = self.get_serializer(data=data)
-
         if serializer.is_valid():
             serializer.save()
             return Response(success_message, status=status.HTTP_201_CREATED)
@@ -290,21 +288,23 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
             'journal_type': journal_type,
         }
         if journal_type == JournalTypes.STUDENT_POST:
-            data['student'] = self.gen_user.student.id
+            data['student'] = self.request.user.id
             data['skill'] = request_data.get('skill')
         elif journal_type == JournalTypes.TEACHER_FEEDBACK:
-            data['student'] = request_data.get('student_id')
-            data['teacher'] = self.gen_user.teacher.id
+            student = get_object_or_404(GenUserProfile, pk=request_data.get('student_id'))
+            data['student'] = student.user.id
+            data['teacher'] = self.request.user.id
 
         return data
 
     def partial_update(self, request, pk=None, *args, **kwargs):
         journal_post = get_object_or_404(JournalPost, pk=pk)
+        gen_user = self.request.user.gen_user
 
-        if self.gen_user.is_student:
+        if gen_user.is_student:
             success_message = SuccessMessages.STUDENT_POST_UPDATED
             error_message = ErrorMessages.STUDENT_POST_UPDATE_FAILED
-        elif self.gen_user.is_teacher:
+        elif gen_user.is_teacher:
             success_message = SuccessMessages.TEACHER_FEEDBACK_UPDATED
             error_message = ErrorMessages.TEACHER_FEEDBACK_UPDATE_FAILED
 
@@ -317,15 +317,17 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['create', 'partial_update']:
-            if self.gen_user.is_student:
+            gen_user = self.request.user.gen_user
+
+            if gen_user.is_student:
                 return StudentPostSerializer
-            elif self.gen_user.is_teacher:
+            elif gen_user.is_teacher:
                 return TeacherFeedbackSerializer
 
         return JournalListSerializer
 
 
-class SkillViewSet(GenzMixin, viewsets.ReadOnlyModelViewSet):
+class SkillViewSet(viewsets.ReadOnlyModelViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudentOrTeacher]
     serializer_class = SkillSerializer
@@ -377,7 +379,7 @@ class ContactAPIView(views.APIView):
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ChangePasswordByTeacherView(GenzMixin, views.APIView):
+class ChangePasswordByTeacherView(views.APIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher, FromPrivateSchool]
 
@@ -399,7 +401,7 @@ class ChangePasswordByTeacherView(GenzMixin, views.APIView):
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ChangePasswordView(GenzMixin, generics.GenericAPIView):
+class ChangePasswordView(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated, FromPrivateSchool]
 
@@ -414,10 +416,3 @@ class ChangePasswordView(GenzMixin, generics.GenericAPIView):
             return Response({"message": "New password has been saved."})
         else:
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-

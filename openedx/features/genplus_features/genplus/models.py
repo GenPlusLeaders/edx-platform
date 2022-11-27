@@ -108,9 +108,15 @@ class GenUserProfile(models.Model):
     registration_group = models.CharField(max_length=32, null=True, blank=True)
     character = models.ForeignKey(Character, on_delete=models.SET_NULL, null=True, blank=True)
     profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True, blank=True)
-    classes = models.ManyToManyField(Class, blank=True)
+    classes = models.ManyToManyField(Class, blank=True, related_name='gen_users')
+    active_class = models.ForeignKey(Class, on_delete=models.SET_NULL, null=True)
     onboarded = models.BooleanField(default=False)
-    temp_user = models.OneToOneField(TempUser, on_delete=models.SET_NULL, null=True, blank=True)
+
+    @property
+    def has_access_to_lessons(self):
+        if self.is_teacher:
+            return True
+        return self.is_student and self.classes.count() > 0
 
     @property
     def is_student(self):
@@ -166,9 +172,9 @@ class JournalPost(TimeStampedModel):
 
 
 class ActivityManager(models.Manager):
-    def student_activities(self, student_id=None):
-        return super().get_queryset().filter(target_content_type__model='student',
-                                             target_object_id=student_id).order_by('-created')
+    def student_activities(self, user_id=None):
+        return super().get_queryset().filter(target_content_type__model='user',
+                                             target_object_id=user_id).order_by('-created')
 
 
 class Activity(TimeStampedModel):

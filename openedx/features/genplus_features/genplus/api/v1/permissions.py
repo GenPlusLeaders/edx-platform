@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from openedx.features.genplus_features.genplus.models import GenUser
+from openedx.features.genplus_features.genplus.models import GenUserProfile
 from openedx.features.genplus_features.genplus.constants import SchoolTypes
 
 

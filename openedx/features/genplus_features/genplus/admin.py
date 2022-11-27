@@ -11,7 +11,6 @@ from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.safestring import mark_safe
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from .filters import MoreThanOneClassFilter
 from django.template.loader import get_template
 from django.shortcuts import redirect, render
 from django.conf.urls import url
@@ -29,6 +28,8 @@ class GenUserAdmin(admin.ModelAdmin):
         'year_of_entry',
         'registration_group'
     )
+    filter_horizontal = ('classes',)
+    fields = ('email', 'user', 'school', 'role', 'character', 'profile_image', 'classes', 'onboarded')
     search_fields = ('user',)
 
 
@@ -49,7 +50,6 @@ class SchoolAdmin(admin.ModelAdmin):
         'type',
         'external_id',
         'classes',
-        'students'
     )
     search_fields = ('name',)
     list_filter = ('type', )
@@ -87,7 +87,7 @@ class SchoolAdmin(admin.ModelAdmin):
                         )
                     user.set_password(password)
                     user.save()
-                    gen_user, created = GenUser.objects.get_or_create(
+                    gen_user, created = GenUserProfile.objects.get_or_create(
                             role=role,
                             user=user,
                             school=school
@@ -126,11 +126,6 @@ class SchoolAdmin(admin.ModelAdmin):
         url = reverse('admin:genplus_class_changelist')
         return mark_safe('<a href="%s?school__guid__exact=%s">%s</a>' % (url, obj.pk, obj.classes.count()))
 
-    def students(self, obj):
-        url = reverse('admin:genplus_student_changelist')
-        student_count = Student.objects.filter(gen_user__school=obj).count()
-        return mark_safe('<a href="%s?gen_user__school__guid__exact=%s">%s</a>' % (url, obj.pk, student_count))
-
     def sync_registration_group_classes(modeladmin, request, queryset):
         schools_ids = queryset.values_list('guid', flat=True)
         genplus_tasks.sync_schools.apply_async(
@@ -161,7 +156,6 @@ class ClassAdmin(admin.ModelAdmin):
         'is_visible',
         'program',
         'type',
-        'enrolled_students'
     )
     list_filter = ('school', 'is_visible', 'program', 'type')
     search_fields = ('name',)
@@ -195,11 +189,6 @@ class ClassAdmin(admin.ModelAdmin):
             format_lazy('{} {}', help_text, msg) if help_text else msg
         )
         return form_field
-
-    def enrolled_students(self, obj):
-        url = reverse('admin:genplus_student_changelist')
-        students_ids = obj.students.values_list('id', flat=True)
-        return mark_safe('<a href="%s?id__in=%s">%s</a>' % (url, ','.join(map(str, students_ids)), obj.students.count()))
 
     def mark_visible(modeladmin, request, queryset):
         queryset.update(is_visible=True)

@@ -7,7 +7,7 @@ import requests
 import base64
 import hmac
 from datetime import datetime
-from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, TempUser, School, Class
+from openedx.features.genplus_features.genplus.models import GenUserProfile, Student, School, Class
 from openedx.features.genplus_features.genplus.constants import SchoolTypes, ClassTypes, GenUserRoles
 
 
@@ -88,15 +88,11 @@ class RmUnify:
             url = getattr(self, fetch_type).format(RmUnify.ORGANISATION,
                                                    gen_class.school.guid)
             data = self.fetch(f"{url}/{gen_class.group_id}")
-            gen_user_ids = []
             for student_data in data['Students']:
                 student_email = student_data.get('UnifyEmailAddress')
-                gen_user, created = GenUser.objects.get_or_create(
+                gen_user, created = GenUserProfile.objects.get_or_create(
                     email=student_email,
                     role=GenUserRoles.STUDENT,
                     school=gen_class.school,
                 )
-                gen_user_ids.append(gen_user.pk)
-
-            gen_students = Student.objects.filter(gen_user__in=gen_user_ids)
-            gen_class.students.add(*gen_students)
+                gen_user.classes.add(gen_class)
