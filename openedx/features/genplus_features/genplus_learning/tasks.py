@@ -77,16 +77,6 @@ def enroll_class_students_to_program(self, class_id, program_id, class_student_i
 
     courses += [unit.course for unit in units]
 
-    course_enrollments = [
-        CourseEnrollment(
-            user=student.gen_user.user,
-            course=course,
-            mode=CourseMode.AUDIT,
-        )
-        for student in unenrolled_students
-        for course in courses
-        if student.gen_user.user
-    ]
     for student in unenrolled_students:
         if student.gen_user.user:
             for course in courses:
