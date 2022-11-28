@@ -69,6 +69,7 @@ class SchoolAdmin(admin.ModelAdmin):
                 try:
                     # convert dict into lower case and the empty string into None
                     non_empty_row = {k.lower().replace(" ", ""): (None if v == "" else v) for k, v in row.items()}
+                    print(non_empty_row)
                     first_name = non_empty_row['firstname']
                     last_name = non_empty_row['secondname']
                     email = non_empty_row['email']
@@ -89,7 +90,8 @@ class SchoolAdmin(admin.ModelAdmin):
                     gen_user, created = GenUser.objects.get_or_create(
                             role=role,
                             user=user,
-                            school=school
+                            school=school,
+                            email=user.email,
                         )
                     if role == GenUserRoles.STUDENT:
                         gen_student = gen_user.student
