@@ -1,6 +1,7 @@
 default_language_version:
   python: python3.8
 default_stages: [commit]
+files: ^openedx/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
@@ -22,7 +23,7 @@ repos:
     - id: isort
 
 # flake8
-- repo: https://gitlab.com/pycqa/flake8
+- repo: https://github.com/pycqa/flake8
   rev: 3.9.2
   hooks:
     - id: flake8

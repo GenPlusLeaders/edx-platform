@@ -1,10 +1,15 @@
-from rest_framework import serializers
-from common.djangoapps.student.models import UserProfile
-from openedx.features.genplus_features.genplus.models import Teacher, Character, Skill, Class, JournalPost, EmailRecord
-from openedx.features.genplus_features.common.display_messages import ErrorMessages
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.forms import SetPasswordForm
+from rest_framework import serializers
+
+from common.djangoapps.student.models import UserProfile
 from openedx.core.djangoapps.oauth_dispatch.api import destroy_oauth_tokens
+from openedx.features.genplus_features.common.display_messages import \
+    ErrorMessages
+from openedx.features.genplus_features.genplus.models import (Character, Class,
+                                                              EmailRecord,
+                                                              JournalPost,
+                                                              Skill, Teacher)
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
@@ -98,8 +103,8 @@ class ClassListSerializer(serializers.ModelSerializer):
 
 
 class ClassSummarySerializer(serializers.ModelSerializer):
-    school_name = serializers.CharField(source="school.name")
-    program_name = serializers.CharField(source="program.year_group.name", default=None)
+    school_name = serializers.CharField(source='school.name')
+    program_name = serializers.CharField(source='program.year_group.name', default=None)
 
     class Meta:
         model = Class

@@ -1,8 +1,7 @@
 from django.contrib import admin
-from openedx.features.genplus_features.genplus_badges.models import (BoosterBadge,
-                                                                     BoosterBadgeAward,
-                                                                     BoosterBadgeType,
-                                                                     )
+
+from openedx.features.genplus_features.genplus_badges.models import (
+    BoosterBadge, BoosterBadgeAward, BoosterBadgeType)
 
 
 @admin.register(BoosterBadge)

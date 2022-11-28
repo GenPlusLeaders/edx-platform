@@ -1,10 +1,11 @@
 import logging
 
 from django.conf import settings
-
-from lms.djangoapps.badges.models import BadgeClass, CourseEventBadgesConfiguration
-from lms.djangoapps.badges.utils import requires_badges_enabled
 from xmodule.modulestore.django import modulestore
+
+from lms.djangoapps.badges.models import (BadgeClass,
+                                          CourseEventBadgesConfiguration)
+from lms.djangoapps.badges.utils import requires_badges_enabled
 from openedx.features.genplus_features.genplus_learning.models import Unit
 
 LOGGER = logging.getLogger(__name__)
@@ -36,14 +37,14 @@ def _get_unit_completion_badge(user, course_key):
 def unit_badge_check(user, course_key):
     course = modulestore().get_course(course_key)
     if not course.issue_badges:
-        LOGGER.info("Course is not configured to issue badges.")
+        LOGGER.info('Course is not configured to issue badges.')
         return
     badge_class = _get_unit_completion_badge(user, course_key)
     if not badge_class:
-        LOGGER.info("BadgeClass not found.")
+        LOGGER.info('BadgeClass not found.')
         return
     if badge_class.get_for_user(user):
-        LOGGER.info("Completion badge already exists for this user on this course.")
+        LOGGER.info('Completion badge already exists for this user on this course.')
         # Badge already exists. Skip.
         return
 

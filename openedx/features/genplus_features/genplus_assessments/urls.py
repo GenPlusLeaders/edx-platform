@@ -1,9 +1,9 @@
 """
 URLs for genplus learning app.
 """
-from django.conf.urls import url, include
-from .views import AssessmentReportPDFView
+from django.conf.urls import include, url
 
+from .views import AssessmentReportPDFView
 
 app_name = 'genplus_assessments'
 

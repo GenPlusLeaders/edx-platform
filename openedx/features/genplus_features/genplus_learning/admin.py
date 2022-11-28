@@ -1,5 +1,6 @@
-from django.contrib import admin
 from adminsortable2.admin import SortableInlineAdminMixin
+from django.contrib import admin
+
 from openedx.features.genplus_features.genplus_learning.models import *
 
 

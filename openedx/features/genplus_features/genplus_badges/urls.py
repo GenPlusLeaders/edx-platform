@@ -1,8 +1,7 @@
 """
 URLs for genplus badges app.
 """
-from django.conf.urls import url, include
-
+from django.conf.urls import include, url
 
 app_name = 'genplus_badges'
 

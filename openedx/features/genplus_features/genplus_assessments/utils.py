@@ -1,14 +1,14 @@
-from lxml import etree
-from xmodule.modulestore.django import modulestore
-from opaque_keys.edx.keys import UsageKey
 from collections import defaultdict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from lxml import etree
+from opaque_keys.edx.keys import UsageKey
+from xmodule.modulestore.django import modulestore
 
 from lms.djangoapps.course_blocks.api import get_course_blocks
-from lms.djangoapps.courseware.user_state_client import DjangoXBlockUserStateClient
-
+from lms.djangoapps.courseware.user_state_client import \
+    DjangoXBlockUserStateClient
 
 
 def build_problem_list(course_blocks, root, path=None):
@@ -92,15 +92,15 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                     if user_states:
                         # For each response in the block, aggregate the result for the problem, and add in the responses
                         if responses['problem_type'] in ('single_choice', 'multiple_choice'):
-                            if filter_type == "aggregate_response":
+                            if filter_type == 'aggregate_response':
                                 aggregate_result.update(students_aggregate_result(user_states, aggregate_result))
-                            elif filter_type == "individual_response":
+                            elif filter_type == 'individual_response':
                                 responses['results'].append(students_multiple_choice_response(user_states, user))
                         else:
                             for user_state in user_states:
                                 responses['results'].append(get_students_short_answer_response(user_state, user))
 
-                if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter_type == "aggregate_response":
+                if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter_type == 'aggregate_response':
                     for key,value in aggregate_result.items():
                         responses['results'].append({
                             'title': key,
@@ -156,10 +156,10 @@ def get_problem_attributes(raw_data, block_key):
     parser = etree.XMLParser(remove_blank_text=True)
     problem = etree.XML(raw_data, parser=parser)
     data_dict = {}
-    for e in problem.iter("*"):
+    for e in problem.iter('*'):
         if e.tag == 'problem':
             responses['problem_type'] =  e.attrib.get('class')
-        elif e.text and e.attrib.get('class') == 'question-text' and responses['problem_type'] != "short_answers":
+        elif e.text and e.attrib.get('class') == 'question-text' and responses['problem_type'] != 'short_answers':
             responses['question_text'] =  e.text
         elif e.text and e.tag == 'choice':
             choice_dict = {}
@@ -168,7 +168,7 @@ def get_problem_attributes(raw_data, block_key):
             if e.attrib.get('correct') == 'true':
                  responses['selection'] += 1
             data_dict.update({e.attrib.get('class'): choice_dict})
-    if responses['problem_type'] != "short_answers":
+    if responses['problem_type'] != 'short_answers':
         responses['problem_choices'] = data_dict
     return responses
 
@@ -214,8 +214,8 @@ def students_multiple_choice_response(user_states, user):
     for user_state in user_states:
         user_answer = user_state['Answer']
         correct_answer = user_state['Correct Answer']
-        user_answer_list = list(user_answer.split(","))
-        correct_answer_list = list(correct_answer.split(","))
+        user_answer_list = list(user_answer.split(','))
+        correct_answer_list = list(correct_answer.split(','))
         student_response_dict = {
             'username': user.username,
             'full_name': user.get_full_name(),

@@ -1,8 +1,10 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 from django_extensions.db.models import TimeStampedModel
+
 from openedx.features.genplus_features.genplus.models import Skill
-from openedx.features.genplus_features.genplus_badges.utils import validate_lowercase, validate_badge_image
+from openedx.features.genplus_features.genplus_badges.utils import (
+    validate_badge_image, validate_lowercase)
 
 
 class BoosterBadgeType(models.Model):
@@ -38,7 +40,7 @@ class BoosterBadgeAward(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='booster_badges')
     badge = models.ForeignKey(BoosterBadge, on_delete=models.CASCADE)
     awarded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='teacher_awards')
-    feedback = models.TextField(blank=True, default="")
+    feedback = models.TextField(blank=True, default='')
     image_url = models.URLField()
 
     @classmethod

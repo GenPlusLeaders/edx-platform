@@ -1,15 +1,20 @@
-import re
-import logging
-from hashlib import sha1
-from http import HTTPStatus
-from django.conf import settings
-import requests
 import base64
 import hmac
+import logging
+import re
 from datetime import datetime
-from openedx.features.genplus_features.genplus.models import GenUser, Student, TempUser, School, Class
-from openedx.features.genplus_features.genplus.constants import SchoolTypes, ClassTypes, GenUserRoles
+from hashlib import sha1
+from http import HTTPStatus
 
+import requests
+from django.conf import settings
+
+from openedx.features.genplus_features.genplus.constants import (ClassTypes,
+                                                                 GenUserRoles,
+                                                                 SchoolTypes)
+from openedx.features.genplus_features.genplus.models import (Class, GenUser,
+                                                              School, Student,
+                                                              TempUser)
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +31,10 @@ class RmUnify:
     def __init__(self):
         self.key = settings.RM_UNIFY_KEY
         self.secret = settings.RM_UNIFY_SECRET
-        self.timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
     def fetch(self, source, source_id=None):
-        headers = {"Authorization": "Unify " + self.key + "_" + self.timestamp + ":" + self.hashed}
+        headers = {'Authorization': 'Unify ' + self.key + '_' + self.timestamp + ':' + self.hashed}
         url = self.generate_url(source, source_id)
         response = requests.get(url, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
@@ -40,7 +45,7 @@ class RmUnify:
     @property
     def hashed(self):
         hashed = hmac.new(bytes(self.secret, 'utf-8'), bytes(self.timestamp, 'utf-8'), sha1).digest()
-        hashed = str(base64.urlsafe_b64encode(hashed), "UTF-8")
+        hashed = str(base64.urlsafe_b64encode(hashed), 'UTF-8')
         hashed = hashed.replace('-', '+')
         return hashed.replace('_', '/')
 
@@ -60,7 +65,7 @@ class RmUnify:
                 name=school['DisplayName'],
                 external_id=school['ExternalId'],
                 type=SchoolTypes.RM_UNIFY,
-                defaults={"guid": school['OrganisationGuid']}
+                defaults={'guid': school['OrganisationGuid']}
             )
             response = 'created' if created else 'updated'
             logger.info('{} has been {} successfully.'.format(school['DisplayName'], response))
@@ -77,7 +82,7 @@ class RmUnify:
                     school=school,
                     group_id=gen_class['GroupId'],
                     name=gen_class['DisplayName'],
-                    defaults={"name": gen_class['DisplayName']}
+                    defaults={'name': gen_class['DisplayName']}
                 )
             logger.info('classes for {} has been successfully fetched.'.format(school.name))
 
@@ -89,7 +94,7 @@ class RmUnify:
             url = getattr(self, fetch_type).format(RmUnify.ORGANISATION,
                                                    gen_class.school.guid)
             print(url)
-            data = self.fetch(f"{url}/{gen_class.group_id}")
+            data = self.fetch(f'{url}/{gen_class.group_id}')
             try:
                 for student in data['Students']:
                     student_email = student['UnifyEmailAddress']
@@ -114,6 +119,6 @@ class RmUnify:
                             gen_user.refresh_from_db()
                             gen_student = gen_user.student
                     gen_class.students.add(gen_student)
-                    logger.info(f"{student_username} has been added to {gen_class.name}")
+                    logger.info(f'{student_username} has been added to {gen_class.name}')
             except KeyError:
                 logger.exception('An Error occur while getting students')

@@ -5,13 +5,9 @@ from django.conf.urls import url
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    StudentProgramBadgeView,
-    AwardBoosterBadgesView,
-    BoosterBadgeView,
-    StudentBoosterBadgeView,
-    StudentActiveProgramBadgesView,
-)
+from .views import (AwardBoosterBadgesView, BoosterBadgeView,
+                    StudentActiveProgramBadgesView, StudentBoosterBadgeView,
+                    StudentProgramBadgeView)
 
 app_name = 'genplus_badges_api_v1'
 

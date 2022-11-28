@@ -1,19 +1,22 @@
 import uuid
 
 from django.conf import settings
-from django.db import models
-from slugify import slugify
 from django.core.exceptions import ValidationError
+from django.db import models
 from django_extensions.db.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField, UsageKeyField
 from simple_history.models import HistoricalRecords
-
-from openedx.core.djangoapps.signals.signals import COURSE_COMPLETED
-from common.djangoapps.student.models import CourseEnrollment
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from slugify import slugify
 from xmodule.modulestore.django import modulestore
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses, ProgramStatuses
-from openedx.features.genplus_features.genplus.models import Student, Class, Skill
+
+from common.djangoapps.student.models import CourseEnrollment
+from openedx.core.djangoapps.content.course_overviews.models import \
+    CourseOverview
+from openedx.core.djangoapps.signals.signals import COURSE_COMPLETED
+from openedx.features.genplus_features.genplus.models import (Class, Skill,
+                                                              Student)
+from openedx.features.genplus_features.genplus_learning.constants import (
+    ProgramEnrollmentStatuses, ProgramStatuses)
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
@@ -40,7 +43,7 @@ class Program(TimeStampedModel):
     start_date = models.DateField()
     end_date = models.DateField()
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=ProgramStatuses.UNPUBLISHED)
-    banner_image = models.ImageField(upload_to="program_banner_images", default="")
+    banner_image = models.ImageField(upload_to='program_banner_images', default='')
     intro_unit = models.ForeignKey(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='intro_unit_programs')
     outro_unit = models.ForeignKey(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='outro_unit_programs')
     history = HistoricalRecords()
@@ -48,12 +51,12 @@ class Program(TimeStampedModel):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(
-                "{} {} {} {}".format(
+                '{} {} {} {}'.format(
                     self.year_group.name,
                     self.year_group.program_name,
                     self.start_date.year,
                     self.end_date.year,
-                ), separator="_"
+                ), separator='_'
             )
         super(Program, self).save(*args, **kwargs)
 
@@ -76,9 +79,9 @@ class Program(TimeStampedModel):
 class Unit(models.Model):
     order = models.PositiveIntegerField(default=0, blank=False, null=False)
     course = models.OneToOneField(CourseOverview, on_delete=models.CASCADE)
-    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="units")
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='units')
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True, blank=True)
-    unit_image = models.ImageField(upload_to="unit_images", blank=True, default="")
+    unit_image = models.ImageField(upload_to='unit_images', blank=True, default='')
 
     class Meta:
         ordering = ['order']
@@ -101,11 +104,11 @@ class Unit(models.Model):
         else:
             usage_key_str = str(modulestore().make_course_usage_key(course.id))
 
-        return f"{settings.LMS_ROOT_URL}/courses/{course_key_str}/jump_to/{usage_key_str}"
+        return f'{settings.LMS_ROOT_URL}/courses/{course_key_str}/jump_to/{usage_key_str}'
 
     @property
     def banner_image_url(self):
-        return f"{settings.LMS_ROOT_URL}{self.course.course_image_url}"
+        return f'{settings.LMS_ROOT_URL}{self.course.course_image_url}'
 
     def is_locked(self, gen_class):
         class_unit = self.class_units.filter(gen_class=gen_class).first()
@@ -123,9 +126,9 @@ class ProgramEnrollment(TimeStampedModel):
     class Meta:
         unique_together = ('student', 'program',)
 
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="program_enrollments")
-    gen_class = models.ForeignKey(Class, on_delete=models.SET_NULL, null=True, related_name="program_enrollments")
-    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="program_enrollments")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='program_enrollments')
+    gen_class = models.ForeignKey(Class, on_delete=models.SET_NULL, null=True, related_name='program_enrollments')
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='program_enrollments')
     status = models.CharField(max_length=9, choices=STATUS_CHOICES)
     history = HistoricalRecords()
 
@@ -135,7 +138,7 @@ class ProgramUnitEnrollment(TimeStampedModel):
         unique_together = ('program_enrollment', 'course',)
 
     program_enrollment = models.ForeignKey(ProgramEnrollment, on_delete=models.CASCADE,
-                                           related_name="program_unit_enrollments")
+                                           related_name='program_unit_enrollments')
     course_enrollment = models.ForeignKey(CourseEnrollment, null=True, blank=True, on_delete=models.CASCADE)
     course = models.ForeignKey(CourseOverview, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
@@ -144,11 +147,11 @@ class ProgramUnitEnrollment(TimeStampedModel):
 
 class ClassUnit(models.Model):
     class Meta:
-        unique_together = ("gen_class", "unit",)
-        ordering = ["unit__order"]
+        unique_together = ('gen_class', 'unit',)
+        ordering = ['unit__order']
 
-    gen_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name="class_units")
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="class_units")
+    gen_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='class_units')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='class_units')
     course_key = CourseKeyField(max_length=255)
 
     @property
@@ -156,15 +159,15 @@ class ClassUnit(models.Model):
         return all([lesson.is_locked for lesson in self.class_lessons.all()])
 
     def __str__(self):
-        return f"{self.gen_class.name}-{self.unit.course.display_name}"
+        return f'{self.gen_class.name}-{self.unit.course.display_name}'
 
 
 class ClassLesson(models.Model):
     class Meta:
-        unique_together = ("class_unit", "usage_key",)
-        ordering = ["order"]
+        unique_together = ('class_unit', 'usage_key',)
+        ordering = ['order']
 
-    class_unit = models.ForeignKey(ClassUnit, on_delete=models.CASCADE, related_name="class_lessons")
+    class_unit = models.ForeignKey(ClassUnit, on_delete=models.CASCADE, related_name='class_lessons')
     order = models.PositiveIntegerField(default=0, blank=False, null=False)
     course_key = CourseKeyField(max_length=255)
     usage_key = UsageKeyField(max_length=255)
@@ -176,7 +179,7 @@ class ClassLesson(models.Model):
 
     @property
     def lms_url(self):
-        return f"{settings.LMS_ROOT_URL}/courses/{str(self.course_key)}/jump_to/{str(self.usage_key)}"
+        return f'{settings.LMS_ROOT_URL}/courses/{str(self.course_key)}/jump_to/{str(self.usage_key)}'
 
 
 class UnitCompletion(models.Model):

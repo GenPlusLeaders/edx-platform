@@ -1,9 +1,16 @@
 from rest_framework import serializers
-from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, Reflection, \
-    ReflectionAnswer, ArticleViewLog, PortfolioEntry, HelpGuideType, HelpGuide, AlertBarEntry, HelpGuideRating
-from openedx.features.genplus_features.genplus.api.v1.serializers import SkillSerializer
-from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
-from openedx.features.genplus_features.common.utils import get_generic_serializer
+
+from openedx.features.genplus_features.common.display_messages import (
+    ErrorMessages, SuccessMessages)
+from openedx.features.genplus_features.common.utils import \
+    get_generic_serializer
+from openedx.features.genplus_features.genplus.api.v1.serializers import \
+    SkillSerializer
+from openedx.features.genplus_features.genplus_teach.models import (
+    AlertBarEntry, Article, ArticleRating, ArticleViewLog, Gtcs, HelpGuide,
+    HelpGuideRating, HelpGuideType, MediaType, PortfolioEntry, Reflection,
+    ReflectionAnswer)
+
 
 class DynamicFieldsModelSerializer(serializers.ModelSerializer):
     """
@@ -149,7 +156,7 @@ class HelpGuideSerializer(serializers.ModelSerializer):
             return GuideRatingSerializer(guide_rating).data
         except HelpGuideRating.DoesNotExist:
             return
-    
+
     class Meta:
         model = HelpGuide
         fields = '__all__'
@@ -167,7 +174,7 @@ class HelpGuideTypeSerializer(serializers.ModelSerializer):
 
         if search:
             items = items.filter(title__icontains=search)
-        
+
         if media_type_id:
             items = items.filter(media_types__id=media_type_id)
 

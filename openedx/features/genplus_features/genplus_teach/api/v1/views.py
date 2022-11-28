@@ -1,30 +1,39 @@
-from rest_framework import generics, status, views, viewsets
-from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from django.db.models import Q
-from rest_framework import filters
-from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_multiple_model.views import FlatMultipleModelAPIView
+from rest_framework import filters, generics, status, views, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article, ArticleRating, \
-    FavoriteArticle, ReflectionAnswer, Reflection, \
-    ArticleViewLog, PortfolioEntry, Quote, AlertBarEntry, HelpGuide, HelpGuideRating
+from rest_framework.response import Response
+
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.common.display_messages import (
+    ErrorMessages, SuccessMessages)
+from openedx.features.genplus_features.common.utils import \
+    get_generic_serializer
 from openedx.features.genplus_features.genplus.api.v1.mixins import GenzMixin
-from openedx.features.genplus_features.genplus.models import Teacher, Skill
-from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
-from .serializers import (ArticleSerializer, FavoriteArticleSerializer, ArticleRatingSerializer,
-                          ReflectionAnswerSerializer,ArticleViewLogSerializer, GtcsSerializer,
-                          MediaTypeSerializer, PortfolioEntrySerializer, HelpGuideTypeSerializer,
-                          AlertBarEntrySerializer, HelpGuideSerializer, GuideRatingSerializer)
-from openedx.features.genplus_features.genplus.api.v1.serializers import SkillSerializer
-from openedx.features.genplus_features.common.utils import get_generic_serializer
-from .pagination import PortfolioPagination
+from openedx.features.genplus_features.genplus.api.v1.permissions import \
+    IsTeacher
+from openedx.features.genplus_features.genplus.api.v1.serializers import \
+    SkillSerializer
+from openedx.features.genplus_features.genplus.models import Skill, Teacher
+from openedx.features.genplus_features.genplus_teach.models import (
+    AlertBarEntry, Article, ArticleRating, ArticleViewLog, FavoriteArticle,
+    Gtcs, HelpGuide, HelpGuideRating, MediaType, PortfolioEntry, Quote,
+    Reflection, ReflectionAnswer)
+
 from .filters import ArticleFilter
-from drf_multiple_model.views import FlatMultipleModelAPIView
+from .pagination import PortfolioPagination
+from .serializers import (AlertBarEntrySerializer, ArticleRatingSerializer,
+                          ArticleSerializer, ArticleViewLogSerializer,
+                          FavoriteArticleSerializer, GtcsSerializer,
+                          GuideRatingSerializer, HelpGuideSerializer,
+                          HelpGuideTypeSerializer, MediaTypeSerializer,
+                          PortfolioEntrySerializer, ReflectionAnswerSerializer)
 
 
 class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
@@ -43,7 +52,7 @@ class ArticleViewSet(viewsets.ModelViewSet, GenzMixin):
     def get_serializer_context(self):
         teacher = Teacher.objects.get(gen_user=self.gen_user)
         context = super(ArticleViewSet, self).get_serializer_context()
-        context.update({"teacher": teacher})
+        context.update({'teacher': teacher})
         return context
 
     def get_queryset(self):
@@ -145,7 +154,7 @@ class ReflectionAnswerViewSet(viewsets.ViewSet, GenzMixin):
 
         ReflectionAnswer.objects.update_or_create(
             reflection=reflection, teacher=teacher,
-            defaults={"answer": serializer.data.get('answer')}
+            defaults={'answer': serializer.data.get('answer')}
         )
         return Response(SuccessMessages.REFLECTION_ADDED, status=status.HTTP_200_OK)
 
@@ -245,7 +254,7 @@ class PortfolioViewSet(GenzMixin, viewsets.ViewSetMixin, FlatMultipleModelAPIVie
     def get_serializer_context(self):
         teacher = Teacher.objects.get(gen_user=self.gen_user)
         context = super(PortfolioViewSet, self).get_serializer_context()
-        context.update({"teacher": teacher})
+        context.update({'teacher': teacher})
         return context
 
 

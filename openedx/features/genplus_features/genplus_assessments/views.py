@@ -1,27 +1,32 @@
 from __future__ import absolute_import, print_function, unicode_literals
+
 import io
 import os
-from os.path import basename, splitext, dirname, join
 import tempfile
+from collections import defaultdict
+from os.path import basename, dirname, join, splitext
 
 import pdfkit
-
-from collections import defaultdict
-from django.core.exceptions import PermissionDenied
 from django.conf import settings
+from django.contrib.staticfiles import finders
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.template import loader
+from django.template.loader import render_to_string
 from django.test import override_settings
 from django.views.generic import TemplateView
-from django.template.loader import render_to_string
-from django.contrib.staticfiles import finders
-
 from opaque_keys.edx.keys import CourseKey
-from .utils import build_course_report_for_students, get_absolute_url
-from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
-from openedx.features.genplus_features.genplus_learning.models import Unit, UnitCompletion
-from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
+
 from openedx.features.genplus_features.genplus.constants import JournalTypes
+from openedx.features.genplus_features.genplus.models import (GenUser,
+                                                              JournalPost,
+                                                              Student, Teacher)
+from openedx.features.genplus_features.genplus_badges.models import \
+    BoosterBadgeAward
+from openedx.features.genplus_features.genplus_learning.models import (
+    Unit, UnitCompletion)
+
+from .utils import build_course_report_for_students, get_absolute_url
 
 
 class AssessmentReportPDFView(TemplateView):
@@ -77,7 +82,7 @@ class AssessmentReportPDFView(TemplateView):
         try:
             if self.stylesheet_path:
                 filename = join(script_dir, self.stylesheet_path)
-                print("filename", filename)
+                print('filename', filename)
                 with tempfile.NamedTemporaryFile(suffix='.css', delete=False) as stylesheet_file, io.open(filename,'rb') as f:
                     options['user-style-sheet'] = stylesheet_file.name
                     styles = f.read()
@@ -113,8 +118,8 @@ class AssessmentReportPDFView(TemplateView):
         return {
             'page-size': 'A4',
             'encoding': 'UTF-8',
-            "enable-local-file-access": "",
-            "enable-javascript": "",
+            'enable-local-file-access': '',
+            'enable-javascript': '',
             'margin-top': '2.3in',
             'margin-right': '0in',
             'margin-bottom': '1in',
@@ -195,11 +200,11 @@ class AssessmentReportPDFView(TemplateView):
             school_name = student.gen_user.school.name
 
         student_data = {
-            "user_id": user_id,
-            "full_name": student_name,
-            "school_name": school_name,
-            "character_image_url": character_image_url,
-            "units": [],
+            'user_id': user_id,
+            'full_name': student_name,
+            'school_name': school_name,
+            'character_image_url': character_image_url,
+            'units': [],
         }
 
         for unit in units:

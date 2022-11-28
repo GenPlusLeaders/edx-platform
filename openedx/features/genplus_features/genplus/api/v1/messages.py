@@ -10,4 +10,3 @@ class ErrorMessages:
     INTERNAL_SERVER = 'Some error occur on the server. The request can not be completed for now.'
     ACTION_VALIDATION_ERROR = 'action can only be add or remove'
     CLASS_ALREADY_ADDED = '{class_name} is already added in your classes.'
-

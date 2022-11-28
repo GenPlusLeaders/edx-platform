@@ -1,10 +1,11 @@
 """
 URLs for genplus features.
 """
-from django.conf.urls import url, include
+from django.conf.urls import include, url
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+
 from openedx.features.genplus_features.genplus import views as genplus_views
 
 genplus_url_patterns = [
@@ -18,9 +19,9 @@ genplus_url_patterns = [
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="GenZ API",
-        default_version="v1",
-        description="GenZ custom features API documentation",
+        title='GenZ API',
+        default_version='v1',
+        description='GenZ custom features API documentation',
     ),
     patterns=genplus_url_patterns,
     public=True,

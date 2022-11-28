@@ -5,9 +5,7 @@ from django.conf.urls import url
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    StudentAnswersView, ClassFilterViewSet
-)
+from .views import ClassFilterViewSet, StudentAnswersView
 
 app_name = 'genplus_assessments_api_v1'
 
