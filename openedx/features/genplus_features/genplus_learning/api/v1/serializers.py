@@ -16,7 +16,8 @@ from openedx.features.genplus_features.genplus_badges.models import \
 from openedx.features.genplus_features.genplus_learning.models import (
     ClassLesson, ClassUnit, Program, ProgramEnrollment, Unit,
     UnitBlockCompletion, UnitCompletion)
-from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url
+from openedx.features.genplus_features.genplus_learning.utils import (
+    calculate_class_lesson_progress, get_absolute_url)
 
 
 class UnitSerializer(serializers.ModelSerializer):
