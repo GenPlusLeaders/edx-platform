@@ -2,17 +2,19 @@
 Serializers for Badges
 """
 from django.conf import settings
-from rest_framework import serializers
 from django.contrib.auth.models import User
-from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
-from openedx.features.genplus_features.genplus_badges.models import (BoosterBadge,
-                                                                     BoosterBadgeAward,
-                                                                     BoosterBadgeType,
-                                                                     )
-from openedx.features.genplus_features.genplus_learning.models import Program
-from openedx.features.genplus_features.genplus.models import Student, Teacher, JournalPost, Skill
+from rest_framework import serializers
+
+from lms.djangoapps.badges.models import BadgeAssertion, BadgeClass
 from openedx.features.genplus_features.genplus.constants import JournalTypes
-from openedx.features.genplus_features.genplus_badges.utils import get_absolute_url
+from openedx.features.genplus_features.genplus.models import (JournalPost,
+                                                              Skill, Student,
+                                                              Teacher)
+from openedx.features.genplus_features.genplus_badges.models import (
+    BoosterBadge, BoosterBadgeAward, BoosterBadgeType)
+from openedx.features.genplus_features.genplus_badges.utils import \
+    get_absolute_url
+from openedx.features.genplus_features.genplus_learning.models import Program
 
 
 class UnitBadgeSerializer(serializers.ModelSerializer):
@@ -88,7 +90,7 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
 
     def get_banner_image_url(self, obj):
         program = Program.objects.filter(slug=obj.slug).first()
-        return f"{settings.LMS_ROOT_URL}{program.banner_image.url}" if program.banner_image else ''
+        return f'{settings.LMS_ROOT_URL}{program.banner_image.url}' if program.banner_image else ''
 
 
 class AwardBoosterBadgesSerializer(serializers.Serializer):

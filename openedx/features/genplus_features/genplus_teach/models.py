@@ -1,15 +1,17 @@
-import re
 import logging
+import re
+from html import unescape
+
 import pafy
 from django.db import models
 from django.db.models import Avg
-from django_extensions.db.models import TimeStampedModel
-from html import unescape
 from django.utils.html import strip_tags
+from django_extensions.db.models import TimeStampedModel
 from tinymce.models import HTMLField
-from openedx.features.genplus_features.genplus.models import Skill, Teacher
-from .constants import AcademicYears
 
+from openedx.features.genplus_features.genplus.models import Skill, Teacher
+
+from .constants import AcademicYears
 
 logger = logging.getLogger(__name__)
 

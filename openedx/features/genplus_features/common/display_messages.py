@@ -13,15 +13,15 @@ class SuccessMessages:
     # genplus teach
     ARTICLE_ADDED_TO_FAVORITES = '{title} has been added to your favorite articles.'
     ARTICLE_REMOVED_FROM_FAVORITES = '{title} has been removed from your favorite articles.'
-    ARTICLE_RATED = "Thanks for the rating."
+    ARTICLE_RATED = 'Thanks for the rating.'
     BADGE_AWARDED = 'Feedback/badges have been awarded successfully.'
-    REFLECTION_ADDED = "Reflection Submitted."
-    PORTFOLIO_ENTRY_ADDED = "Entry added to portfolio successfully."
+    REFLECTION_ADDED = 'Reflection Submitted.'
+    PORTFOLIO_ENTRY_ADDED = 'Entry added to portfolio successfully.'
 
 
 class ErrorMessages:
     INTERNAL_SERVER = 'Some error occur on the server. The request can not be completed for now.'
-    OLD_PASSWORD_ERROR = "Your old password was entered incorrectly. Please enter it again."
+    OLD_PASSWORD_ERROR = 'Your old password was entered incorrectly. Please enter it again.'
     ACTION_VALIDATION_ERROR = 'Action can only be add or remove'
     CLASS_ALREADY_ADDED = '{class_name} is already added in your classes.'
     LESSON_ALREADY_UNLOCKED = 'You cannot lock the lesson which is already unlocked.'

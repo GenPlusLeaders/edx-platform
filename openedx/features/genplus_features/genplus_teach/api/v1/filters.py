@@ -1,6 +1,9 @@
 import django_filters
-from openedx.features.genplus_features.genplus_teach.models import MediaType, Gtcs, Article
+
 from openedx.features.genplus_features.genplus.models import Teacher
+from openedx.features.genplus_features.genplus_teach.models import (Article,
+                                                                    Gtcs,
+                                                                    MediaType)
 
 
 class ArticleFilter(django_filters.FilterSet):

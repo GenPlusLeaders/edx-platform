@@ -1,13 +1,14 @@
-from django.dispatch import receiver
 from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 from openedx.core.djangoapps.signals.signals import COURSE_COMPLETED
-from openedx.features.genplus_features.genplus_learning.models import UnitCompletion
-from openedx.features.genplus_features.genplus.models import Activity
 from openedx.features.genplus_features.genplus.constants import ActivityTypes
+from openedx.features.genplus_features.genplus.models import Activity
 from openedx.features.genplus_features.genplus_badges.events.completion import (
-    unit_badge_check,
-    program_badge_check
-)
+    program_badge_check, unit_badge_check)
+from openedx.features.genplus_features.genplus_learning.models import \
+    UnitCompletion
+
 from .models import BoosterBadgeAward
 
 

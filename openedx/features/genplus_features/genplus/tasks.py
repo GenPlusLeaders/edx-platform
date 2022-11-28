@@ -1,8 +1,10 @@
 import logging
+
 from celery import shared_task
 from edx_django_utils.monitoring import set_code_owner_attribute
+
+from openedx.features.genplus_features.genplus.models import Class, School
 from openedx.features.genplus_features.genplus.rmunify import RmUnify
-from openedx.features.genplus_features.genplus.models import School, Class
 
 log = logging.getLogger(__name__)
 

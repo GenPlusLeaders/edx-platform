@@ -1,24 +1,23 @@
 from django.conf import settings
 from rest_framework import serializers
 from xmodule.modulestore.django import modulestore
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+from openedx.core.djangoapps.content.course_overviews.models import \
+    CourseOverview
+from openedx.features.genplus_features.common.utils import \
+    get_generic_serializer
+from openedx.features.genplus_features.genplus.api.v1.serializers import \
+    TeacherSerializer
+from openedx.features.genplus_features.genplus.models import (Activity,
+                                                              JournalPost,
+                                                              Student, Teacher)
+from openedx.features.genplus_features.genplus_badges.models import \
+    BoosterBadgeAward
 from openedx.features.genplus_features.genplus_learning.models import (
-    Program,
-    ProgramEnrollment,
-    Unit,
-    ClassLesson,
-    ClassUnit,
-    UnitCompletion,
-    UnitBlockCompletion,
-)
+    ClassLesson, ClassUnit, Program, ProgramEnrollment, Unit,
+    UnitBlockCompletion, UnitCompletion)
 from openedx.features.genplus_features.genplus_learning.utils import (
-    calculate_class_lesson_progress,
-    get_absolute_url,
-)
-from openedx.features.genplus_features.genplus.models import Student, JournalPost, Activity, Teacher
-from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
-from openedx.features.genplus_features.genplus.api.v1.serializers import TeacherSerializer
-from openedx.features.genplus_features.common.utils import get_generic_serializer
+    calculate_class_lesson_progress, get_absolute_url)
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -36,11 +35,11 @@ class UnitSerializer(serializers.ModelSerializer):
         return str(obj.course.id)
 
     def get_is_locked(self, obj):
-        units_context = self.context.get("units_context")
+        units_context = self.context.get('units_context')
         return units_context[obj.pk]['is_locked']
 
     def get_progress(self, obj):
-        units_context = self.context.get("units_context")
+        units_context = self.context.get('units_context')
         return units_context[obj.pk]['progress']
 
 
@@ -70,7 +69,7 @@ class AssessmentUnitSerializer(serializers.ModelSerializer):
         else:
             usage_key_str = str(modulestore().make_course_usage_key(course.id))
 
-        return f"{settings.LMS_ROOT_URL}/courses/{course_key_str}/jump_to/{usage_key_str}"
+        return f'{settings.LMS_ROOT_URL}/courses/{course_key_str}/jump_to/{usage_key_str}'
 
 
 class ProgramSerializer(serializers.ModelSerializer):
@@ -152,7 +151,7 @@ class ClassLessonSerializer(serializers.ModelSerializer):
 
 class ClassUnitSerializer(serializers.ModelSerializer):
     class_lessons = serializers.SerializerMethodField()
-    display_name = serializers.CharField(source="unit.display_name")
+    display_name = serializers.CharField(source='unit.display_name')
 
     class Meta:
         model = ClassUnit

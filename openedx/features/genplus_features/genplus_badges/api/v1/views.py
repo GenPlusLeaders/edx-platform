@@ -1,24 +1,29 @@
 """
 API views for badges
 """
-from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from rest_framework import generics, status, filters
-from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
-from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus_learning.models import Program, ProgramEnrollment, YearGroup
+from rest_framework.response import Response
+
+from lms.djangoapps.badges.models import BadgeAssertion, BadgeClass
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.common.display_messages import \
+    SuccessMessages
+from openedx.features.genplus_features.genplus.api.v1.permissions import (
+    IsStudent, IsStudentOrTeacher, IsTeacher)
 from openedx.features.genplus_features.genplus.models import Skill
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses, ProgramStatuses
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudent, IsTeacher, IsStudentOrTeacher
-from openedx.features.genplus_features.common.display_messages import SuccessMessages
-from openedx.features.genplus_features.genplus_badges.models import (BoosterBadge,
-                                                                     BoosterBadgeAward,
-                                                                     BoosterBadgeType,
-                                                                     )
-from .serializers import (ProgramBadgeSerializer, AwardBoosterBadgesSerializer,
-                          BoosterBadgeSerializer, BoosterBadgesTypeSerializer)
+from openedx.features.genplus_features.genplus_badges.models import (
+    BoosterBadge, BoosterBadgeAward, BoosterBadgeType)
+from openedx.features.genplus_features.genplus_learning.constants import (
+    ProgramEnrollmentStatuses, ProgramStatuses)
+from openedx.features.genplus_features.genplus_learning.models import (
+    Program, ProgramEnrollment, YearGroup)
+
+from .serializers import (AwardBoosterBadgesSerializer, BoosterBadgeSerializer,
+                          BoosterBadgesTypeSerializer, ProgramBadgeSerializer)
 
 
 class StudentProgramBadgeView(generics.ListAPIView):
@@ -55,7 +60,7 @@ class StudentProgramBadgeView(generics.ListAPIView):
 
     def get_serializer_context(self):
         context = super(StudentProgramBadgeView, self).get_serializer_context()
-        context.update({"user": self.get_user()})
+        context.update({'user': self.get_user()})
         return context
 
 

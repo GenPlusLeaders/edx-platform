@@ -1,24 +1,24 @@
 import logging
 from datetime import datetime
-import pytz
 
-from django.core.exceptions import ObjectDoesNotExist
+import pytz
 from celery import shared_task
-from edx_django_utils.monitoring import set_code_owner_attribute
 from celery_utils.logged_task import LoggedTask
 from celery_utils.persist_on_failure import LoggedPersistOnFailureTask
-
-from opaque_keys.edx.keys import UsageKey
 from completion.models import BlockCompletion
+from django.core.exceptions import ObjectDoesNotExist
+from edx_django_utils.monitoring import set_code_owner_attribute
+from opaque_keys.edx.keys import UsageKey
+
 from common.djangoapps.student.models import CourseEnrollment
 from openedx.features.genplus_features.genplus.models import Class, Student
+from openedx.features.genplus_features.genplus_learning.constants import \
+    ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.models import (
-    Program, ProgramEnrollment, ProgramUnitEnrollment, UnitCompletion, UnitBlockCompletion
-)
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
+    Program, ProgramEnrollment, ProgramUnitEnrollment, UnitBlockCompletion,
+    UnitCompletion)
 from openedx.features.genplus_features.genplus_learning.utils import (
-    get_course_completion, get_progress_and_completion_status
-)
+    get_course_completion, get_progress_and_completion_status)
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def enroll_class_students_to_program(self, class_id, program_id, class_student_i
         gen_class = Class.objects.get(pk=class_id)
         program = Program.objects.get(pk=program_id)
     except ObjectDoesNotExist:
-        log.info("Class or program id does not exist")
+        log.info('Class or program id does not exist')
         return
 
     units = program.units.all()
@@ -59,7 +59,7 @@ def enroll_class_students_to_program(self, class_id, program_id, class_student_i
                 gen_class=gen_class,
                 status=ProgramEnrollmentStatuses.ENROLLED
             )
-            log.info(f"Program enrollment created for student: {student}, class: {gen_class}, program: {program}")
+            log.info(f'Program enrollment created for student: {student}, class: {gen_class}, program: {program}')
 
         for unit in units:
             if CourseEnrollment.is_enrolled(student.gen_user.user, unit.course.id):
@@ -77,7 +77,7 @@ def enroll_class_students_to_program(self, class_id, program_id, class_student_i
                     course_key=unit.course.id,
                 )
                 unit_enrollment.save()
-                log.info(f"Program unit enrollment created for student: {student}, course: {unit}, program :{program}")
+                log.info(f'Program unit enrollment created for student: {student}, course: {unit}, program :{program}')
 
 
 @shared_task(
@@ -90,7 +90,7 @@ def update_unit_and_lesson_completions(self, block_completion_id):
     try:
         block_completion = BlockCompletion.objects.get(pk=block_completion_id)
     except BlockCompletion.DoesNotExist:
-        log.info("Block completion does not exist")
+        log.info('Block completion does not exist')
         return
 
     block_type = block_completion.block_type

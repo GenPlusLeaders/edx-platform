@@ -1,6 +1,7 @@
 from rest_framework import permissions
-from openedx.features.genplus_features.genplus.models import GenUser
+
 from openedx.features.genplus_features.genplus.constants import SchoolTypes
+from openedx.features.genplus_features.genplus.models import GenUser
 
 
 class IsGenUser(permissions.BasePermission):

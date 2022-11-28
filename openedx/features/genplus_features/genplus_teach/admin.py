@@ -1,9 +1,10 @@
-from django.contrib import admin
-from .models import Article, Reflection, ReflectionAnswer, ArticleRating, MediaType, Gtcs, ArticleViewLog,\
-    Quote, HelpGuideType, HelpGuide, AlertBarEntry, HelpGuideRating
+from django.contrib import admin, messages
 from django.urls import reverse
-from django.contrib import messages
 from django.utils.safestring import mark_safe
+
+from .models import (AlertBarEntry, Article, ArticleRating, ArticleViewLog,
+                     Gtcs, HelpGuide, HelpGuideRating, HelpGuideType,
+                     MediaType, Quote, Reflection, ReflectionAnswer)
 
 
 class ReflectionAdminInline(admin.TabularInline):

@@ -1,18 +1,22 @@
 import logging
-from django.conf import settings
-from django.dispatch import receiver
-from django.db.models.signals import post_save, m2m_changed, pre_save
 
 from completion.models import BlockCompletion
+from django.conf import settings
+from django.db.models.signals import m2m_changed, post_save, pre_save
+from django.dispatch import receiver
 from xmodule.modulestore.django import SignalHandler, modulestore
-from openedx.features.genplus_features.genplus.models import Class, Teacher, Activity
-from openedx.features.genplus_features.genplus.constants import ActivityTypes
+
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
+from openedx.features.genplus_features.genplus.constants import ActivityTypes
+from openedx.features.genplus_features.genplus.models import (Activity, Class,
+                                                              Teacher)
+from openedx.features.genplus_features.genplus_learning.access import \
+    allow_access
 from openedx.features.genplus_features.genplus_learning.models import (
-    Program, Unit, ClassUnit, ClassLesson , UnitBlockCompletion
-)
-from openedx.features.genplus_features.genplus_learning.access import allow_access
-from openedx.features.genplus_features.genplus_learning.roles import ProgramInstructorRole
+    ClassLesson, ClassUnit, Program, Unit, UnitBlockCompletion)
+from openedx.features.genplus_features.genplus_learning.roles import \
+    ProgramInstructorRole
+
 log = logging.getLogger(__name__)
 
 

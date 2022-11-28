@@ -1,10 +1,14 @@
-from django.dispatch import receiver
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from django.db.models.signals import post_save, pre_save
-from .models import GenUser, Student, Teacher, TempUser, Class, JournalPost, Activity
-from .constants import JournalTypes, ActivityTypes
 import logging
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
+
+from .constants import ActivityTypes, JournalTypes
+from .models import (Activity, Class, GenUser, JournalPost, Student, Teacher,
+                     TempUser)
+
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 logger = logging.getLogger(__name__)

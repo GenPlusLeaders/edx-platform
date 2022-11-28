@@ -1,19 +1,28 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status, views, viewsets, mixins, filters
+from rest_framework import filters, generics, mixins, status, views, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.views import APIView
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import GenUser, Student, Class, Activity
-from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent
-from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment,
-                                                                       ClassUnit, ClassLesson, UnitCompletion,
-                                                                       UnitBlockCompletion)
-from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url
-from .serializers import ProgramSerializer, ClassStudentSerializer, ActivitySerializer, ClassUnitSerializer
-from openedx.features.genplus_features.genplus.api.v1.serializers import ClassSummarySerializer
+
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.common.display_messages import (
+    ErrorMessages, SuccessMessages)
+from openedx.features.genplus_features.genplus.api.v1.permissions import (
+    IsStudent, IsStudentOrTeacher, IsTeacher)
+from openedx.features.genplus_features.genplus.api.v1.serializers import \
+    ClassSummarySerializer
+from openedx.features.genplus_features.genplus.models import (Activity, Class,
+                                                              GenUser, Student)
+from openedx.features.genplus_features.genplus_learning.models import (
+    ClassLesson, ClassUnit, Program, ProgramEnrollment, UnitBlockCompletion,
+    UnitCompletion)
+from openedx.features.genplus_features.genplus_learning.utils import \
+    get_absolute_url
+
+from .serializers import (ActivitySerializer, ClassStudentSerializer,
+                          ClassUnitSerializer, ProgramSerializer)
 
 
 class ProgramViewSet(viewsets.ModelViewSet):
@@ -36,7 +45,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         context = super(ProgramViewSet, self).get_serializer_context()
         context.update({
-            "gen_user": self.request.user.gen_user,
+            'gen_user': self.request.user.gen_user,
         })
         return context
 

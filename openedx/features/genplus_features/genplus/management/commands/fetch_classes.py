@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
-from openedx.features.genplus_features.genplus.rmunify import RmUnify
+
 from openedx.features.genplus_features.genplus.constants import ClassTypes
+from openedx.features.genplus_features.genplus.rmunify import RmUnify
 
 
 class Command(BaseCommand):
@@ -8,7 +9,7 @@ class Command(BaseCommand):
     argument_options = [ClassTypes.REGISTRATION_GROUP, ClassTypes.TEACHING_GROUP]
 
     def add_arguments(self, parser):
-        parser.add_argument("-f", type=str)
+        parser.add_argument('-f', type=str)
 
     def handle(self, *args, **options):
         if 'f' not in options or options['f'] not in self.argument_options:

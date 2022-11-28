@@ -1,13 +1,16 @@
 import os
 import uuid
+
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-from .constants import GenUserRoles, ClassColors, JournalTypes, SchoolTypes, ClassTypes, ActivityTypes, EmailTypes
-from django.core.exceptions import ValidationError
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
+from .constants import (ActivityTypes, ClassColors, ClassTypes, EmailTypes,
+                        GenUserRoles, JournalTypes, SchoolTypes)
+
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
@@ -153,8 +156,8 @@ class Class(TimeStampedModel):
     image = models.ImageField(upload_to='gen_plus_classes', null=True, blank=True)
     name = models.CharField(max_length=128)
     is_visible = models.BooleanField(default=False, help_text='Manage Visibility to Genplus platform')
-    students = models.ManyToManyField(Student, blank=True, through="genplus.ClassStudents", related_name='classes')
-    program = models.ForeignKey('genplus_learning.Program', on_delete=models.CASCADE, null=True, blank=True, related_name="classes")
+    students = models.ManyToManyField(Student, blank=True, through='genplus.ClassStudents', related_name='classes')
+    program = models.ForeignKey('genplus_learning.Program', on_delete=models.CASCADE, null=True, blank=True, related_name='classes')
     objects = models.Manager()
     visible_objects = ClassManager()
 
@@ -166,7 +169,7 @@ class Teacher(models.Model):
     gen_user = models.OneToOneField(GenUser, on_delete=models.CASCADE, related_name='teacher')
     profile_image = models.ImageField(upload_to='gen_plus_teachers', null=True, blank=True)
     # TODO : need to remove the through model
-    classes = models.ManyToManyField(Class, related_name='teachers', through="genplus.TeacherClass")
+    classes = models.ManyToManyField(Class, related_name='teachers', through='genplus.TeacherClass')
 
     @property
     def user(self):
@@ -190,8 +193,8 @@ class ClassStudents(models.Model):
 
 class JournalPost(TimeStampedModel):
     JOURNAL_TYPE_CHOICES = JournalTypes.__MODEL_CHOICES__
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="journal_posts")
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, related_name="journal_feedbacks")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='journal_posts')
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, related_name='journal_feedbacks')
     title = models.CharField(max_length=128)
     skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, null=True)
     description = models.TextField()

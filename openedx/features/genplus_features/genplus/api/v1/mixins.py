@@ -1,4 +1,6 @@
-from openedx.features.genplus_features.genplus.models import GenUser, Character, Class, Teacher, Student
+from openedx.features.genplus_features.genplus.models import (Character, Class,
+                                                              GenUser, Student,
+                                                              Teacher)
 
 
 class GenzMixin:

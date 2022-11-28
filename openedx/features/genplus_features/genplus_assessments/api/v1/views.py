@@ -1,17 +1,19 @@
 import logging
-from rest_framework import views, viewsets
+
 from opaque_keys.edx.keys import CourseKey
-from rest_framework.response import Response
+from rest_framework import views, viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.genplus.api.v1.permissions import \
+    IsTeacher
 from openedx.features.genplus_features.genplus.models import Class
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
+from openedx.features.genplus_features.genplus_assessments.utils import \
+    build_students_result
+
 from .serializers import ClassSerializer
-from openedx.features.genplus_features.genplus_assessments.utils import (
-    build_students_result,
-)
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class StudentAnswersView(viewsets.ViewSet):
         class_id = kwargs.get('class_id', None)
         student_id = request.query_params.get('student_id',None)
         students = []
-        if student_id == "all":
+        if student_id == 'all':
             students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
         else:
             students.append(student_id)

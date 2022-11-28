@@ -1,15 +1,16 @@
 import statistics
 
-from django.conf import settings
 from django.apps import apps
+from django.conf import settings
 from django.test import RequestFactory
-
 from xmodule.modulestore.django import modulestore
-from openedx.features.course_experience.utils import get_course_outline_block_tree
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+from openedx.core.djangoapps.content.course_overviews.models import \
+    CourseOverview
+from openedx.features.course_experience.utils import \
+    get_course_outline_block_tree
 from openedx.features.genplus_features.genplus_learning.models import (
-    ClassLesson, ClassUnit, UnitCompletion, UnitBlockCompletion
-)
+    ClassLesson, ClassUnit, UnitBlockCompletion, UnitCompletion)
 
 
 def calculate_class_lesson_progress(course_key, usage_key, gen_class):

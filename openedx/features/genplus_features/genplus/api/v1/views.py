@@ -1,52 +1,51 @@
-from django.middleware import csrf
-from django.http import Http404
-from django.utils.decorators import method_decorator
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError
 from django.db.models import Q
+from django.http import Http404
+from django.middleware import csrf
 from django.shortcuts import get_object_or_404
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.conf import settings
-
-from rest_framework import generics, status, views, viewsets
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_post_parameters
+from drf_multiple_model.mixins import FlatMultipleModelMixin
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import filters, generics, mixins, status, views, viewsets
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework import filters
-from rest_framework import mixins
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from drf_multiple_model.mixins import FlatMultipleModelMixin
 
-from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import (
-    GenUser, Character, Class, Teacher, Student, TeacherClass, JournalPost, Skill
-)
-from openedx.features.genplus_features.genplus.constants import JournalTypes, EmailTypes
-from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
-from openedx.features.genplus_features.genplus_badges.api.v1.serializers import JournalBoosterBadgeSerializer
-from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
-from django.views.decorators.debug import sensitive_post_parameters
-from .serializers import (
-    CharacterSerializer,
-    ClassListSerializer,
-    ClassSummarySerializer,
-    FavoriteClassSerializer,
-    UserInfoSerializer,
-    JournalListSerializer,
-    StudentPostSerializer,
-    TeacherFeedbackSerializer,
-    SkillSerializer,
-    ContactSerailizer,
-    ChangePasswordByTeacherSerializer,
-    ChangePasswordSerializer
-)
-from .permissions import IsStudent, IsTeacher, IsStudentOrTeacher, IsGenUser, FromPrivateSchool
+from openedx.core.djangoapps.cors_csrf.authentication import \
+    SessionAuthenticationCrossDomainCsrf
+from openedx.features.genplus_features.common.display_messages import (
+    ErrorMessages, SuccessMessages)
+from openedx.features.genplus_features.genplus.constants import (EmailTypes,
+                                                                 JournalTypes)
+from openedx.features.genplus_features.genplus.models import (Character, Class,
+                                                              GenUser,
+                                                              JournalPost,
+                                                              Skill, Student,
+                                                              Teacher,
+                                                              TeacherClass)
+from openedx.features.genplus_features.genplus_badges.api.v1.serializers import \
+    JournalBoosterBadgeSerializer
+from openedx.features.genplus_features.genplus_badges.models import \
+    BoosterBadgeAward
+
 from .mixins import GenzMixin
 from .pagination import JournalListPagination
-
+from .permissions import (FromPrivateSchool, IsGenUser, IsStudent,
+                          IsStudentOrTeacher, IsTeacher)
+from .serializers import (ChangePasswordByTeacherSerializer,
+                          ChangePasswordSerializer, CharacterSerializer,
+                          ClassListSerializer, ClassSummarySerializer,
+                          ContactSerailizer, FavoriteClassSerializer,
+                          JournalListSerializer, SkillSerializer,
+                          StudentPostSerializer, TeacherFeedbackSerializer,
+                          UserInfoSerializer)
 
 sensitive_post_parameters_m = method_decorator(
     sensitive_post_parameters(
@@ -136,7 +135,7 @@ class CharacterViewSet(GenzMixin, viewsets.ModelViewSet):
         character = self.get_object()
         student = Student.objects.get(gen_user=self.gen_user)
         student.character = character
-        if request.data.get("onboarded") and not self.gen_user.student.onboarded:
+        if request.data.get('onboarded') and not self.gen_user.student.onboarded:
             student.onboarded = True
 
         student.save(update_fields=['onboarded', 'character'])
@@ -365,16 +364,16 @@ class ContactAPIView(views.APIView):
 
             msg = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, [settings.CONTACT_EMAIL])
             msg.cc = [email]
-            msg.attach_alternative(html_content, "text/html")
+            msg.attach_alternative(html_content, 'text/html')
 
             msg_status = msg.send(fail_silently=True)
 
             if (msg_status > 0):
-                return Response({"success": "Sent"}, status=status.HTTP_200_OK)
+                return Response({'success': 'Sent'}, status=status.HTTP_200_OK)
             else:
-                return Response({"error": "Failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'Failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChangePasswordByTeacherView(GenzMixin, views.APIView):
@@ -393,10 +392,10 @@ class ChangePasswordByTeacherView(GenzMixin, views.APIView):
                     user.set_password(password)
                     user.save()
                     users_list.append(user.email)
-            return Response({"message": SuccessMessages.PASSWORD_CHANGED_BY_TEACHER.format(users=','.join(users_list))},
+            return Response({'message': SuccessMessages.PASSWORD_CHANGED_BY_TEACHER.format(users=','.join(users_list))},
                             status=status.HTTP_200_OK)
         else:
-            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChangePasswordView(GenzMixin, generics.GenericAPIView):
@@ -411,13 +410,6 @@ class ChangePasswordView(GenzMixin, generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "New password has been saved."})
+            return Response({'message': 'New password has been saved.'})
         else:
-            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

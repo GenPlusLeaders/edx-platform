@@ -1,12 +1,9 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from openedx.features.genplus_features.genplus.models import Student
-from openedx.features.genplus_features.genplus.models import Class
+from openedx.features.genplus_features.genplus.models import Class, Student
 from openedx.features.genplus_features.genplus_learning.models import (
-    ClassLesson,
-    ClassUnit
-)
+    ClassLesson, ClassUnit)
 
 
 class ClassLessonSerializer(serializers.ModelSerializer):
@@ -17,7 +14,7 @@ class ClassLessonSerializer(serializers.ModelSerializer):
 
 class ClassUnitSerializer(serializers.ModelSerializer):
     class_lessons = ClassLessonSerializer(many=True, read_only=True)
-    display_name = serializers.CharField(source="unit.display_name")
+    display_name = serializers.CharField(source='unit.display_name')
 
     class Meta:
         model = ClassUnit
@@ -38,7 +35,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
 
     def get_profile_pic_url(self, obj):
         if obj.character is not None and obj.character.profile_pic is not None:
-            return f"{settings.LMS_ROOT_URL}{obj.character.profile_pic.url}"
+            return f'{settings.LMS_ROOT_URL}{obj.character.profile_pic.url}'
         else:
             return None
 

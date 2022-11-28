@@ -1,22 +1,25 @@
-import csv
 import codecs
-from django.contrib import admin
+import csv
+
+from django import forms
+from django.conf.urls import url
+from django.contrib import admin, messages
+from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.auth.models import User
+from django.shortcuts import redirect, render
+from django.template.loader import get_template
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.text import format_lazy
+
+import openedx.features.genplus_features.genplus.tasks as genplus_tasks
+from openedx.features.genplus_features.genplus.constants import (ClassTypes,
+                                                                 SchoolTypes)
 from openedx.features.genplus_features.genplus.models import *
 from openedx.features.genplus_features.genplus_learning.models import Program
-from django import forms
-from django.contrib import messages
-from openedx.features.genplus_features.genplus.constants import ClassTypes, SchoolTypes
-import openedx.features.genplus_features.genplus.tasks as genplus_tasks
-from django.urls import reverse
-from django.utils.text import format_lazy
-from django.utils.safestring import mark_safe
-from django.contrib.admin.widgets import FilteredSelectMultiple
-from .filters import MoreThanOneClassFilter
-from django.template.loader import get_template
-from django.shortcuts import redirect, render
-from django.conf.urls import url
+
 from .constants import GenUserRoles
-from django.contrib.auth.models import User
+from .filters import MoreThanOneClassFilter
 
 
 @admin.register(GenUser)
@@ -41,7 +44,7 @@ class CsvImportForm(forms.Form):
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    change_list_template = get_template("genplus/extended/schools_changelist.html")
+    change_list_template = get_template('genplus/extended/schools_changelist.html')
     list_display = (
         'guid',
         'name',
@@ -62,13 +65,13 @@ class SchoolAdmin(admin.ModelAdmin):
         return my_urls + urls
 
     def import_csv(self, request):
-        if request.method == "POST":
-            csv_file = request.FILES["csv_file"]
+        if request.method == 'POST':
+            csv_file = request.FILES['csv_file']
             reader = csv.DictReader(codecs.iterdecode(csv_file, 'utf-8'))
             for row in reader:
                 try:
                     # convert dict into lower case and the empty string into None
-                    non_empty_row = {k.lower().replace(" ", ""): (None if v == "" else v) for k, v in row.items()}
+                    non_empty_row = {k.lower().replace(' ', ''): (None if v == '' else v) for k, v in row.items()}
                     first_name = non_empty_row['firstname']
                     last_name = non_empty_row['secondname']
                     email = non_empty_row['email']
@@ -98,12 +101,12 @@ class SchoolAdmin(admin.ModelAdmin):
                 except KeyError as e:
                     print(e)
                     self.message_user(request, 'An Error occurred while parsing the csv', level=messages.ERROR)
-            self.message_user(request, "Your csv file has been imported")
-            return redirect("..")
+            self.message_user(request, 'Your csv file has been imported')
+            return redirect('..')
         form = CsvImportForm()
-        payload = {"form": form}
+        payload = {'form': form}
         return render(
-            request, "genplus/extended/csv_form.html", payload
+            request, 'genplus/extended/csv_form.html', payload
         )
 
     @staticmethod
@@ -230,8 +233,8 @@ class ClassAdmin(admin.ModelAdmin):
         return self.readonly_fields
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "program":
-            kwargs["queryset"] = Program.get_active_programs()
+        if db_field.name == 'program':
+            kwargs['queryset'] = Program.get_active_programs()
         return super(ClassAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
