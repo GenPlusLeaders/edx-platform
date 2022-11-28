@@ -17,13 +17,18 @@ repos:
     hooks:
     - id: seed-isort-config
 -   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.8.0
+    rev: v5.10.1
     hooks:
     - id: isort
+- repo: https://github.com/myint/autoflake
+  rev: v2.0.0
+  hooks:
+    - id: autoflake
+      args: ['--in-place', '--remove-all-unused-imports', '--ignore-init-module-imports']
 
 # flake8
 - repo: https://github.com/pycqa/flake8
-  rev: 3.9.2
+  rev: 6.0.0
   hooks:
     - id: flake8
       # See https://github.com/DmytroLitvinov/awesome-flake8-extensions for extensions

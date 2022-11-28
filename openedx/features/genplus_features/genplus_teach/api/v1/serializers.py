@@ -1,9 +1,7 @@
 from rest_framework import serializers
 
-from openedx.features.genplus_features.common.display_messages import (
-    ErrorMessages, SuccessMessages)
-from openedx.features.genplus_features.common.utils import \
-    get_generic_serializer
+from openedx.features.genplus_features.common.display_messages import \
+    ErrorMessages
 from openedx.features.genplus_features.genplus.api.v1.serializers import \
     SkillSerializer
 from openedx.features.genplus_features.genplus_teach.models import (

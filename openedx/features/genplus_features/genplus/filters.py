@@ -1,4 +1,4 @@
-from django.contrib.admin import ModelAdmin, SimpleListFilter
+from django.contrib.admin import SimpleListFilter
 from django.db.models import Count
 
 from openedx.features.genplus_features.genplus.models import ClassStudents

@@ -12,13 +12,15 @@ class ClassLessonSerializer(serializers.ModelSerializer):
         model = ClassLesson
         fields = ('id', 'display_name', 'lms_url', 'usage_key')
 
+
 class ClassUnitSerializer(serializers.ModelSerializer):
     class_lessons = ClassLessonSerializer(many=True, read_only=True)
     display_name = serializers.CharField(source='unit.display_name')
 
     class Meta:
         model = ClassUnit
-        fields = ('id', 'display_name', 'course_key' ,'class_lessons')
+        fields = ('id', 'display_name', 'course_key', 'class_lessons')
+
 
 class ClassStudentSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')

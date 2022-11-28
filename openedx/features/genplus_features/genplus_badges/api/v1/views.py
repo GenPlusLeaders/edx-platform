@@ -7,16 +7,15 @@ from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from lms.djangoapps.badges.models import BadgeAssertion, BadgeClass
+from lms.djangoapps.badges.models import BadgeClass
 from openedx.core.djangoapps.cors_csrf.authentication import \
     SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.common.display_messages import \
     SuccessMessages
 from openedx.features.genplus_features.genplus.api.v1.permissions import (
     IsStudent, IsStudentOrTeacher, IsTeacher)
-from openedx.features.genplus_features.genplus.models import Skill
 from openedx.features.genplus_features.genplus_badges.models import (
-    BoosterBadge, BoosterBadgeAward, BoosterBadgeType)
+    BoosterBadge, BoosterBadgeType)
 from openedx.features.genplus_features.genplus_learning.constants import (
     ProgramEnrollmentStatuses, ProgramStatuses)
 from openedx.features.genplus_features.genplus_learning.models import (

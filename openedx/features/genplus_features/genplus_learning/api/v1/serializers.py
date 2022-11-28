@@ -14,10 +14,9 @@ from openedx.features.genplus_features.genplus.models import (Activity,
 from openedx.features.genplus_features.genplus_badges.models import \
     BoosterBadgeAward
 from openedx.features.genplus_features.genplus_learning.models import (
-    ClassLesson, ClassUnit, Program, ProgramEnrollment, Unit,
-    UnitBlockCompletion, UnitCompletion)
-from openedx.features.genplus_features.genplus_learning.utils import (
-    calculate_class_lesson_progress, get_absolute_url)
+    ClassLesson, ClassUnit, Program, Unit, UnitBlockCompletion, UnitCompletion)
+from openedx.features.genplus_features.genplus_learning.utils import \
+    get_absolute_url
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -194,7 +193,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
                                                                is_complete=True)
             completions = completion_qs.values_list('usage_key', flat=True)
             for index, key in enumerate(chapters):
-                chapters[index] = True if key in completions else False
+                chapters[index] = key in completions
             progress['lesson_completions'] = chapters
             results.append(progress)
         return results

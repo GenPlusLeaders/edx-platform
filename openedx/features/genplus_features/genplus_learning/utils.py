@@ -1,12 +1,8 @@
 import statistics
 
-from django.apps import apps
-from django.conf import settings
 from django.test import RequestFactory
 from xmodule.modulestore.django import modulestore
 
-from openedx.core.djangoapps.content.course_overviews.models import \
-    CourseOverview
 from openedx.features.course_experience.utils import \
     get_course_outline_block_tree
 from openedx.features.genplus_features.genplus_learning.models import (

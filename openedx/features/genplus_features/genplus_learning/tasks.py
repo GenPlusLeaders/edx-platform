@@ -3,15 +3,13 @@ from datetime import datetime
 
 import pytz
 from celery import shared_task
-from celery_utils.logged_task import LoggedTask
-from celery_utils.persist_on_failure import LoggedPersistOnFailureTask
 from completion.models import BlockCompletion
 from django.core.exceptions import ObjectDoesNotExist
 from edx_django_utils.monitoring import set_code_owner_attribute
 from opaque_keys.edx.keys import UsageKey
 
 from common.djangoapps.student.models import CourseEnrollment
-from openedx.features.genplus_features.genplus.models import Class, Student
+from openedx.features.genplus_features.genplus.models import Class
 from openedx.features.genplus_features.genplus_learning.constants import \
     ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.models import (

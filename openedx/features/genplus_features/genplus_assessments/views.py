@@ -3,24 +3,20 @@ from __future__ import absolute_import, print_function, unicode_literals
 import io
 import os
 import tempfile
-from collections import defaultdict
 from os.path import basename, dirname, join, splitext
 
 import pdfkit
 from django.conf import settings
-from django.contrib.staticfiles import finders
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.template import loader
 from django.template.loader import render_to_string
 from django.test import override_settings
 from django.views.generic import TemplateView
-from opaque_keys.edx.keys import CourseKey
 
 from openedx.features.genplus_features.genplus.constants import JournalTypes
 from openedx.features.genplus_features.genplus.models import (GenUser,
-                                                              JournalPost,
-                                                              Student, Teacher)
+                                                              JournalPost)
 from openedx.features.genplus_features.genplus_badges.models import \
     BoosterBadgeAward
 from openedx.features.genplus_features.genplus_learning.models import (
@@ -82,8 +78,8 @@ class AssessmentReportPDFView(TemplateView):
         try:
             if self.stylesheet_path:
                 filename = join(script_dir, self.stylesheet_path)
-                print('filename', filename)
-                with tempfile.NamedTemporaryFile(suffix='.css', delete=False) as stylesheet_file, io.open(filename,'rb') as f:
+                with tempfile.NamedTemporaryFile(suffix='.css',
+                                                 delete=False) as stylesheet_file, io.open(filename, 'rb') as f:
                     options['user-style-sheet'] = stylesheet_file.name
                     styles = f.read()
                     stylesheet_file.write(styles)
@@ -184,10 +180,10 @@ class AssessmentReportPDFView(TemplateView):
 
         for course_key in course_keys:
             course_reports[str(course_key)] = build_course_report_for_students(
-            user_id=self.request.user.id,
-            course_key=course_key,
-            student_list=[user_id],
-        )
+                user_id=self.request.user.id,
+                course_key=course_key,
+                student_list=[user_id],
+            )
 
         character_image_url = ''
         if student.character and student.character.profile_pic:

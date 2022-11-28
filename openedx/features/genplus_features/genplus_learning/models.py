@@ -23,7 +23,7 @@ USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 def validate_percent(value):
     if (value is None) or (not 0 <= value <= 100):
-        raise ValidationError(_('{value} must be between 0 and 100').format(value=value))
+        raise ValidationError('{value} must be between 0 and 100'.format(value=value))
 
 
 class YearGroup(models.Model):

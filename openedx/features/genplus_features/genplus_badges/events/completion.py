@@ -3,8 +3,7 @@ import logging
 from django.conf import settings
 from xmodule.modulestore.django import modulestore
 
-from lms.djangoapps.badges.models import (BadgeClass,
-                                          CourseEventBadgesConfiguration)
+from lms.djangoapps.badges.models import BadgeClass
 from lms.djangoapps.badges.utils import requires_badges_enabled
 from openedx.features.genplus_features.genplus_learning.models import Unit
 
@@ -18,7 +17,6 @@ def _get_unit_completion_badge(user, course_key):
     ).order_by('-is_active').first()
     if not enrollment:
         return None
-    mode = enrollment.mode
     course = modulestore().get_course(course_key)
 
     if not course.issue_badges:

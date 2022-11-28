@@ -13,16 +13,16 @@ from django.utils.safestring import mark_safe
 from django.utils.text import format_lazy
 
 import openedx.features.genplus_features.genplus.tasks as genplus_tasks
+from openedx.features.genplus_features.genplus import models as genplus_models
 from openedx.features.genplus_features.genplus.constants import (ClassTypes,
                                                                  SchoolTypes)
-from openedx.features.genplus_features.genplus.models import *
 from openedx.features.genplus_features.genplus_learning.models import Program
 
 from .constants import GenUserRoles
 from .filters import MoreThanOneClassFilter
 
 
-@admin.register(GenUser)
+@admin.register(genplus_models.GenUser)
 class GenUserAdmin(admin.ModelAdmin):
     list_display = (
         'user',
@@ -34,7 +34,7 @@ class GenUserAdmin(admin.ModelAdmin):
     search_fields = ('user',)
 
 
-@admin.register(Skill)
+@admin.register(genplus_models.Skill)
 class SkillAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
@@ -42,7 +42,8 @@ class SkillAdmin(admin.ModelAdmin):
 class CsvImportForm(forms.Form):
     csv_file = forms.FileField()
 
-@admin.register(School)
+
+@admin.register(genplus_models.School)
 class SchoolAdmin(admin.ModelAdmin):
     change_list_template = get_template('genplus/extended/schools_changelist.html')
     list_display = (
@@ -77,29 +78,29 @@ class SchoolAdmin(admin.ModelAdmin):
                     email = non_empty_row['email']
                     username = non_empty_row['username'] if non_empty_row['username'] else email
                     password = non_empty_row['password']
-                    role = GenUserRoles.STUDENT if non_empty_row['role'] == GenUserRoles.STUDENT else GenUserRoles.TEACHING_STAFF
+                    role = GenUserRoles.STUDENT if non_empty_row['role'] == GenUserRoles.STUDENT else \
+                        GenUserRoles.TEACHING_STAFF
                     school, gen_class = self.get_school_and_class(non_empty_row['school'],
                                                                   non_empty_row['classname'],
                                                                   non_empty_row['classcode'])
                     user, created = User.objects.get_or_create(
-                                username=username,
-                                email=email,
-                                first_name=first_name,
-                                last_name=last_name,
-                        )
+                        username=username,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                    )
                     user.set_password(password)
                     user.save()
-                    gen_user, created = GenUser.objects.get_or_create(
-                            role=role,
-                            user=user,
-                            school=school
-                        )
+                    gen_user, created = genplus_models.GenUser.objects.get_or_create(
+                        role=role,
+                        user=user,
+                        school=school
+                    )
                     if role == GenUserRoles.STUDENT:
                         gen_student = gen_user.student
                         gen_user.refresh_from_db()
                         gen_class.students.add(gen_student)
-                except KeyError as e:
-                    print(e)
+                except KeyError:
                     self.message_user(request, 'An Error occurred while parsing the csv', level=messages.ERROR)
             self.message_user(request, 'Your csv file has been imported')
             return redirect('..')
@@ -111,18 +112,16 @@ class SchoolAdmin(admin.ModelAdmin):
 
     @staticmethod
     def get_school_and_class(school_name, class_name, class_code):
-        school, created = School.objects.get_or_create(
+        school, created = genplus_models.School.objects.get_or_create(
             type=SchoolTypes.PRIVATE,
             name=school_name
         )
-        gen_class, created = Class.objects.get_or_create(
+        gen_class, created = genplus_models.Class.objects.get_or_create(
             name=class_name,
             group_id=class_code,
             school=school
         )
         return school, gen_class
-
-
 
     def classes(self, obj):
         url = reverse('admin:genplus_class_changelist')
@@ -130,7 +129,7 @@ class SchoolAdmin(admin.ModelAdmin):
 
     def students(self, obj):
         url = reverse('admin:genplus_student_changelist')
-        student_count = Student.objects.filter(gen_user__school=obj).count()
+        student_count = genplus_models.Student.objects.filter(gen_user__school=obj).count()
         return mark_safe('<a href="%s?gen_user__school__guid__exact=%s">%s</a>' % (url, obj.pk, student_count))
 
     def sync_registration_group_classes(modeladmin, request, queryset):
@@ -150,13 +149,13 @@ class SchoolAdmin(admin.ModelAdmin):
                              'Classes will be updated on background. Please refresh your page after a while.')
 
 
-@admin.register(Character)
+@admin.register(genplus_models.Character)
 class CharacterAdmin(admin.ModelAdmin):
     filter_horizontal = ('skills',)
     search_fields = ('name',)
 
 
-@admin.register(Class)
+@admin.register(genplus_models.Class)
 class ClassAdmin(admin.ModelAdmin):
     list_display = (
         'name',
@@ -179,8 +178,6 @@ class ClassAdmin(admin.ModelAdmin):
                              'Students will be updated on background. Please refresh your page after a while.')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        db = kwargs.get('using')
-
         if db_field.name == 'students':
             kwargs['widget'] = FilteredSelectMultiple(
                 db_field.verbose_name, is_stacked=False
@@ -188,7 +185,7 @@ class ClassAdmin(admin.ModelAdmin):
         else:
             return super().formfield_for_manytomany(db_field, request, **kwargs)
         if 'queryset' not in kwargs:
-            queryset = Student.objects.all()
+            queryset = genplus_models.Student.objects.all()
             if queryset is not None:
                 kwargs['queryset'] = queryset
         form_field = db_field.formfield(**kwargs)
@@ -238,18 +235,18 @@ class ClassAdmin(admin.ModelAdmin):
         return super(ClassAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(TeacherClass)
+@admin.register(genplus_models.TeacherClass)
 class TeacherClassAdmin(admin.ModelAdmin):
     list_display = ('teacher', 'gen_class', 'is_favorite')
 
 
 # TODO: Remove after testing the login flow
-@admin.register(Teacher)
+@admin.register(genplus_models.Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     filter_horizontal = ('classes',)
 
 
-@admin.register(Student)
+@admin.register(genplus_models.Student)
 class StudentAdmin(admin.ModelAdmin):
     list_filter = (MoreThanOneClassFilter, 'gen_user__school', )
     list_display = ('username', 'school', 'enrolled_classes', )
@@ -265,12 +262,12 @@ class StudentAdmin(admin.ModelAdmin):
 
     def enrolled_classes(self, obj):
         url = reverse('admin:genplus_class_changelist')
-        classes = ClassStudents.objects.filter(student=obj)
+        classes = genplus_models.ClassStudents.objects.filter(student=obj)
         return mark_safe('<a href="%s?id__in=%s">%s</a>' % (
             url, ','.join(map(str, classes.values_list('gen_class_id', flat=True))), classes.count()))
 
 
-admin.site.register(JournalPost)
-admin.site.register(Activity)
-admin.site.register(ClassStudents)
-admin.site.register(TempUser)
+admin.site.register(genplus_models.JournalPost)
+admin.site.register(genplus_models.Activity)
+admin.site.register(genplus_models.ClassStudents)
+admin.site.register(genplus_models.TempUser)

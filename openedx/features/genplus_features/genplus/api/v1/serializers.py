@@ -47,7 +47,6 @@ class UserInfoSerializer(serializers.ModelSerializer):
             user_info.update(teacher_profile)
         return user_info
 
-
     def get_csrf_token(self, instance):
         return self.context.get('request').COOKIES.get('csrftoken')
 
@@ -56,9 +55,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'username', 'csrf_token', 'role',
                   'first_name', 'last_name', 'email', 'school', 'school_type')
 
+
 class TeacherSerializer(serializers.ModelSerializer):
     user_id = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
+
     class Meta:
         model = Teacher
         fields = ('id', 'user_id', 'name', 'profile_image')
@@ -125,9 +126,11 @@ class FavoriteClassSerializer(serializers.Serializer):
 class JournalListSerializer(serializers.ModelSerializer):
     skill = SkillSerializer(read_only=True)
     teacher = TeacherSerializer(read_only=True)
+
     class Meta:
         model = JournalPost
         fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'created')
+
 
 class StudentPostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -171,7 +174,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         )
 
         if not self.set_password_form.is_valid():
-            print(self.set_password_form.errors)
             raise serializers.ValidationError(self.set_password_form.errors)
         return attrs
 

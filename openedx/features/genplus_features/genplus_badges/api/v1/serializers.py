@@ -5,11 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from lms.djangoapps.badges.models import BadgeAssertion, BadgeClass
-from openedx.features.genplus_features.genplus.constants import JournalTypes
-from openedx.features.genplus_features.genplus.models import (JournalPost,
-                                                              Skill, Student,
-                                                              Teacher)
+from lms.djangoapps.badges.models import BadgeClass
 from openedx.features.genplus_features.genplus_badges.models import (
     BoosterBadge, BoosterBadgeAward, BoosterBadgeType)
 from openedx.features.genplus_features.genplus_badges.utils import \
@@ -35,7 +31,7 @@ class UnitBadgeSerializer(serializers.ModelSerializer):
 
     def get_awarded(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
-        return True if assertion else False
+        return bool(assertion)
 
     def get_awarded_on(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
@@ -82,7 +78,7 @@ class ProgramBadgeSerializer(serializers.ModelSerializer):
 
     def get_awarded(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
-        return True if assertion else False
+        return bool(assertion)
 
     def get_awarded_on(self, obj):
         assertion = obj.get_for_user(self.context.get('user')).first()
@@ -158,7 +154,7 @@ class StudentBoosterBadgesSerializer(serializers.ModelSerializer):
 
     def get_awarded(self, obj):
         assertion = obj.get_for_user(self.context.get('user'))
-        return True if assertion else False
+        return bool(assertion)
 
     def get_awarded_on(self, obj):
         assertion = obj.get_for_user(self.context.get('user'))

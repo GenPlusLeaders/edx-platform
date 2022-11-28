@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from lxml import etree
 from opaque_keys.edx.keys import UsageKey
@@ -12,7 +11,7 @@ from lms.djangoapps.courseware.user_state_client import \
 
 
 def build_problem_list(course_blocks, root, path=None):
-        """
+    """
         Generate a tuple of display names, block location paths and block keys
         for all problem blocks under the ``root`` block.
         Arguments:
@@ -24,15 +23,15 @@ def build_problem_list(course_blocks, root, path=None):
             Tuple[str, List[str], UsageKey]: tuple of a block's display name, path, and
                 usage key
         """
-        name = course_blocks.get_xblock_field(root, 'display_name') or root.block_type
-        if path is None:
-            path = [name]
+    name = course_blocks.get_xblock_field(root, 'display_name') or root.block_type
+    if path is None:
+        path = [name]
 
-        yield name, path, root
+    yield name, path, root
 
-        for block in course_blocks.get_children(root):
-            name = course_blocks.get_xblock_field(block, 'display_name') or block.block_type
-            yield from build_problem_list(course_blocks, block, path + [name])
+    for block in course_blocks.get_children(root):
+        name = course_blocks.get_xblock_field(block, 'display_name') or block.block_type
+        yield from build_problem_list(course_blocks, block, path + [name])
 
 
 def build_students_result(user_id, course_key, usage_key_str, student_list, filter_type):
@@ -100,8 +99,9 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                             for user_state in user_states:
                                 responses['results'].append(get_students_short_answer_response(user_state, user))
 
-                if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter_type == 'aggregate_response':
-                    for key,value in aggregate_result.items():
+                if responses['problem_type'] in ('single_choice',
+                                                 'multiple_choice') and filter_type == 'aggregate_response':
+                    for key, value in aggregate_result.items():
                         responses['results'].append({
                             'title': key,
                             'count': value['count'],
@@ -149,24 +149,19 @@ def get_problem_attributes(raw_data, block_key):
             [Dict]: Returns a dictionaries
             containing the problem data.
     """
-    responses = {}
-    responses['problem_key'] = str(block_key)
-    responses['problem_id'] = block_key.block_id
-    responses['selection'] = 0
+    responses = {'problem_key': str(block_key), 'problem_id': block_key.block_id, 'selection': 0}
     parser = etree.XMLParser(remove_blank_text=True)
     problem = etree.XML(raw_data, parser=parser)
     data_dict = {}
     for e in problem.iter('*'):
         if e.tag == 'problem':
-            responses['problem_type'] =  e.attrib.get('class')
+            responses['problem_type'] = e.attrib.get('class')
         elif e.text and e.attrib.get('class') == 'question-text' and responses['problem_type'] != 'short_answers':
-            responses['question_text'] =  e.text
+            responses['question_text'] = e.text
         elif e.text and e.tag == 'choice':
-            choice_dict = {}
-            choice_dict['statement'] = e.text
-            choice_dict['correct'] = e.attrib.get('correct')
+            choice_dict = {'statement': e.text, 'correct': e.attrib.get('correct')}
             if e.attrib.get('correct') == 'true':
-                 responses['selection'] += 1
+                responses['selection'] += 1
             data_dict.update({e.attrib.get('class'): choice_dict})
     if responses['problem_type'] != 'short_answers':
         responses['problem_choices'] = data_dict
@@ -178,13 +173,12 @@ def get_students_short_answer_response(user_state, user):
     Generate response for as per the user state for all short answers under the
     ``problem_location`` root.
     Arguments:
-        user_State (List): The user id for the user generating the report
+        user_state (List): The user id for the user generating the report
 
     Returns:
             [Dict]: Returns a dictionaries
             containing the student aggregate result data.
     """
-    student_response_dict = {}
     answer_id = user_state['Answer ID']
     user_answer = user_state['Answer']
     user_question = user_state['Question']
@@ -204,7 +198,8 @@ def students_multiple_choice_response(user_states, user):
     Generate response for as per the user state for all for problem(Multiple Choices and Single Choices) under the
     ``problem_location`` root.
     Arguments:
-        user_State (List): The user id for the user generating the report
+        user_states (List): The user id for the user generating the report
+        user (List): The user id for the user generating the report
 
     Returns:
             [Dict]: Returns a dictionaries

@@ -103,7 +103,7 @@ class Article(TimeStampedModel):
             t = 0
             for u in video_metadata.duration.split(':'):
                 t = 60 * t + int(u)
-            return t/60
+            return t / 60
         except Exception as e:
             logger.exception(e)
             return 0

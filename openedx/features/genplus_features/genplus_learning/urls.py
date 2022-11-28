@@ -9,7 +9,7 @@ from .views import update_lessons_structure
 app_name = 'genplus_learning'
 
 urlpatterns = (
-     url(
+    url(
         r'^course/{}/update_lessons?$'.format(
             settings.COURSE_KEY_PATTERN
         ),

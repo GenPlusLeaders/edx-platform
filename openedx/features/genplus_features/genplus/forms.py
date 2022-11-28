@@ -10,7 +10,7 @@ class GenUserRegistrationForm(forms.ModelForm):
     organisation_id = forms.CharField(required=False)
     organisation_name = forms.CharField(required=False)
 
-    class Meta(object):
+    class Meta:
         model = GenUser
         fields = ('role', 'year_of_entry', 'registration_group')
 

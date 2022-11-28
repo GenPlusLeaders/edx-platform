@@ -4,7 +4,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_multiple_model.views import FlatMultipleModelAPIView
-from rest_framework import filters, generics, status, views, viewsets
+from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -310,7 +310,7 @@ class HelpGuideViewSet(viewsets.ReadOnlyModelViewSet, GenzMixin):
     def retrieve(self, request, pk=None):
         teacher = Teacher.objects.get(gen_user=self.gen_user)
         guide = get_object_or_404(HelpGuide, pk=pk)
-        serializer = HelpGuideSerializer(instance=guide, context={ 'teacher': teacher })
+        serializer = HelpGuideSerializer(instance=guide, context={'teacher': teacher})
         return Response(serializer.data)
 
     @action(detail=True, methods=['put'])
@@ -330,6 +330,7 @@ class HelpGuideViewSet(viewsets.ReadOnlyModelViewSet, GenzMixin):
             defaults=serializer.data
         )
         return Response(SuccessMessages.ARTICLE_RATED, status=status.HTTP_200_OK)
+
 
 class AlertBarEntryView(generics.ListAPIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]

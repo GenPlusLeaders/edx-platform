@@ -1,9 +1,7 @@
 import django_filters
 
 from openedx.features.genplus_features.genplus.models import Teacher
-from openedx.features.genplus_features.genplus_teach.models import (Article,
-                                                                    Gtcs,
-                                                                    MediaType)
+from openedx.features.genplus_features.genplus_teach.models import Article
 
 
 class ArticleFilter(django_filters.FilterSet):
@@ -22,10 +20,10 @@ class ArticleFilter(django_filters.FilterSet):
         teacher = Teacher.objects.get(gen_user__user=self.request.user)
         try:
             article_ids = [
-                    article.pk
-                    for article in queryset.all()
-                    if article.is_completed(teacher) == value
-                ]
+                article.pk
+                for article in queryset.all()
+                if article.is_completed(teacher) == value
+            ]
             return queryset.filter(id__in=article_ids)
         except ValueError:
             pass

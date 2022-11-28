@@ -9,8 +9,7 @@ from http import HTTPStatus
 import requests
 from django.conf import settings
 
-from openedx.features.genplus_features.genplus.constants import (ClassTypes,
-                                                                 GenUserRoles,
+from openedx.features.genplus_features.genplus.constants import (GenUserRoles,
                                                                  SchoolTypes)
 from openedx.features.genplus_features.genplus.models import (Class, GenUser,
                                                               School, Student,
@@ -88,12 +87,10 @@ class RmUnify:
 
     def fetch_students(self, query=Class.visible_objects.all()):
         for gen_class in query:
-            print(gen_class.name)
             fetch_type = re.sub(r'(?<!^)(?=[A-Z])', '_', gen_class.type).upper()
             # formatting url according to class type
             url = getattr(self, fetch_type).format(RmUnify.ORGANISATION,
                                                    gen_class.school.guid)
-            print(url)
             data = self.fetch(f'{url}/{gen_class.group_id}')
             try:
                 for student in data['Students']:

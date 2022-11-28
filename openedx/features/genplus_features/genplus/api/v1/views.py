@@ -1,9 +1,6 @@
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.db import IntegrityError
 from django.db.models import Q
-from django.http import Http404
-from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import get_template
 from django.utils.decorators import method_decorator
@@ -11,10 +8,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from drf_multiple_model.mixins import FlatMultipleModelMixin
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, generics, mixins, status, views, viewsets
-from rest_framework.authentication import SessionAuthentication
+from rest_framework import generics, status, views, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -25,7 +20,6 @@ from openedx.features.genplus_features.common.display_messages import (
 from openedx.features.genplus_features.genplus.constants import (EmailTypes,
                                                                  JournalTypes)
 from openedx.features.genplus_features.genplus.models import (Character, Class,
-                                                              GenUser,
                                                               JournalPost,
                                                               Skill, Student,
                                                               Teacher,
@@ -195,6 +189,7 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
 
         return ClassSummarySerializer
 
+
 class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudentOrTeacher]
@@ -262,7 +257,6 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
         skills_qs = Skill.objects.filter(pk__in=queryset.values_list('skill', flat=True))
         response.data['skills'] = SkillSerializer(skills_qs, many=True).data
         return response
-
 
     def create(self, request, *args, **kwargs):
         if self.gen_user.is_student:
@@ -358,7 +352,7 @@ class ContactAPIView(views.APIView):
             }
 
             plain_message = get_template('genplus/contact_us_email.txt')
-            html_message  = get_template('genplus/contact_us_email.html')
+            html_message = get_template('genplus/contact_us_email.html')
             text_content = plain_message.render(data)
             html_content = html_message.render(data)
 

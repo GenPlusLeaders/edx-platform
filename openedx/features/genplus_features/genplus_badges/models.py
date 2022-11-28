@@ -2,7 +2,6 @@ from django.contrib.auth.models import User
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-from openedx.features.genplus_features.genplus.models import Skill
 from openedx.features.genplus_features.genplus_badges.utils import (
     validate_badge_image, validate_lowercase)
 

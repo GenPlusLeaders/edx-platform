@@ -28,7 +28,6 @@ class ProgramAccessRole(AccessRole):
             for gen_user in gen_users:
                 revoke_access(unit.course, gen_user.user, self._role_name, send_email)
 
-
     def users_with_role(self):
         pass
 

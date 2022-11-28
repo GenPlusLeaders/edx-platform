@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, generics, mixins, status, views, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,7 +14,7 @@ from openedx.features.genplus_features.genplus.api.v1.permissions import (
 from openedx.features.genplus_features.genplus.api.v1.serializers import \
     ClassSummarySerializer
 from openedx.features.genplus_features.genplus.models import (Activity, Class,
-                                                              GenUser, Student)
+                                                              Student)
 from openedx.features.genplus_features.genplus_learning.models import (
     ClassLesson, ClassUnit, Program, ProgramEnrollment, UnitBlockCompletion,
     UnitCompletion)
