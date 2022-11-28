@@ -1,6 +1,6 @@
 default_language_version:
   python: python3.8
-default_stages: [commit]
+default_stages: [push]
 files: ^openedx/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
