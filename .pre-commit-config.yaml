@@ -1,7 +1,6 @@
-default_language_version:
-  python: python3.8
-default_stages: [push]
-files: ^openedx/
+exclude: 'docs|node_modules|migrations|.git|.tox'
+default_stages: [commit]
+fail_fast: true
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
