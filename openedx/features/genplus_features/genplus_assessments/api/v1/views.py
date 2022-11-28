@@ -115,7 +115,7 @@ class SkillAssessmentView(viewsets.ViewSet):
             response['total_respones'] = gen_class.students.count() * 2
             response['available_responses'] = 0
             response['student_response'] = dict()
-            if assessment_type == "text_assessment":
+            if assessment_type == "genz_text_assessment":
                 text_assessment = UserResponse.objects.filter(Q(program=gen_class.program) & Q(gen_class=class_id) & (Q(usage_id=start_year_usage_key) | Q(usage_id=end_year_usage_key)))
                 text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
                 raw_data = text_assessment_data
@@ -133,7 +133,7 @@ class SkillAssessmentView(viewsets.ViewSet):
                 response['student_response'][user_id]['score_start_of_year'] = 0
                 response['student_response'][user_id]['score_end_of_year'] = 0
                 response['student_response'][user_id]['total_score'] = TOTAL_PROBLEM_SCORE
-                if assessment_type == "text_assessment":
+                if assessment_type == "genz_text_assessment":
                     response['student_response'][user_id]['response_start_of_year'] = None
                     response['student_response'][user_id]['response_end_of_year'] = None
 
