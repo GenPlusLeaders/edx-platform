@@ -5,7 +5,6 @@ from rest_framework import serializers
 from openedx.features.genplus_features.genplus.models import Student
 from openedx.features.genplus_features.genplus.models import Class
 from openedx.features.genplus_features.genplus_assessments.models import (
-    Assessment,
     UserResponse,
     UserRating
 )
