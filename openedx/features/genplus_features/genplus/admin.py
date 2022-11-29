@@ -69,7 +69,6 @@ class SchoolAdmin(admin.ModelAdmin):
                 try:
                     # convert dict into lower case and the empty string into None
                     non_empty_row = {k.lower().replace(" ", ""): (None if v == "" else v) for k, v in row.items()}
-                    print(non_empty_row)
                     first_name = non_empty_row['firstname']
                     last_name = non_empty_row['secondname']
                     email = non_empty_row['email']
