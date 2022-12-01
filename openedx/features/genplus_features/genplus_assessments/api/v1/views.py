@@ -48,7 +48,9 @@ class StudentAnswersView(viewsets.ViewSet):
         response = dict()
         try:
             if student_id == "all":
-                students = list(Class.objects.prefetch_related('students').get(pk=class_id).students.values_list('gen_user__user_id',flat=True))
+                gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
+                students = gen_class.students.exclude(gen_user__user__isnull=True)
+                students = list(students.values_list('gen_user__user',flat=True))
             else:
                 students.append(student_id)
             course_id = request.query_params.get('course_id',None)
@@ -232,11 +234,13 @@ class SkillAssessmentView(viewsets.ViewSet):
         store = modulestore()
         assessments = []
         aggregate_result =  dict()
-        #get assessment usage key and type for program intro assessment course
-        assessments = self.get_assessment_block_data(gen_class.program.intro_unit.id)
-        #get assessment usage key and type for program outro assessment course
-        assessments.extend(self.get_assessment_block_data(gen_class.program.outro_unit.id))
-
+        try:
+            #get assessment usage key and type for program intro assessment course
+            assessments.extend(self.get_assessment_block_data(gen_class.program.intro_unit.id))
+            #get assessment usage key and type for program outro assessment course
+            assessments.extend(self.get_assessment_block_data(gen_class.program.outro_unit.id))
+        except Exception as e:
+            logger.exception(e)
         #prepare dictionary for every particular assessment problem in a course
         for assessment in assessments:
             usage_key = UsageKey.from_string(assessment.get('id'))
@@ -361,10 +365,13 @@ class SkillAssessmentView(viewsets.ViewSet):
         store = modulestore()
         assessments = []
         aggregate_result = dict()
-        #get assessment usage key and type for program intro assessment course
-        assessments = self.get_assessment_block_data(gen_class.program.intro_unit.id)
-        #get assessment usage key and type for program outro assessment course
-        assessments.extend(self.get_assessment_block_data(gen_class.program.outro_unit.id))
+        try:
+            #get assessment usage key and type for program intro assessment course
+            assessments.extend(self.get_assessment_block_data(gen_class.program.intro_unit.id))
+            #get assessment usage key and type for program outro assessment course
+            assessments.extend(self.get_assessment_block_data(gen_class.program.outro_unit.id))
+        except Exception as e:
+            logger.exception(e)
 
         #prepare dictionary for every particular assessment problem in a course
         for assessment in assessments:

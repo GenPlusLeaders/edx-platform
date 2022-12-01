@@ -52,12 +52,17 @@ class ClassStudentSerializer(serializers.ModelSerializer):
 
 
 class ClassSerializer(serializers.ModelSerializer):
-    students = ClassStudentSerializer(many=True, read_only=True)
+    students = serializers.SerializerMethodField()
     class_units = ClassUnitSerializer(many=True, read_only=True)
 
     class Meta:
         model = Class
         fields = ('group_id', 'name', 'students', 'class_units')
+
+    def get_students(self, instance):
+        students = instance.students.exclude(gen_user__user__isnull=True)
+        return ClassStudentSerializer(students, many=True, read_only=True).data
+
 
 class TextAssessmentSerializer(serializers.ModelSerializer):
     skill = serializers.CharField(source='skill.name')
