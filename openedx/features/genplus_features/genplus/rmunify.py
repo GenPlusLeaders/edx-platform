@@ -9,6 +9,10 @@ import hmac
 from datetime import datetime
 from openedx.features.genplus_features.genplus.models import GenUser, Student, School, Class
 from openedx.features.genplus_features.genplus.constants import SchoolTypes, ClassTypes, GenUserRoles
+from .constants import RmUnifyUpdateTypes
+from django.db.models import Q
+import openedx.features.genplus_features.genplus.tasks as genplus_tasks
+
 
 
 logger = logging.getLogger(__name__)
@@ -18,18 +22,14 @@ class RmUnifyException(BaseException):
     pass
 
 
-class RmUnify:
-    ORGANISATION = 'organisation/'
-    TEACHING_GROUP = '{}{}/teachinggroup/'
-    REGISTRATION_GROUP = '{}{}/registrationgroup/'
-
+class BaseRmUnify:
     def __init__(self):
         self.key = settings.RM_UNIFY_KEY
         self.secret = settings.RM_UNIFY_SECRET
         self.timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def fetch(self, source, source_id=None):
-        headers = {"Authorization": "Unify " + self.key + "_" + self.timestamp + ":" + self.hashed}
+        headers = self.get_header()
         url = self.generate_url(source, source_id)
         response = requests.get(url, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
@@ -52,6 +52,15 @@ class RmUnify:
         if source_id:
             url = url + source_id
         return url
+
+    def get_header(self):
+        return {"Authorization": "Unify " + self.key + "_" + self.timestamp + ":" + self.hashed}
+
+
+class RmUnify(BaseRmUnify):
+    ORGANISATION = '/graph/organisation/'
+    TEACHING_GROUP = '/graph/{}{}/teachinggroup/'
+    REGISTRATION_GROUP = '/graph/{}{}/registrationgroup/'
 
     def fetch_schools(self):
         schools = self.fetch(self.ORGANISATION)
@@ -91,12 +100,80 @@ class RmUnify:
             gen_user_ids = []
             for student_data in data['Students']:
                 student_email = student_data.get('UnifyEmailAddress')
+                identity_guid = student_data.get('IdentityGuid')
                 gen_user, created = GenUser.objects.get_or_create(
                     email=student_email,
                     role=GenUserRoles.STUDENT,
+                    identity_guid=identity_guid,
                     school=gen_class.school,
                 )
                 gen_user_ids.append(gen_user.pk)
 
             gen_students = Student.objects.filter(gen_user__in=gen_user_ids)
             gen_class.students.add(*gen_students)
+
+
+class RmUnifyProvisioning(BaseRmUnify):
+
+    UPDATES = '/appprovisioning/v2/{}/updates/'
+    DELETE_BATCH = '/appprovisioning/v2/{}/deletebatch/'
+
+    def get_header(self):
+        return {"Authorization": "Unify " + self.timestamp + ":" + self.hashed}
+
+    def provision(self):
+        data = self.fetch(self.UPDATES.format(self.key))
+        if data:
+            updates_batch = []
+            # check updates and update/delete user accordingly
+            for update in data['Updates']:
+                if update['Type'] == RmUnifyUpdateTypes.USER:
+                    self.update_user(update['UpdateData'])
+                elif update['Type'] == RmUnifyUpdateTypes.DELETE_USER:
+                    try:
+                        # only deleting if user with unify email address exist in our system
+                        user_email = update['UpdateData']['UnifyEmailAddress']
+                        genplus_tasks.delete_user.apply_async(
+                            args=[user_email]
+                        )
+                    except KeyError:
+                        pass
+
+                updates_batch.append(
+                    {
+                        "UpdateId": update['UpdateId'],
+                        "ReceiptId": update['ReceiptId']
+                    },
+                )
+            if len(updates_batch):
+                self.delete_batch(updates_batch)
+
+    def delete_batch(self, batch):
+        headers = self.get_header()
+        post_data = {'Updates': batch}
+        url = self.generate_url(self.DELETE_BATCH.format(self.key), None)
+        response = requests.post(url, json=post_data, headers=headers)
+        if response.status_code != HTTPStatus.OK.value:
+            logger.exception(response.reason)
+        logger.info('Successfully deleted batch {}'.format(str(batch)))
+
+    @staticmethod
+    def update_user(data):
+        try:
+            gen_user = GenUser.objects.filter(Q(user__email=data['UnifyEmailAddress']),
+                                              Q(identity_guid=data['IdentityGuid']))
+        except KeyError:
+            gen_user = GenUser.objects.filter(identity_guid=data['IdentityGuid'])
+
+        if gen_user.exist():
+            gen_user.user.first_name = data['FirstName']
+            gen_user.user.last_name = data['LastName']
+            gen_user.user.save()
+        return
+
+
+
+
+
+
+
