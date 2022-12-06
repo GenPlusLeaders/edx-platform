@@ -371,5 +371,5 @@ class PortfolioReflectionView(generics.ListAPIView):
         else:
             query = (Q1 & (Q3 | Q4)) | (Q2 & (Q5 | Q6))
 
-        queryset = queryset.filter(query).order_by('-created')
+        queryset = queryset.filter(query).prefetch_related('content_object').order_by('-created')
         return queryset
