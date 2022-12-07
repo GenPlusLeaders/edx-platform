@@ -247,12 +247,14 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                                     ]['score_end_of_year'] += data['score'] if 'score' in data else data['rating']
                 response[data['skill']
                                     ]['response_end_of_year'] += 1
-                
+
         if student_id == 'all' or student_id is None:
             for key,_ in aggregate_result.items():
-                aggregate_result[key]['score_start_of_year'] /= response[key]['response_start_of_year']
-                aggregate_result[key]['score_end_of_year'] /= response[key]['response_end_of_year']
-                
+                if response[key]['response_start_of_year'] > 0:
+                    aggregate_result[key]['score_start_of_year'] /= response[key]['response_start_of_year']
+                if response[key]['response_end_of_year'] > 0:
+                    aggregate_result[key]['score_end_of_year'] /= response[key]['response_end_of_year']
+
         return aggregate_result
 
     def get_assessment_result(self, raw_data, gen_class):

@@ -86,14 +86,17 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                 responses = get_problem_attributes(block.data, block_key)
                 aggregate_result = {}
                 user_short_answers = {}
+                if responses['problem_type'] in ('single_choice', 'multiple_choice'):
+                    responses['results'] = []
+                else:
+                    responses['results'] = {}
+                    
                 for user_id in student_list:
                     user = get_user_model().objects.get(pk=user_id)
                     user_states = generated_report_data.get(user.username)
                     if user_states:
                         # For each response in the block, aggregate the result for the problem, and add in the responses
                         if responses['problem_type'] in ('single_choice', 'multiple_choice'):
-                            if 'results' not in responses:
-                                responses['results'] = []
                             if filter_type == "aggregate_response":
                                 aggregate_result.update(students_aggregate_result(
                                     user_states, aggregate_result))
@@ -112,12 +115,9 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                                     if answer_id == user_state['Answer ID']:
                                         user_short_answers[answer_id]['answers'].append(
                                             get_students_short_answer_response(user_state, user))
-                              
-                if responses['problem_type'] == 'short_answers':
-                    if 'results' not in responses:
-                        responses['results'] = {}
-                    if len(user_short_answers) > 0:
-                        responses['results'].update(user_short_answers)
+
+                if responses['problem_type'] == 'short_answers' and len(user_short_answers) > 0:
+                    responses['results'].update(user_short_answers)
                         
                 if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter_type == "aggregate_response":
                     for key, value in aggregate_result.items():
