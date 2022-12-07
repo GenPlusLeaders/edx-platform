@@ -113,11 +113,12 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                                         user_short_answers[answer_id]['answers'].append(
                                             get_students_short_answer_response(user_state, user))
                               
-                if responses['problem_type'] == 'short_answers' and len(user_short_answers) > 0:
+                if responses['problem_type'] == 'short_answers':
                     if 'results' not in responses:
                         responses['results'] = {}
-                    responses['results'].update(user_short_answers)
-                    
+                    if len(user_short_answers) > 0:
+                        responses['results'].update(user_short_answers)
+                        
                 if responses['problem_type'] in ('single_choice', 'multiple_choice') and filter_type == "aggregate_response":
                     for key, value in aggregate_result.items():
                         responses['results'].append({
