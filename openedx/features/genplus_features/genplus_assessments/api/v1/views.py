@@ -98,7 +98,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
             raw_data = text_assessment_data + rating_assessment_data
             response['aggregate_all_problem'] = self.get_aggregate_problems_result(
                 raw_data, gen_class)
-            response['aggregate_skill'] = self.get_aggregate_skill_result(raw_data, gen_class)
+            response['aggregate_skill'] = self.get_aggregate_skill_result(raw_data, gen_class, student_id)
             if student_id == "all":
                 response['single_assessment_result'] = self.get_assessment_result(raw_data, gen_class)
             else:
@@ -207,7 +207,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
 
         return aggregate_result
 
-    def get_aggregate_skill_result(self, raw_data, gen_class):
+    def get_aggregate_skill_result(self, raw_data, gen_class, student_id):
         """
         Generate aggregate result for assessment for web chart on base of
         skills as per the user state  under the
@@ -219,30 +219,39 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                 containing the students aggregate skill base result data.
         """
         aggregate_result = {}
+        response = {}
         units = Unit.objects.filter(program=gen_class.program)
+            
         for unit in units:
             if unit.skill:
                 aggregate_result[unit.skill.name] = {
                         'skill': unit.skill.name,
                         'score_start_of_year': 0,
                         'score_end_of_year': 0,
-                        'count_response_start_of_year': 0,
-                        'count_response_end_of_year': 0,
                         'max_skills_score': MAX_SKILLS_SCORE
                     }
+                response[unit.skill.name] = {
+                    'response_start_of_year': 0,
+                    'response_end_of_year': 0
+                }
             
         for data in raw_data:
             data = dict(data)
             if data['assessment_time'] == "start_of_year":
                 aggregate_result[data['skill']
                                     ]['score_start_of_year'] += data['score'] if 'score' in data else data['rating']
-                aggregate_result[data['skill']
-                                    ]['count_response_start_of_year'] += 1
+                response[data['skill']
+                                    ]['response_start_of_year'] += 1
             else:
                 aggregate_result[data['skill']
                                     ]['score_end_of_year'] += data['score'] if 'score' in data else data['rating']
-                aggregate_result[data['skill']
-                                    ]['count_response_end_of_year'] += 1
+                response[data['skill']
+                                    ]['response_end_of_year'] += 1
+                
+        if student_id == 'all' or student_id is None:
+            for key,_ in aggregate_result.items():
+                aggregate_result[key]['score_start_of_year'] /= response[key]['response_start_of_year']
+                aggregate_result[key]['score_end_of_year'] /= response[key]['response_end_of_year']
                 
         return aggregate_result
 
