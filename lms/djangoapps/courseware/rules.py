@@ -22,6 +22,7 @@ from common.djangoapps.student.roles import CourseRole, OrgRole
 from xmodule.course_module import CourseBlock
 from xmodule.error_module import ErrorBlock
 from xmodule.x_module import XModule
+from openedx.features.genplus_features.genplus_learning.models import Unit, ProgramAccessRole
 
 
 from .access import has_access
@@ -134,12 +135,18 @@ class HasStaffAccessToContent(Rule):
         not_masquerading_as_student = ~Q(id__in=masq_as_student)
 
         is_global_staff = user.is_staff
-        course_staff_or_instructor_courses = CourseAccessRole.objects.filter(
+        course_staff_or_instructor_courses = list(CourseAccessRole.objects.filter(
             user=user,
             role__in=('staff', 'instructor')
         ).exclude(
             course_id=CourseKeyField.Empty,
-        ).values('course_id')
+        ).values_list('course_id', flat=True))
+        programs = ProgramAccessRole.objects.filter(
+            user=user,
+            role__in=('staff', 'instructor')
+        ).values_list('program', flat=True)
+        course_staff_or_instructor_courses += list(Unit.objects.filter(program__in=programs).values_list('course', flat=True))
+        course_staff_or_instructor_courses = set(course_staff_or_instructor_courses)
         org_staff_or_instructor_courses = CourseAccessRole.objects.filter(
             user=user,
             role__in=('staff', 'instructor'),

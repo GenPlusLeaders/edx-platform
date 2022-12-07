@@ -41,11 +41,22 @@ class Program(TimeStampedModel):
     end_date = models.DateField()
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=ProgramStatuses.UNPUBLISHED)
     banner_image = models.ImageField(upload_to="program_banner_images", default="")
-    intro_unit = models.ForeignKey(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='intro_unit_programs')
-    outro_unit = models.ForeignKey(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='outro_unit_programs')
+    intro_unit = models.OneToOneField(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='intro_unit_program')
+    outro_unit = models.OneToOneField(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='outro_unit_program')
     history = HistoricalRecords()
 
-    def save(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__original_intro_unit = self.intro_unit
+        self.__original_outro_unit = self.outro_unit
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if self.intro_unit != self.__original_intro_unit:
+            pass
+
+        if self.outro_unit != self.__original_outro_unit:
+            pass
+
         if not self.slug:
             self.slug = slugify(
                 "{} {} {} {}".format(
@@ -55,7 +66,10 @@ class Program(TimeStampedModel):
                     self.end_date.year,
                 ), separator="_"
             )
-        super(Program, self).save(*args, **kwargs)
+
+        super().save(force_insert, force_update, *args, **kwargs)
+        self.__original_intro_unit = self.intro_unit
+        self.__original_outro_unit = self.outro_unit
 
     @property
     def is_active(self):
@@ -82,6 +96,17 @@ class Unit(models.Model):
 
     class Meta:
         ordering = ['order']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__original_course = self.course
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if self.course != self.__original_course:
+            pass
+
+        super().save(force_insert, force_update, *args, **kwargs)
+        self.__original_course = self.course
 
     @property
     def display_name(self):
@@ -135,6 +160,15 @@ class ProgramEnrollment(TimeStampedModel):
     objects = models.Manager()
     visible_objects = ProgramEnrollmentManager()
     history = HistoricalRecords()
+
+
+class ProgramAccessRole(models.Model):
+    class Meta:
+        unique_together = ('user', 'program', 'role')
+
+    user = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, db_index=True)
+    role = models.CharField(max_length=64, db_index=True)
 
 
 class ClassUnit(models.Model):

@@ -16,7 +16,7 @@ from openedx.features.genplus_features.genplus_learning.models import (
 )
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.access import allow_access
-from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
+from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole, ProgramInstructorRole
 
 
 def calculate_class_lesson_progress(course_key, usage_key, gen_class):
@@ -194,10 +194,11 @@ def process_pending_student_program_enrollments(gen_user):
 
 
 def process_pending_teacher_program_access(gen_user):
+    user = User.objects.filter(gen_user=gen_user)
     program_ids = gen_user.school.classes.exclude(program__isnull=True)\
                                         .values_list('program', flat=True)\
                                         .distinct()\
                                         .order_by()
     programs = Program.objects.filter(pk__in=program_ids)
     for program in programs:
-        allow_access(program, gen_user, ProgramStaffRole.ROLE_NAME)
+        allow_access(program, ProgramStaffRole.ROLE_NAME, user)

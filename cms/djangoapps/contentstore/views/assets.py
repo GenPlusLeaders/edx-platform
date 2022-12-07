@@ -366,6 +366,7 @@ def _get_assets_in_json_format(assets, course_key):
 
 def update_course_run_asset(course_key, upload_file):
     """returns contents of the uploaded file"""
+    logging.error('================ Course Key: %s ===============', course_key)
     course_exists_response = _get_error_if_course_does_not_exist(course_key)
 
     if course_exists_response is not None:
