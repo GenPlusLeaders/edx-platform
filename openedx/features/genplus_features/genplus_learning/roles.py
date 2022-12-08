@@ -12,7 +12,7 @@ class ProgramRole(AccessRole):
         self._role_name = role_name
 
     def has_user(self, user, check_user_activation=True):
-        if check_user_activation and not (user.is_authenticated and user.is_active):
+        if check_user_activation and not user.is_authenticated:
             return False
 
         if not hasattr(user, '_program_roles'):
@@ -24,7 +24,7 @@ class ProgramRole(AccessRole):
 
     def add_users(self, users):
         for user in users:
-            if user.is_authenticated and user.is_active and not self.has_user(user):
+            if user.is_authenticated and not self.has_user(user):
                 entry = ProgramAccessRole(user=user, role=self._role_name, program=self.program)
                 entry.save()
                 if hasattr(user, '_program_roles'):

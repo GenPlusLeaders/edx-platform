@@ -1,6 +1,7 @@
 import statistics
 from collections import defaultdict
 
+from django.contrib.auth.models import User
 from django.conf import settings
 from django.apps import apps
 from django.test import RequestFactory
