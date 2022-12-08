@@ -112,6 +112,7 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                                 if answer_id not in user_short_answers:
                                     user_short_answers[answer_id] = {
                                         'question_text': user_state['Question'],
+                                        'answer_id': user_state['Answer ID'],
                                         'answers': [get_students_short_answer_response(user_state, user)] if answer_id == user_state['Answer ID'] else []
                                     }
                                 else:
@@ -379,10 +380,8 @@ def get_assessment_completion(assessments):
     Returns:
         Boolean: Return a boolean
     """
-    complete_assessment = True
     for assessment in assessments:
         if assessment.get('completion') == 0.0:
-            complete_assessment = False
-            break
+            return False
 
-    return complete_assessment
+    return True
