@@ -15,8 +15,13 @@ from openedx.features.genplus_features.genplus_assessments.models import UserRes
 from openedx.features.genplus_features.genplus_learning.models import Unit
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
 from .serializers import ClassSerializer, TextAssessmentSerializer, RatingAssessmentSerializer
-from openedx.features.genplus_features.genplus_assessments.constants import TOTAL_PROBLEM_SCORE, INTRO_RATING_ASSESSMENT_RESPONSE, OUTRO_RATING_ASSESSMENT_RESPONSE, MAX_SKILLS_SCORE
-from openedx.features.genplus_features.genplus_assessments.utils import build_students_result, get_assessment_problem_data, get_assessment_completion
+from openedx.features.genplus_features.genplus_assessments.constants import (
+    TOTAL_PROBLEM_SCORE, INTRO_RATING_ASSESSMENT_RESPONSE, 
+    OUTRO_RATING_ASSESSMENT_RESPONSE, MAX_SKILLS_SCORE
+)
+from openedx.features.genplus_features.genplus_assessments.utils import (
+    build_students_result, get_assessment_problem_data, get_assessment_completion
+)
 
 
 logger = logging.getLogger(__name__)
