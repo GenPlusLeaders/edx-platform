@@ -233,8 +233,8 @@ def students_multiple_choice_response(user_states, user):
     for user_state in user_states:
         user_answer = user_state['Answer']
         correct_answer = user_state['Correct Answer']
-        user_answer_list = list(user_answer.split(","))
-        correct_answer_list = list(correct_answer.split(","))
+        user_answer_list = [x.strip() for x in user_answer.split(",")]
+        correct_answer_list = [x.strip() for x in correct_answer.split(",")]
         student_response_dict = {
             'username': user.username,
             'full_name': user.get_full_name(),
