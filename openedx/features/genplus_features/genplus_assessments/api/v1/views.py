@@ -9,7 +9,6 @@ from rest_framework.permissions import IsAuthenticated
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import UsageKey, CourseKey
 
-from openedx.features.course_experience.utils import get_course_outline_block_tree
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import Class
 from openedx.features.genplus_features.genplus_assessments.models import UserResponse, UserRating
@@ -17,7 +16,7 @@ from openedx.features.genplus_features.genplus_learning.models import Unit
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
 from .serializers import ClassSerializer, TextAssessmentSerializer, RatingAssessmentSerializer
 from openedx.features.genplus_features.genplus_assessments.constants import TOTAL_PROBLEM_SCORE, INTRO_RATING_ASSESSMENT_RESPONSE, OUTRO_RATING_ASSESSMENT_RESPONSE, MAX_SKILLS_SCORE
-from openedx.features.genplus_features.genplus_assessments.utils import build_students_result
+from openedx.features.genplus_features.genplus_assessments.utils import build_students_result, get_assessment_problem_data, get_assessment_completion
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +37,13 @@ class ClassFilterApiView(views.APIView):
 
 
 class StudentAnswersViewSet(viewsets.ViewSet):
+    """
+    Comoute the analytics of student answers for a class
+
+    Returns:
+        Response: Returns a dictionaries
+                containing the students analytics
+    """
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
 
@@ -75,16 +81,30 @@ class StudentAnswersViewSet(viewsets.ViewSet):
 
 
 class SkillAssessmentViewSet(viewsets.ViewSet):
+    """
+    Generate the skill assessment aggregate or individual result for a class or student
+
+    Returns:
+        Response: Returns a dictionaries
+                containing the students aggregate or individual class base result data.
+    """
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsTeacher]
+    intro_assessments = None
+    outro_assessments = None
 
     def aggregate_assessments_response(self, request, **kwargs):
+        """
+        Compute the aggregate result of all skill assessment problems for a class
+        """
         class_id = kwargs.get('class_id')
         student_id = request.query_params.get('student_id')
-        response = {}
-        response['aggregate_all_problem'] = {}
-        response['aggregate_skill'] = {}
-        response['single_assessment_result'] = {}
+        response = {
+            'aggregate_all_problem': {},
+            'aggregate_skill': {},
+            'single_assessment_result': {}
+        }
+
         try:
             gen_class = Class.objects.get(pk=class_id)
             if student_id != "all" and student_id is not None:
@@ -93,22 +113,27 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
             else:
                 text_assessment = UserResponse.objects.filter(gen_class=class_id, program=gen_class.program)
                 rating_assessment = UserRating.objects.filter( gen_class=class_id, program=gen_class.program)
+
             text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
             rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
             raw_data = text_assessment_data + rating_assessment_data
-            response['aggregate_all_problem'] = self.get_aggregate_problems_result(
-                raw_data, gen_class)
-            response['aggregate_skill'] = self.get_aggregate_skill_result(raw_data, gen_class, student_id)
-            if student_id == "all":
+            
+            if student_id == "all" or student_id is None:
+                response['aggregate_all_problem'] = self.get_aggregate_problems_result(raw_data, gen_class)
                 response['single_assessment_result'] = self.get_assessment_result(raw_data, gen_class)
             else:
                 response['single_assessment_result'] = self.get_user_assessment_result(raw_data, gen_class)
+                
+            response['aggregate_skill'] = self.get_aggregate_skill_result(raw_data, gen_class, student_id)
         except Exception as ex:
             logger.exception(ex)
 
         return Response(response)
 
     def single_assessment_response(self, request, **kwargs):
+        """
+        Generate the result of single skill assessment problem for a class
+        """
         class_id = kwargs.get('class_id')
         start_year_usage_key = request.query_params.get(
             'start_year_usage_key', None)
@@ -172,38 +197,39 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                 [Dict]: Returns a dictionaries
                 containing the students aggregate class base result data.
         """
-        problem_ids = {}
         aggregate_result = {
             'total_students': gen_class.students.count(),
             'accumulative_all_problem_score': 0,
-            'accumulative_score_start_of_year': 0,
-            'accumulative_score_end_of_year': 0,
-            'count_response_start_of_year': 0,
-            'count_response_end_of_year': 0
+            'average_score_start_of_year': 0,
+            'average_score_end_of_year': 0,
+            'response_start_of_year': 0,
+            'response_end_of_year': 0
         }
+        start_year_response = 0
+        end_year_response = 0
         for data in raw_data:
-            if data['problem_id'] not in problem_ids:
-                problem_ids[data['problem_id']] = {
-                    'count_response_start_of_year': 0,
-                    'count_response_end_of_year': 0
-                }
-                if data['assessment_time'] == "start_of_year":
-                    problem_ids[data['problem_id']]['count_response_start_of_year'] += 1
-                    aggregate_result['accumulative_all_problem_score'] += TOTAL_PROBLEM_SCORE
-                    aggregate_result['accumulative_score_start_of_year'] += data['score'] if 'score' in data else data['rating']
-                else:
-                    problem_ids[data['problem_id']]['count_response_end_of_year'] += 1
-                    aggregate_result['accumulative_score_end_of_year'] += data['score'] if 'score' in data else data['rating']
+            if data['assessment_time'] == "start_of_year":
+                aggregate_result['average_score_start_of_year'] += data['score'] if 'score' in data else data['rating']
+                start_year_response += 1
             else:
-                if data['assessment_time'] == "start_of_year":
-                    problem_ids[data['problem_id']]['count_response_start_of_year'] += 1
-                    aggregate_result['accumulative_score_start_of_year'] += data['score'] if 'score' in data else data['rating']
-                else:
-                    problem_ids[data['problem_id']]['count_response_end_of_year'] += 1
-                    aggregate_result['accumulative_score_end_of_year'] += data['score'] if 'score' in data else data['rating']
+                aggregate_result['average_score_end_of_year'] += data['score'] if 'score' in data else data['rating']
+                end_year_response += 1
 
-        aggregate_result['count_response_start_of_year'] = problem_ids[next(iter(problem_ids))]['count_response_start_of_year'] if len(problem_ids) > 0 else 0
-        aggregate_result['count_response_end_of_year'] = problem_ids[next(iter(problem_ids))]['count_response_end_of_year'] if len(problem_ids) > 0 else 0
+        for student in gen_class.students.all():
+            if student.gen_user.user:
+                if gen_class.program.intro_unit:
+                    self.intro_assessments = get_assessment_problem_data(self.request, gen_class.program.intro_unit.id, student.gen_user.user)
+                    intro_assessments_completion = get_assessment_completion(self.intro_assessments)
+                    if intro_assessments_completion is True:
+                        aggregate_result['response_start_of_year'] += 1
+                if gen_class.program.outro_unit:
+                    self.outro_assessments = get_assessment_problem_data(self.request, gen_class.program.outro_unit.id, student.gen_user.user)
+                    outro_assessments_completion = get_assessment_completion(self.outro_assessments)
+                    if outro_assessments_completion is True:
+                        aggregate_result['response_end_of_year'] += 1
+
+        total_problems = len(self.intro_assessments)
+        aggregate_result['accumulative_all_problem_score'] = total_problems * TOTAL_PROBLEM_SCORE
 
         return aggregate_result
 
@@ -221,7 +247,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
         aggregate_result = {}
         response = {}
         units = Unit.objects.filter(program=gen_class.program)
-            
+
         for unit in units:
             if unit.skill:
                 aggregate_result[unit.skill.name] = {
@@ -234,7 +260,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                     'response_start_of_year': 0,
                     'response_end_of_year': 0
                 }
-            
+
         for data in raw_data:
             data = dict(data)
             if data['assessment_time'] == "start_of_year":
@@ -272,15 +298,21 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
         aggregate_result = {}
         user = self.request.user
         # get assessment usage key and type for program intro assessment course
-        if gen_class.program.intro_unit:
-            assessments.extend(self.get_assessment_block_data(
-                gen_class.program.intro_unit.id, user))
-            
+        if self.intro_assessments is None:
+            if gen_class.program.intro_unit:
+                assessments.extend(get_assessment_problem_data(
+                    self.request, gen_class.program.intro_unit.id, user))
+        else:
+            assessments.extend(self.intro_assessments)
+
         # get assessment usage key and type for program outro assessment course
-        if gen_class.program.outro_unit:
-            assessments.extend(self.get_assessment_block_data(
-                gen_class.program.outro_unit.id, user))
-            
+        if self.outro_assessments is None:
+            if gen_class.program.outro_unit:
+                assessments.extend(get_assessment_problem_data(
+                    self.request, gen_class.program.outro_unit.id, user))
+        else:
+            assessments.extend(self.outro_assessments)
+
         # prepare dictionary for every particular assessment problem in a course
         for assessment in assessments:
             usage_key = UsageKey.from_string(assessment.get('id'))
@@ -369,42 +401,6 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
 
         return response
 
-    def get_assessment_block_data(self, course_key, user):
-        course_outline_blocks = get_course_outline_block_tree(
-            self.request, str(course_key), user)
-        if not course_outline_blocks:
-            return []
-        else:
-            course_blocks_children = course_outline_blocks.get('children')
-        assessments = self.get_assessment_course_block(
-            course_blocks_children,
-        )
-
-        return assessments
-
-    def get_assessment_course_block(self, course_blocks_children):
-        """
-        return assessment xblock usage key and type of that assessment xblock with in a.
-        Arguments:
-            course_blocks_children (list[dict]): course block data in form of tree
-        Returns:
-                list[Dict]: Returns a list of dictionaries
-        """
-        assessments = []
-        for course_block in course_blocks_children:
-            course_block_type = course_block.get('type')
-            if course_block_type in ['genz_text_assessment', 'genz_rating_assessment']:
-                return [{
-                    'id': course_block.get('id'),
-                    'type': course_block_type
-                }]
-            else:
-                children = course_block.get('children')
-                if children:
-                    assessments.extend(
-                        self.get_assessment_course_block(children))
-        return assessments
-
     def get_user_assessment_result(self, raw_data, gen_class):
         """
         Generate result for single user for bar and graph char on base of single assessment
@@ -420,13 +416,20 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
         aggregate_result = {}
         user = self.request.user
         # get assessment usage key and type for program intro assessment course
-        if gen_class.program.intro_unit:
-            assessments.extend(self.get_assessment_block_data(
-                gen_class.program.intro_unit.id, user))
+        if self.intro_assessments is None:
+            if gen_class.program.intro_unit:
+                assessments.extend(get_assessment_problem_data(
+                    self.request, gen_class.program.intro_unit.id, user))
+        else:
+            assessments.extend(self.intro_assessments)
+
         # get assessment usage key and type for program outro assessment course
-        if gen_class.program.outro_unit:
-            assessments.extend(self.get_assessment_block_data(
-                gen_class.program.outro_unit.id, user))
+        if self.outro_assessments is None:
+            if gen_class.program.outro_unit:
+                assessments.extend(get_assessment_problem_data(
+                    self.request, gen_class.program.outro_unit.id, user))
+        else:
+            assessments.extend(self.outro_assessments)
 
         # prepare dictionary for every particular assessment problem in a course
         for assessment in assessments:

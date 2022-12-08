@@ -4,7 +4,7 @@ from opaque_keys.edx.keys import UsageKey
 from collections import defaultdict
 
 from django.contrib.auth import get_user_model
-
+from openedx.features.course_experience.utils import get_course_outline_block_tree
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from lms.djangoapps.courseware.user_state_client import DjangoXBlockUserStateClient
 
@@ -315,4 +315,68 @@ def build_course_report_for_students(user_id, course_key, student_list):
 
 
 def get_absolute_url(request, file):
+    """
+    return absolute url of a file
+    """
     return request.build_absolute_uri(file.url) if file else None
+
+def get_assessment_problem_data(request, course_key, user):
+    """
+    Generate skill assessment problem data from a course
+    Args:
+        request
+        course_key (CourseKey): The ``CourseKey`` for the course whose data
+            is being generated
+        user (USER): user whose data will generate
+
+    Returns:
+        list[Dict]: Returns a list of dictionaries
+    """
+    assessments = []
+    course_outline_blocks = get_course_outline_block_tree(request, str(course_key), user)
+    if course_outline_blocks:
+        course_blocks_children = course_outline_blocks.get('children')
+        assessments = get_assessment_course_block(course_blocks_children)
+
+    return assessments
+
+def get_assessment_course_block(course_blocks_children):
+    """
+    Generate assessment xblock usage key and type of that assessment xblock with in a course.
+    Arguments:
+        course_blocks_children (list[dict]): course block children data in form of tree
+    Returns:
+            list[Dict]: Returns a list of dictionaries
+    """
+    assessments = []
+    for course_block in course_blocks_children:
+        course_block_type = course_block.get('type')
+        if course_block_type in ['genz_text_assessment', 'genz_rating_assessment']:
+            return [{
+                'id': course_block.get('id'),
+                'type': course_block_type,
+                'completion':  course_block.get('completion')
+            }]
+        else:
+            children = course_block.get('children')
+            if children:
+                assessments.extend(get_assessment_course_block(children))
+
+    return assessments
+
+def get_assessment_completion(assessments):
+    """
+    Compute the completion of skill assessment course for a student
+    Args:
+        assessments (list(dict)): skill assessment data in form of list of dict
+
+    Returns:
+        Boolean: Return a boolean
+    """
+    complete_assessment = True
+    for assessment in assessments:
+        if assessment.get('completion') == 0.0:
+            complete_assessment = False
+            break
+
+    return complete_assessment
