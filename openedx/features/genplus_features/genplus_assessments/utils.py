@@ -35,7 +35,7 @@ def build_problem_list(course_blocks, root, path=None):
         yield from build_problem_list(course_blocks, block, path + [name])
 
 
-def build_students_result(user_id, course_key, usage_key_str, student_list, filter_type, problem_id):
+def build_students_result(user_id, course_key, usage_key_str, student_list, filter_type, problem_id, single_problem):
     """
     Generate a result for problem responses for all problem under the
     ``problem_location`` root.
@@ -53,7 +53,10 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
     usage_key = UsageKey.from_string(usage_key_str).map_into_course(course_key)
     user = get_user_model().objects.get(pk=user_id)
 
-    student_data = []
+    if single_problem is True:
+        student_data = {}
+    else:
+        student_data = []
 
     store = modulestore()
     user_state_client = DjangoXBlockUserStateClient()
@@ -126,8 +129,11 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
                             'count': value['count'],
                             'is_correct': value['is_correct'],
                         })
-                if responses['problem_type'] in ('single_choice', 'multiple_choice', 'short_answers'):
+
+                if responses['problem_type'] in ('single_choice', 'multiple_choice', 'short_answers') and single_problem is not True:
                     student_data.append(responses)
+                else:
+                    student_data.update(responses)
 
     return student_data
 

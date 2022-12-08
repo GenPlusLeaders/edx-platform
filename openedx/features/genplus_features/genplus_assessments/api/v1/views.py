@@ -54,8 +54,8 @@ class StudentAnswersViewSet(viewsets.ViewSet):
 
     def students_problem_response(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
-        student_id = request.query_params.get('student_id', None)
-        problem_id = request.query_params.get('problem_id', None)
+        student_id = request.query_params.get('student_id')
+        problem_id = request.query_params.get('problem_id')
         students = []
         response = {}
         try:
@@ -66,10 +66,15 @@ class StudentAnswersViewSet(viewsets.ViewSet):
                 students = list(students.values_list('gen_user__user', flat=True))
             else:
                 students.append(student_id)
-            course_id = request.query_params.get('course_id', None)
+                
+            course_id = request.query_params.get('course_id')
             course_key = CourseKey.from_string(course_id)
-            problem_locations = request.query_params.get('problem_locations', None)
-            filter_type = request.query_params.get('filter', None)
+            problem_locations = request.query_params.get('problem_locations')
+            filter_type = request.query_params.get('filter')
+
+            single_problem = False
+            if student_id == "all" and filter_type == "individual_response":
+                single_problem = True
 
             response = build_students_result(
                 user_id=self.request.user.id,
@@ -77,7 +82,8 @@ class StudentAnswersViewSet(viewsets.ViewSet):
                 usage_key_str=problem_locations,
                 student_list=students,
                 filter_type=filter_type,
-                problem_id=problem_id
+                problem_id=problem_id,
+                single_problem=single_problem
             )
         except Exception as ex:
             logger.exception(ex)
