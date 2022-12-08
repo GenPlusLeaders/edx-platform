@@ -53,7 +53,7 @@ def build_students_result(user_id, course_key, usage_key_str, student_list, filt
     usage_key = UsageKey.from_string(usage_key_str).map_into_course(course_key)
     user = get_user_model().objects.get(pk=user_id)
 
-    if single_problem is True:
+    if single_problem:
         student_data = {}
     else:
         student_data = []
