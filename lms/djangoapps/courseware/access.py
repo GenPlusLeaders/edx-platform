@@ -44,10 +44,8 @@ from lms.djangoapps.ccx.models import CustomCourseForEdX
 from lms.djangoapps.mobile_api.models import IgnoreMobileAvailableFlagConfig
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.features.course_duration_limits.access import check_course_expired
-from openedx.features.genplus_features.genplus_learning.access import (
-    check_course_program,
-    administrative_accesses_to_program_for_user
-)
+from openedx.features.genplus_features.genplus_learning.access import administrative_accesses_to_program_for_user
+from openedx.features.genplus_features.genplus_learning.cache import ProgramCache
 from common.djangoapps.student import auth
 from common.djangoapps.student.models import CourseEnrollmentAllowed
 from common.djangoapps.student.roles import (
@@ -773,7 +771,7 @@ def _has_access_to_course(user, access_level, course_key): # ACCESS
 
 
 def admin_access_to_course_for_user(user, course_key):
-    program = check_course_program(course_key)
+    program = ProgramCache.find_course_mapping(course_key)
     if program:
         return administrative_accesses_to_program_for_user(user, program)
 

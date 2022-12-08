@@ -1,53 +1,8 @@
 from django.contrib.auth.models import User
-from collections import defaultdict
-from openedx.core.lib.cache_utils import get_cache
 
 from common.djangoapps.student.roles import AccessRole
 from .models import Program, ProgramAccessRole
-
-
-class BulkRoleCache:  # lint-amnesty, pylint: disable=missing-class-docstring
-    CACHE_NAMESPACE = "genplus.roles.BulkRoleCache"
-    CACHE_KEY = 'program_roles_by_user'
-
-    @classmethod
-    def prefetch(cls, users):  # lint-amnesty, pylint: disable=missing-function-docstring
-        roles_by_user = defaultdict(set)
-        get_cache(cls.CACHE_NAMESPACE)[cls.CACHE_KEY] = roles_by_user
-
-        for role in ProgramAccessRole.objects.filter(user__in=users).select_related('user'):
-            roles_by_user[role.user.id].add(role)
-
-        users_without_roles = [u for u in users if u.id not in roles_by_user]
-        for user in users_without_roles:
-            roles_by_user[user.id] = set()
-
-    @classmethod
-    def get_user_roles(cls, user):
-        return get_cache(cls.CACHE_NAMESPACE)[cls.CACHE_KEY][user.id]
-
-
-class ProgramRoleCache:
-    """
-    A cache of the ProgramAccessRoles held by a particular user
-    """
-    def __init__(self, user):
-        try:
-            self._program_roles = BulkRoleCache.get_user_roles(user)
-        except KeyError:
-            self._program_roles = set(
-                ProgramAccessRole.objects.filter(user=user).all()
-            )
-
-    def has_role(self, role, program):
-        """
-        Return whether this ProgramRoleCache contains a role with the specified role, program_id
-        """
-        return any(
-            access_role.role == role and
-            access_role.program == program
-            for access_role in self._program_roles
-        )
+from .cache import ProgramRoleCache
 
 
 class ProgramRole(AccessRole):

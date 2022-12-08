@@ -141,12 +141,16 @@ class HasStaffAccessToContent(Rule):
         ).exclude(
             course_id=CourseKeyField.Empty,
         ).values_list('course_id', flat=True))
-        programs = ProgramAccessRole.objects.filter(
+
+        # genplus custom change
+        program_access_roles = ProgramAccessRole.objects.select_related('program').filter(
             user=user,
             role__in=('staff', 'instructor')
-        ).values_list('program', flat=True)
-        course_staff_or_instructor_courses += list(Unit.objects.filter(program__in=programs).values_list('course', flat=True))
-        course_staff_or_instructor_courses = set(course_staff_or_instructor_courses)
+        )
+
+        for access_role in program_access_roles:
+            course_staff_or_instructor_courses += access_role.program.all_units_ids
+
         org_staff_or_instructor_courses = CourseAccessRole.objects.filter(
             user=user,
             role__in=('staff', 'instructor'),
