@@ -393,8 +393,8 @@ def skills_assessment(request, student):
     Evaluate if student has completed his skill assessment
 
     Args:
-        request: request object
-        student: genplus student object
+        request: request
+        student: genplus student
 
     Returns: List[bool] of booleans
 
