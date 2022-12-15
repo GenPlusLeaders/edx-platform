@@ -26,7 +26,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
                 if gen_user.student.character else None,
                 'profile_image': request.build_absolute_uri(
                     gen_user.student.character.profile_pic.url)
-                if gen_user.student.character else None
+                if gen_user.student.character else None,
             }
 
             user_info.update(student_profile)
@@ -141,7 +141,7 @@ class JournalListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JournalPost
-        fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'created')
+        fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'is_editable', 'created')
 
 
 class StudentPostSerializer(serializers.ModelSerializer):
