@@ -3131,6 +3131,46 @@ INSTALLED_APPS = [
     'user_tasks',
 ]
 
+######################### GENPLUS APPS #################################
+
+GENPLUS_INSTALLED_APPS = [
+    # genplus core app
+    'openedx.features.genplus_features.genplus',
+
+    # genplus learning app
+    'openedx.features.genplus_features.genplus_learning',
+
+    # genplus teach app
+    'openedx.features.genplus_features.genplus_teach',
+
+    # genplus badges app
+    'openedx.features.genplus_features.genplus_badges',
+
+    # genplus assessments app
+    'openedx.features.genplus_features.genplus_assessments',
+
+    # installed third party apps
+    'tinymce',
+    'adminsortable2',
+    'drf_multiple_model',
+]
+
+INSTALLED_APPS.extend(GENPLUS_INSTALLED_APPS)
+
+TINYMCE_DEFAULT_CONFIG = {
+    'plugins': "advlist,autolink,lists,link,image,charmap,print,preview,anchor,"
+    "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
+    "code,help,wordcount",
+    "toolbar": "undo redo | formatselect | "
+               "bold italic backcolor | alignleft aligncenter "
+               "alignright alignjustify | bullist numlist outdent indent | "
+               "removeformat | help",
+    'cleanup_on_startup': True,
+    'custom_undo_redo_levels': 10,
+    'width': '100%',
+    'height': 750
+}
+
 ######################### CSRF #########################################
 
 # Forwards-compatibility with Django 1.7
@@ -3141,6 +3181,17 @@ CSRF_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = []
 CROSS_DOMAIN_CSRF_COOKIE_DOMAIN = ''
 CROSS_DOMAIN_CSRF_COOKIE_NAME = ''
+
+RM_UNIFY_URL = 'https://api.platform.rmunify.com/graph/'
+RM_UNIFY_KEY = 'place-rmunify-key-here'
+RM_UNIFY_SECRET = 'rmunify-secret'
+
+######################### GENPLUS SETTINGS #################################
+
+GENPLUS_FRONTEND_URL = ''
+PROGRAM_ENROLLMENT_COUNTDOWN = 10
+TP_LOGOUT_REDIRECT_URL = ''
+DISABLE_ACCORDION = False
 
 ######################### Django Rest Framework ########################
 
@@ -3450,6 +3501,28 @@ BADGR_BASE_URL = "http://localhost:8005"
 # .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
 BADGR_ISSUER_SLUG = "example-issuer"
 
+# .. setting_name: BADGR_USERNAME
+# .. setting_default: None
+# .. setting_description: The username for Badgr. You should set up an issuer application with Badgr
+#    (https://badgr.org/app-developers/). The username and password will then be used to create or renew
+#    OAuth2 tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_USERNAME = None
+
+# .. setting_name: BADGR_PASSWORD
+# .. setting_default: None
+# .. setting_description: The password for Badgr. You should set up an issuer application with Badgr
+#    (https://badgr.org/app-developers/). The username and password will then be used to create or renew
+#    OAuth2 tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_PASSWORD = None
+
+# .. setting_name: BADGR_TOKENS_CACHE_KEY
+# .. setting_default: None
+# .. setting_description: The cache key for Badgr API tokens. Once created, the tokens will be stored in cache.
+#    Define the key here for setting and retrieveing the tokens.
+# .. setting_warning: Review FEATURES['ENABLE_OPENBADGES'] for further context.
+BADGR_TOKENS_CACHE_KEY = None
 # .. setting_name: BADGR_TIMEOUT
 # .. setting_default: 10
 # .. setting_description: Number of seconds to wait on the badging server when contacting it before giving up.
@@ -4725,3 +4798,10 @@ DEFAULT_EMAIL_LOGO_URL = 'https://edx-cdn.org/v3/default/logo.png'
 ################# Settings for Chrome-specific origin trials ########
 # Token for " Disable Different Origin Subframe Dialog Suppression" for http://localhost:18000
 CHROME_DISABLE_SUBFRAME_DIALOG_SUPPRESSION_TOKEN = 'ArNBN7d1AkvMhJTGWXlJ8td/AN4lOokzOnqKRNkTnLqaqx0HpfYvmx8JePPs/emKh6O5fckx14LeZIGJ1AQYjgAAAABzeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjE4MDAwIiwiZmVhdHVyZSI6IkRpc2FibGVEaWZmZXJlbnRPcmlnaW5TdWJmcmFtZURpYWxvZ1N1cHByZXNzaW9uIiwiZXhwaXJ5IjoxNjM5NTI2Mzk5fQ=='  # pylint: disable=line-too-long
+
+ADVANCED_PROBLEM_TYPES = [
+    {
+        'component': 'scormxblock',
+        'boilerplate_name': None
+    }
+]

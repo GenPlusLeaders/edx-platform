@@ -52,6 +52,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 from openedx.core.djangoapps.user_authn.views.login import redirect_to_lms_login
 from openedx.core.djangoapps.verified_track_content import views as verified_track_content_views
 from openedx.features.enterprise_support.api import enterprise_enabled
+from openedx.features.genplus_features.urls import genplus_url_patterns
 from common.djangoapps.student import views as student_views
 from common.djangoapps.util import views as util_views
 
@@ -677,6 +678,8 @@ urlpatterns += [
         include('openedx.features.learner_profile.urls'),
     ),
 ]
+
+urlpatterns += genplus_url_patterns
 
 if settings.FEATURES.get('ENABLE_TEAMS'):
     # Teams endpoints

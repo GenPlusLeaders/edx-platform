@@ -1,0 +1,34 @@
+---
+metadata:
+    display_name: Gen+ Single Choice
+    markdown: !!null
+data: |
+    <div class="choices-xblock theme-dark">
+      <problem class="single_choice">
+        <!-- <div class="asn-icon top-left">
+          <img src="https://dev.genplus.co.uk/asset-v1:genplus+GAI_2022+GAI_2022_01+type@asset+block@asset-logo-pink.svg" alt="Logo Left" />
+          <img src="https://dev.genplus.co.uk/asset-v1:genplus+GAI_2022+GAI_2022_01+type@asset+block@read-alt.png" width="50" alt="Icon Read" />
+        </div> -->
+        <!-- <div class="asn-icon top-right">
+          <img src="https://dev.genplus.co.uk/asset-v1:genplus+GAI_2022+GAI_2022_01+type@asset+block@read-alt.png" width="50" alt="Icon Read" />
+          <img src="https://dev.genplus.co.uk/asset-v1:genplus+GAI_2022+GAI_2022_01+type@asset+block@asset-logo-pink.svg" alt="Logo Left" />
+        </div> -->
+        <div class="choices-xblock-wapper">
+          <div class="choices-info">
+            <img src="https://dev.genplus.co.uk/asset-v1:genplus+GP741+2022_T1+type@asset+block@trophy.png" alt="Trophy" class="align-center" width="280" />
+          </div>
+          <div class="choices-form">
+            <multiplechoiceresponse>
+              <span class="question-title">Question 1</span>
+              <strong class="question-text">What does the term initiative means? </strong>
+              <description><em>Select the answer. </em></description>
+              <choicegroup type="MultipleChoice">
+                <choice class="choice_0" correct="true">The ability to make independent decisions quickly and effectively</choice>
+                <choice class="choice_1" correct="false">The ability to recover quickly from difficult situiations</choice>
+                <choice class="choice_2" correct="false">The ability to share your ideas and lead a discussion with a group</choice>
+              </choicegroup>
+            </multiplechoiceresponse>
+          </div>
+        </div>
+      </problem>
+    </div>
