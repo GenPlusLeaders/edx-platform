@@ -2,7 +2,7 @@ import logging
 from celery import shared_task
 from edx_django_utils.monitoring import set_code_owner_attribute
 from openedx.features.genplus_features.genplus.rmunify import RmUnify
-from openedx.features.genplus_features.genplus.models import School, Class
+from openedx.features.genplus_features.genplus.models import School, Class, GenUser
 from django.contrib.auth.models import User
 
 log = logging.getLogger(__name__)
@@ -38,14 +38,19 @@ def sync_student(self, class_ids):
     default_retry_delay=60,
 )
 @set_code_owner_attribute
-def delete_user(self, email):
+def delete_user(self, guid):
     try:
-        user = User.objects.get(email=email)
-        user.delete()
+        gen_user = GenUser.objects.get(identity_guid=guid)
+        if hasattr(gen_user, 'user'):
+            User.objects.filter(pk=gen_user.user.pk).delete()
+        else:
+            # case where user is not logged into our system
+            gen_user.delete()
         log.info(
-            'User with email_address {} has been deleted.'.format(email)
+            'User with identity_guid {} has been deleted.'.format(guid)
         )
-    except User.DoesNotExist:
+    except GenUser.DoesNotExist:
         log.exception(
-            'User with email_address {} does not exist.'.format(email)
+            'User with identity_guid {} does not exist.'.format(guid)
         )
+

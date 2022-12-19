@@ -28,9 +28,9 @@ class BaseRmUnify:
         self.secret = settings.RM_UNIFY_SECRET
         self.timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def fetch(self, source, source_id=None):
+    def fetch(self, source, source_id=None, provisioning=False):
         headers = self.get_header()
-        url = self.generate_url(source, source_id)
+        url = self.generate_url(source, source_id, provisioning=provisioning)
         response = requests.get(url, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
             logger.exception(response.reason)
@@ -45,8 +45,10 @@ class BaseRmUnify:
         return hashed.replace('_', '/')
 
     @staticmethod
-    def generate_url(source, source_id):
+    def generate_url(source, source_id, provisioning=False):
         url = settings.RM_UNIFY_URL
+        if not provisioning:
+            url = url + '/graph/'
         if source:
             url = url + source
         if source_id:
@@ -58,9 +60,9 @@ class BaseRmUnify:
 
 
 class RmUnify(BaseRmUnify):
-    ORGANISATION = '/graph/organisation/'
-    TEACHING_GROUP = '/graph/{}{}/teachinggroup/'
-    REGISTRATION_GROUP = '/graph/{}{}/registrationgroup/'
+    ORGANISATION = 'organisation/'
+    TEACHING_GROUP = '{}{}/teachinggroup/'
+    REGISTRATION_GROUP = '{}{}/registrationgroup/'
 
     def fetch_schools(self):
         schools = self.fetch(self.ORGANISATION)
@@ -104,9 +106,11 @@ class RmUnify(BaseRmUnify):
                 gen_user, created = GenUser.objects.get_or_create(
                     email=student_email,
                     role=GenUserRoles.STUDENT,
-                    identity_guid=identity_guid,
                     school=gen_class.school,
                 )
+                # update the identity_guid
+                gen_user.identity_guid = identity_guid
+                gen_user.save()
                 gen_user_ids.append(gen_user.pk)
 
             gen_students = Student.objects.filter(gen_user__in=gen_user_ids)
@@ -122,7 +126,7 @@ class RmUnifyProvisioning(BaseRmUnify):
         return {"Authorization": "Unify " + self.timestamp + ":" + self.hashed}
 
     def provision(self):
-        data = self.fetch(self.UPDATES.format(self.key))
+        data = self.fetch(self.UPDATES.format(self.key), provisioning=True)
         if data:
             updates_batch = []
             # check updates and update/delete user accordingly
@@ -131,10 +135,10 @@ class RmUnifyProvisioning(BaseRmUnify):
                     self.update_user(update['UpdateData'])
                 elif update['Type'] == RmUnifyUpdateTypes.DELETE_USER:
                     try:
-                        # only deleting if user with unify email address exist in our system
-                        user_email = update['UpdateData']['UnifyEmailAddress']
+                        # only deleting if user with unify guid exist in our system
+                        identity_guid = update['UpdateData']['IdentityGuid']
                         genplus_tasks.delete_user.apply_async(
-                            args=[user_email]
+                            args=[identity_guid]
                         )
                     except KeyError:
                         pass
@@ -151,7 +155,7 @@ class RmUnifyProvisioning(BaseRmUnify):
     def delete_batch(self, batch):
         headers = self.get_header()
         post_data = {'Updates': batch}
-        url = self.generate_url(self.DELETE_BATCH.format(self.key), None)
+        url = self.generate_url(self.DELETE_BATCH.format(self.key), None, provisioning=True)
         response = requests.post(url, json=post_data, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
             logger.exception(response.reason)
