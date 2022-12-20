@@ -12,6 +12,7 @@ from openedx.features.genplus_features.genplus.constants import SchoolTypes, Cla
 from .constants import RmUnifyUpdateTypes
 from django.db.models import Q
 import openedx.features.genplus_features.genplus.tasks as genplus_tasks
+from django.contrib.auth.models import User
 
 
 
@@ -28,9 +29,8 @@ class BaseRmUnify:
         self.secret = settings.RM_UNIFY_SECRET
         self.timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def fetch(self, source, source_id=None, provisioning=False):
+    def fetch(self, url):
         headers = self.get_header()
-        url = self.generate_url(source, source_id, provisioning=provisioning)
         response = requests.get(url, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
             logger.exception(response.reason)
@@ -44,16 +44,6 @@ class BaseRmUnify:
         hashed = hashed.replace('-', '+')
         return hashed.replace('_', '/')
 
-    @staticmethod
-    def generate_url(source, source_id, provisioning=False):
-        url = settings.RM_UNIFY_URL
-        if not provisioning:
-            url = url + '/graph/'
-        if source:
-            url = url + source
-        if source_id:
-            url = url + source_id
-        return url
 
     def get_header(self):
         return {"Authorization": "Unify " + self.key + "_" + self.timestamp + ":" + self.hashed}
@@ -64,8 +54,18 @@ class RmUnify(BaseRmUnify):
     TEACHING_GROUP = '{}{}/teachinggroup/'
     REGISTRATION_GROUP = '{}{}/registrationgroup/'
 
+    @staticmethod
+    def generate_url(source, source_id=None):
+        url = settings.RM_UNIFY_URL + '/graph/'
+        if source:
+            url = url + source
+        if source_id:
+            url = url + source_id
+        return url
+
     def fetch_schools(self):
-        schools = self.fetch(self.ORGANISATION)
+        url = self.generate_url(self.ORGANISATION)
+        schools = self.fetch(url)
         for school in schools:
             obj, created = School.objects.update_or_create(
                 name=school['DisplayName'],
@@ -80,8 +80,9 @@ class RmUnify(BaseRmUnify):
         for school in queryset:
             fetch_type = re.sub(r'(?<!^)(?=[A-Z])', '_', class_type).upper()
             # get specific url based on class_type
-            url = getattr(self, fetch_type)
-            classes = self.fetch(url.format(RmUnify.ORGANISATION, school.guid))
+            url_path = getattr(self, fetch_type)
+            url = self.generate_url(url_path)
+            classes = self.fetch(url)
             for gen_class in classes:
                 Class.objects.update_or_create(
                     type=class_type,
@@ -96,8 +97,9 @@ class RmUnify(BaseRmUnify):
         for gen_class in query:
             fetch_type = re.sub(r'(?<!^)(?=[A-Z])', '_', gen_class.type).upper()
             # formatting url according to class type
-            url = getattr(self, fetch_type).format(RmUnify.ORGANISATION,
+            url_path = getattr(self, fetch_type).format(RmUnify.ORGANISATION,
                                                    gen_class.school.guid)
+            url = self.generate_url(url_path)
             data = self.fetch(f"{url}/{gen_class.group_id}")
             gen_user_ids = []
             for student_data in data['Students']:
@@ -125,8 +127,18 @@ class RmUnifyProvisioning(BaseRmUnify):
     def get_header(self):
         return {"Authorization": "Unify " + self.timestamp + ":" + self.hashed}
 
+    @staticmethod
+    def generate_url(source, source_id=None):
+        url = settings.RM_UNIFY_URL
+        if source:
+            url = url + source
+        if source_id:
+            url = url + source_id
+        return url
+
     def provision(self):
-        data = self.fetch(self.UPDATES.format(self.key), provisioning=True)
+        url = self.generate_url(self.UPDATES.format(self.key))
+        data = self.fetch(url)
         if data:
             updates_batch = []
             # check updates and update/delete user accordingly
@@ -137,9 +149,7 @@ class RmUnifyProvisioning(BaseRmUnify):
                     try:
                         # only deleting if user with unify guid exist in our system
                         identity_guid = update['UpdateData']['IdentityGuid']
-                        genplus_tasks.delete_user.apply_async(
-                            args=[identity_guid]
-                        )
+                        self.delete_user(identity_guid)
                     except KeyError:
                         pass
 
@@ -155,7 +165,7 @@ class RmUnifyProvisioning(BaseRmUnify):
     def delete_batch(self, batch):
         headers = self.get_header()
         post_data = {'Updates': batch}
-        url = self.generate_url(self.DELETE_BATCH.format(self.key), None, provisioning=True)
+        url = self.generate_url(self.DELETE_BATCH.format(self.key))
         response = requests.post(url, json=post_data, headers=headers)
         if response.status_code != HTTPStatus.OK.value:
             logger.exception(response.reason)
@@ -163,17 +173,33 @@ class RmUnifyProvisioning(BaseRmUnify):
 
     @staticmethod
     def update_user(data):
-        try:
-            gen_user = GenUser.objects.filter(Q(user__email=data['UnifyEmailAddress']),
-                                              Q(identity_guid=data['IdentityGuid']))
-        except KeyError:
-            gen_user = GenUser.objects.filter(identity_guid=data['IdentityGuid'])
 
+        gen_user = GenUser.objects.filter(Q(user__email=data['UnifyEmailAddress']),
+                                          Q(identity_guid=data['IdentityGuid']))
         if gen_user.exist():
             gen_user.user.first_name = data['FirstName']
             gen_user.user.last_name = data['LastName']
             gen_user.user.save()
         return
+
+    @staticmethod
+    def delete_user(guid):
+        try:
+            gen_user = GenUser.objects.get(identity_guid=guid)
+            if hasattr(gen_user, 'user'):
+                user_pk = gen_user.user.pk
+                gen_user.delete()
+                User.objects.filter(pk=user_pk).delete()
+            else:
+                # case where user is not logged into our system
+                gen_user.delete()
+            logger.info(
+                'User with identity_guid {} has been deleted.'.format(guid)
+            )
+        except GenUser.DoesNotExist:
+            logger.exception(
+                'User with identity_guid {} does not exist.'.format(guid)
+            )
 
 
 
