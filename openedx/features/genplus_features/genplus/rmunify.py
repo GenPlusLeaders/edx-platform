@@ -188,6 +188,7 @@ class RmUnifyProvisioning(BaseRmUnify):
             gen_user = GenUser.objects.get(identity_guid=guid)
             if hasattr(gen_user, 'user'):
                 user_pk = gen_user.user.pk
+                # first delete gen_user so it can delete the related Enrollments
                 gen_user.delete()
                 User.objects.filter(pk=user_pk).delete()
             else:
@@ -200,10 +201,3 @@ class RmUnifyProvisioning(BaseRmUnify):
             logger.exception(
                 'User with identity_guid {} does not exist.'.format(guid)
             )
-
-
-
-
-
-
-
