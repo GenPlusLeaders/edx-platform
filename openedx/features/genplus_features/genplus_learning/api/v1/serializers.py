@@ -27,21 +27,6 @@ from openedx.features.genplus_features.genplus_assessments.utils import (
 )
 
 
-class BaseSerializer(serializers.ModelSerializer):
-    def get_fields(self):
-        fields = super().get_fields()
-
-        for field_name in fields:
-            if isinstance(fields[field_name], serializers.ListSerializer):
-                if isinstance(fields[field_name].child, BaseSerializer):
-                    fields[field_name].child._context = self._context
-
-            elif isinstance(fields[field_name], BaseSerializer):
-                fields[field_name]._context = self._context
-
-        return fields
-
-
 class UnitSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
@@ -106,7 +91,7 @@ class AssessmentUnitSerializer(serializers.ModelSerializer):
         return f"{settings.LMS_ROOT_URL}/courses/{course_key_str}/jump_to/{usage_key_str}"
 
 
-class ProgramSerializer(BaseSerializer):
+class ProgramSerializer(serializers.ModelSerializer):
     units = serializers.SerializerMethodField()
     intro_unit = AssessmentUnitSerializer(many=False, read_only=True)
     outro_unit = AssessmentUnitSerializer(many=False, read_only=True)
