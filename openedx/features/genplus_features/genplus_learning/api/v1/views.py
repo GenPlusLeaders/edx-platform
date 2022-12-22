@@ -39,6 +39,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
         context = super(ProgramViewSet, self).get_serializer_context()
         context.update({
             "gen_user": self.request.user.gen_user,
+            "request": self.request
         })
         return context
 
