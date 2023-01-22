@@ -33,6 +33,7 @@ from social_core.utils import slugify
 class GenUserAdmin(admin.ModelAdmin):
     list_display = (
         'user',
+        'email',
         'role',
         'school',
         'year_of_entry',
@@ -42,12 +43,15 @@ class GenUserAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'email', 'school')
 
     def social_user_exist(self, obj):
-        if obj.from_private_school:
+        try:
+            if obj.from_private_school:
+                return '-'
+            elif obj.user is None:
+                return 'User not logged in yet.'
+            else:
+                return "Yes" if obj.user.social_auth.count() > 0 else "No"
+        except AttributeError:
             return '-'
-        elif obj.user is None:
-            return 'User not logged in yet.'
-        else:
-            return "Yes" if obj.user.social_auth.count() > 0 else "No"
 
 
 
