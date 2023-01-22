@@ -121,7 +121,8 @@ class SchoolAdmin(admin.ModelAdmin):
                     )
 
                     try:
-                        user, profile, reg = do_create_account(form)
+                        # register user (edx way)
+                        user, profile, registration = do_create_account(form)
                         gen_user, created = GenUser.objects.get_or_create(
                             role=role,
                             user=user,
@@ -132,10 +133,13 @@ class SchoolAdmin(admin.ModelAdmin):
                             gen_student = gen_user.student
                             gen_user.refresh_from_db()
                             gen_class.students.add(gen_student)
+                        # process pending enrollments if any.
                         if gen_user.is_student:
                             process_pending_student_program_enrollments(gen_user)
                         elif gen_user.is_teacher:
                             process_pending_teacher_program_access(gen_user)
+                        # activate user
+                        registration.activate()
                     except AccountValidationError as e:
                         self.message_user(request, str(e), level=messages.ERROR)
                     except ValidationError as e:
