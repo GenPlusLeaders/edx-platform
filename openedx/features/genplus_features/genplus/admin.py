@@ -142,8 +142,10 @@ class SchoolAdmin(admin.ModelAdmin):
                         self.message_user(request, str(e), level=messages.ERROR)
                 except KeyError as e:
                     print(e)
-                    self.message_user(request, 'An Error occurred while parsing the csv', level=messages.ERROR)
-            self.message_user(request, "Your csv file has been imported")
+                    self.message_user(request,
+                                      'An Error occurred while parsing the csv. Please make sure that the csv is in the right format.',
+                                      level=messages.ERROR)
+            self.message_user(request, "Your csv file has been uploaded.")
             return redirect("..")
         form = CsvImportForm()
         payload = {"form": form}
