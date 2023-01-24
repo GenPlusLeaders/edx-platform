@@ -41,7 +41,7 @@ class GenUserAdmin(admin.ModelAdmin):
         'registration_group',
         'social_user_exist'
     )
-    search_fields = ('user__email', 'email', 'school')
+    search_fields = ('user__email', 'email')
 
     def social_user_exist(self, obj):
         try:
