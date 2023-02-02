@@ -4,7 +4,6 @@ from xmodule.modulestore.django import modulestore
 from lms.djangoapps.badges.models import BadgeClass, BadgeAssertion
 from common.djangoapps.student.models import CourseEnrollment
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-from django.urls import reverse
 from openedx.features.genplus_features.genplus_learning.models import (
     Program,
     ProgramEnrollment,
@@ -18,6 +17,7 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     calculate_class_lesson_progress,
     get_absolute_url,
     get_user_next_course_lesson,
+    get_lesson_lms_url
 )
 from openedx.features.genplus_features.genplus.models import Student, JournalPost, Activity, Teacher
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
@@ -132,9 +132,14 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 
 class ClassLessonSerializer(serializers.ModelSerializer):
+    lms_url = serializers.SerializerMethodField()
     class Meta:
         model = ClassLesson
-        fields = ('id', 'order', 'display_name', 'is_locked', 'lms_url')
+        fields = ('id', 'usage_key', 'order', 'display_name', 'is_locked', 'lms_url')
+
+    def get_lms_url(self, obj):
+        user = self.context.get('user')
+        return get_lesson_lms_url(user, obj.course_key, obj.usage_key)
 
 
 class ClassUnitSerializer(serializers.ModelSerializer):
@@ -143,11 +148,12 @@ class ClassUnitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ClassUnit
-        fields = ('id', 'display_name', 'is_locked', 'class_lessons',)
+        fields = ('id', 'display_name', 'course_key', 'is_locked', 'class_lessons',)
 
     def get_class_lessons(self, obj):
         queryset = obj.class_lessons.all().order_by('order')
-        serializer = ClassLessonSerializer(queryset, many=True, read_only=True)
+        user = self.context.get('user')
+        serializer = ClassLessonSerializer(queryset, many=True, read_only=True, context={'user': user})
         return serializer.data
 
 
@@ -169,7 +175,7 @@ class ClassStudentSerializer(serializers.ModelSerializer):
 
     def get_has_first_logon(self, obj):
         if obj.gen_user.from_private_school:
-            return obj.gen_user.user.last_login is None
+            return obj.gen_user.user.last_login is not None
         return obj.gen_user.user is not None
 
 
