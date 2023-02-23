@@ -3,7 +3,7 @@ import io
 import os
 from os.path import basename, splitext, dirname, join
 import tempfile
-
+from itertools import chain
 import pdfkit
 
 from collections import defaultdict
@@ -17,9 +17,10 @@ from django.template.loader import render_to_string
 from django.contrib.staticfiles import finders
 
 from opaque_keys.edx.keys import CourseKey
+from openedx.features.genplus_features.genplus_assessments.models import UserRating, UserResponse
 from .utils import build_course_report_for_students, get_absolute_url
 from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
-from openedx.features.genplus_features.genplus_learning.models import Unit, UnitCompletion
+from openedx.features.genplus_features.genplus_learning.models import Program, Unit, UnitCompletion
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.constants import JournalTypes
 
@@ -147,6 +148,40 @@ class AssessmentReportPDFView(TemplateView):
             html = template.render(context)
             return html
 
+    def _get_skill_assessment_data(self, user_id, programs):
+        skills_assessment = []
+        for program in programs:
+            program_id = program.id
+            assessment = {
+                'name': program.year_group.name,
+                'program_name': program.year_group.program_name
+            }
+            start_of_year_rating_assessment = UserRating.objects.filter(
+                user=user_id, program=program_id, assessment_time='start_of_year'
+            ).order_by('problem_id')
+            start_of_year_text_assessment = UserResponse.objects.filter(
+                user=user_id, program=program_id, assessment_time='start_of_year'
+            ).order_by('problem_id')
+            start_of_year_assessments = sorted(
+                chain(start_of_year_rating_assessment, start_of_year_text_assessment),
+                key=lambda instance: instance.problem_id
+            )
+            end_of_year_rating_assessment = UserRating.objects.filter(
+                user=user_id, program=program_id, assessment_time='end_of_year'
+            ).order_by('problem_id')
+            end_of_year_text_assessment = UserResponse.objects.filter(
+                user=user_id, program=program_id, assessment_time='end_of_year'
+            ).order_by('problem_id')
+            end_of_year_assessments = sorted(
+                chain(end_of_year_rating_assessment, end_of_year_text_assessment),
+                key=lambda instance: instance.problem_id
+            )
+            assessment['start_of_year'] = start_of_year_assessments
+            assessment['end_of_year'] = end_of_year_assessments
+            skills_assessment.append(assessment)
+
+        return skills_assessment
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -173,6 +208,7 @@ class AssessmentReportPDFView(TemplateView):
         course_reports = {}
 
         program_ids = student.program_enrollments.all().values_list('program', flat=True)
+        programs = Program.objects.filter(id__in=program_ids)
         units = Unit.objects.filter(program__in=program_ids)
         course_keys = units.values_list('course', flat=True)
         unit_completions = UnitCompletion.objects.filter(course_key__in=course_keys, user=user_id)
@@ -235,5 +271,6 @@ class AssessmentReportPDFView(TemplateView):
                 teacher_feedbacks[teacher_id]['comments'].append(feedback.description)
 
         student_data['teacher_feedbacks'] = teacher_feedbacks
+        student_data['skills_assessment'] = self._get_skill_assessment_data(user_id, programs)
         context['student_data'] = student_data
         return context
