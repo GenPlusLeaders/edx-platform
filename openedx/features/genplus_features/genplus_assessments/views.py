@@ -264,6 +264,5 @@ class AssessmentReportPDFView(TemplateView):
 
         student_data['teacher_feedbacks'] = teacher_feedbacks
         student_data['skills_assessment'] = self._get_skill_assessment_data(user_id, student, programs)
-        import pdb; pdb.set_trace()
         context['student_data'] = student_data
         return context
