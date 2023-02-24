@@ -17,11 +17,11 @@
 <body>
   <div class="wrapper">
     <div class="content">
-      <div class="intro">
-        <p>Met restia nimi, officit event aut assiti occae nulpa doluptatur ad est dit quas duntemp oremperios adistium dolupta as dolo ipienis distiat emquas dignatem acerfer rumquatem est eatur, ne voluptatur? Ma culparciis volorit, cuptam fugit provit fuga. Et in nonsenistis antorro cum fuga. Sapieni squideb isimod et la que</p>
-      </div>
       <div class="container">
-        <div class="unit-completion">
+        <div class="intro">
+          <p>Met restia nimi, officit event aut assiti occae nulpa doluptatur ad est dit quas duntemp oremperios adistium dolupta as dolo ipienis distiat emquas dignatem acerfer rumquatem est eatur, ne voluptatur? Ma culparciis volorit, cuptam fugit provit fuga. Et in nonsenistis antorro cum fuga. Sapieni squideb isimod et la que</p>
+        </div>
+          <div class="unit-completion">
           <h3>Units completed so far</h3>
           <ul class="completion-badges">
             % for unit in student_data.get('units'):
@@ -73,36 +73,34 @@
                   <div class="question-text">
                     <p><strong>Question ${ question_id }: &nbsp;</strong>${ question.get('problem_statement')}</p>
                   </div>
-                  <div>
-                    % if question.get('total_problem_score'):
-                    <div class="year-info start">
-                      <img src="${static.url('genplus_assessments/assets/images/start.png')}" width="32" alt="" />
-                      <ul class="star-rating">
-                        % for i, star in enumerate(range(question.get('total_problem_score', 0))):
-                          % if i < question.get('score_start_of_year'):
-                            <li><img src="${static.url('genplus_assessments/assets/images/star-fill.png')}" width="25" alt="Favourite" /></li>
-                          % else:
-                            <li><img src="${static.url('genplus_assessments/assets/images/star-outline.png')}" width="25" alt="Favourite" /></li>
-                          % endif
-                        % endfor
-                      </ul>
-                    </div>
-                    % endif
-                    % if question.get('total_problem_score'):
-                    <div class="year-info end">
-                      <img src="${static.url('genplus_assessments/assets/images/end.png')}" width="32" alt="" />
-                      <ul class="star-rating">
-                        % for i, star in enumerate(range(question.get('total_problem_score', 0))):
-                          % if i < question.get('score_end_of_year'):
-                            <li><img src="${static.url('genplus_assessments/assets/images/star-fill.png')}" width="25" alt="Favourite" /></li>
-                          % else:
-                            <li><img src="${static.url('genplus_assessments/assets/images/star-outline.png')}" width="25" alt="Favourite" /></li>
-                          % endif
-                        % endfor
-                      </ul>
-                    </div>
-                    % endif
+                  % if question.get('total_problem_score'):
+                  <div class="year-info start">
+                    <img src="${static.url('genplus_assessments/assets/images/start.png')}" width="32" alt="" />
+                    <ul class="star-rating">
+                      % for i, star in enumerate(range(question.get('total_problem_score', 0))):
+                        % if i < question.get('score_start_of_year'):
+                          <li><img src="${static.url('genplus_assessments/assets/images/star-fill.png')}" width="25" alt="Favourite" /></li>
+                        % else:
+                          <li><img src="${static.url('genplus_assessments/assets/images/star-outline.png')}" width="25" alt="Favourite" /></li>
+                        % endif
+                      % endfor
+                    </ul>
                   </div>
+                  % endif
+                  % if question.get('total_problem_score'):
+                  <div class="year-info end">
+                    <img src="${static.url('genplus_assessments/assets/images/end.png')}" width="32" alt="" />
+                    <ul class="star-rating">
+                      % for i, star in enumerate(range(question.get('total_problem_score', 0))):
+                        % if i < question.get('score_end_of_year'):
+                          <li><img src="${static.url('genplus_assessments/assets/images/star-fill.png')}" width="25" alt="Favourite" /></li>
+                        % else:
+                          <li><img src="${static.url('genplus_assessments/assets/images/star-outline.png')}" width="25" alt="Favourite" /></li>
+                        % endif
+                      % endfor
+                    </ul>
+                  </div>
+                  % endif
                 </div>
                 <hr />
               % elif question.get('assessment_type') == 'genz_text_assessment':
