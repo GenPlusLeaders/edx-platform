@@ -12,7 +12,7 @@ from lms.djangoapps.courseware.user_state_client import DjangoXBlockUserStateCli
 from openedx.features.genplus_features.genplus.constants import JournalTypes
 from openedx.features.genplus_features.genplus.models import Student, JournalPost
 from openedx.features.genplus_features.genplus_learning.models import Unit
-from openedx.features.genplus_features.genplus_assessments.constants import ProblemTypes, JOURNAL_STYLE
+from openedx.features.genplus_features.genplus_assessments.constants import ProblemTypes, JOURNAL_STYLE, TOTAL_PROBLEM_SCORE
 
 
 class StudentResponse:
@@ -505,3 +505,62 @@ def get_student_program_skills_assessment(student, gen_program=None):
             outro_assessments_completion = get_student_unit_skills_assessment(user, gen_program.outro_unit)
 
     return [intro_assessments_completion, outro_assessments_completion]
+
+
+def get_user_assessment_result(user, raw_data, program):
+        """
+        Generate result for single user for bar and graph char on base of single assessment
+        as per the user state  under the ``problem_location`` root.
+        Arguments:
+            raw_data (list): data get from UserResponse and UserRating models.
+        Returns:
+                [Dict]: Returns a dictionaries
+                containing a student result for all single assessment.
+        """
+        store = modulestore()
+        assessments = []
+        aggregate_result = {}
+
+        # get assessment usage key and type for program intro assessment course
+        if program.intro_unit:
+            assessments.extend(get_assessment_problem_data(program.intro_unit.id, user))
+
+        # get assessment usage key and type for program outro assessment course
+        if program.outro_unit:
+            assessments.extend(get_assessment_problem_data(program.outro_unit.id, user))
+        # prepare dictionary for every particular assessment problem in a course
+        for assessment in assessments:
+            usage_key = UsageKey.from_string(assessment.get('id'))
+            assessment_xblock = store.get_item(usage_key)
+            problem_id = str(assessment_xblock.problem_id)
+            if problem_id not in aggregate_result:
+                aggregate_result[problem_id] = {
+                    'problem_statement': assessment_xblock.question_statement,
+                    'assessment_type': assessment.get('type'),
+                    'skill': assessment_xblock.select_assessment_skill,
+                    'total_problem_score': TOTAL_PROBLEM_SCORE,
+                    'score_start_of_year': 0,
+                    'score_end_of_year': 0,
+                }
+                if assessment.get('type') == 'genz_text_assessment':
+                    aggregate_result[problem_id]['response_start_of_year'] = None
+                    aggregate_result[problem_id]['response_end_of_year'] = None
+
+        for data in raw_data:
+            problem_id = data['problem_id']
+            if data['assessment_time'] == "start_of_year":
+                if 'score' in data:
+                    aggregate_result[problem_id]['response_start_of_year'] = json.loads(
+                        data['student_response'])
+                    aggregate_result[problem_id]['score_start_of_year'] = data['score']
+                else:
+                    aggregate_result[problem_id]['score_start_of_year'] = data['rating']
+            else:
+                if 'score' in data:
+                    aggregate_result[problem_id]['response_end_of_year'] = json.loads(
+                        data['student_response'])
+                    aggregate_result[problem_id]['score_end_of_year'] = data['score']
+                else:
+                    aggregate_result[problem_id]['score_end_of_year'] = data['rating']
+
+        return aggregate_result

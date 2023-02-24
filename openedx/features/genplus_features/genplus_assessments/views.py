@@ -7,6 +7,7 @@ from itertools import chain
 import pdfkit
 
 from collections import defaultdict
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.http import HttpResponse
@@ -18,12 +19,17 @@ from django.contrib.staticfiles import finders
 
 from opaque_keys.edx.keys import CourseKey
 from openedx.features.genplus_features.genplus_assessments.models import UserRating, UserResponse
-from .utils import build_course_report_for_students, get_absolute_url, get_student_program_skills_assessment
+from .utils import (
+    build_course_report_for_students,
+    get_absolute_url,
+    get_student_program_skills_assessment,
+    get_user_assessment_result
+)
 from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
 from openedx.features.genplus_features.genplus_learning.models import Program, Unit, UnitCompletion
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.constants import JournalTypes
-
+from openedx.features.genplus_features.genplus_assessments.api.v1.serializers import RatingAssessmentSerializer, TextAssessmentSerializer
 
 class AssessmentReportPDFView(TemplateView):
     filename = None
@@ -150,38 +156,15 @@ class AssessmentReportPDFView(TemplateView):
 
     def _get_skill_assessment_data(self, user_id, student, programs):
         skills_assessment = []
+        user = User.objects.get(id=user_id)
         for program in programs:
             user_rating_qs  = UserRating.objects.filter(user=user_id, program=program.id)
             user_response_qs  = UserResponse.objects.filter(user=user_id, program=program.id)
-            skill_assessment = {
-                'name': program.year_group.name,
-                'program_name': program.year_group.program_name,
-                'questions': []
-            }
-            start_of_year_rating_assessment = user_rating_qs.filter(assessment_time='start_of_year').order_by('problem_id')
-            start_of_year_text_assessment = user_response_qs.filter(assessment_time='start_of_year').order_by('problem_id')
-            start_of_year_assessments = sorted(
-                chain(start_of_year_rating_assessment, start_of_year_text_assessment),
-                key=lambda instance: instance.problem_id
-            )
-
-            end_of_year_rating_assessment = user_rating_qs.filter(assessment_time='end_of_year').order_by('problem_id')
-            end_of_year_text_assessment = user_response_qs.filter(assessment_time='end_of_year').order_by('problem_id')
-            end_of_year_assessments = sorted(
-                chain(end_of_year_rating_assessment, end_of_year_text_assessment),
-                key=lambda instance: instance.problem_id
-            )
-            completion = get_student_program_skills_assessment(student, program)
-            if completion[0] == True:
-                for assessment in start_of_year_assessments:
-                    skill_assessment['questions'].append({
-                        'start_of_year': assessment
-                    })
-            if all(completion):
-                for i, assessment in enumerate(end_of_year_assessments):
-                    skill_assessment['questions'][i]['end_of_year'] = assessment
-
-            skills_assessment.append(skill_assessment)
+            text_assessment_data = TextAssessmentSerializer(user_response_qs, many=True).data
+            rating_assessment_data = RatingAssessmentSerializer(user_rating_qs, many=True).data
+            raw_data = text_assessment_data + rating_assessment_data
+            assessment_result = get_user_assessment_result(user, raw_data, program)
+            skills_assessment.append(assessment_result)
 
         return skills_assessment
 
@@ -268,13 +251,19 @@ class AssessmentReportPDFView(TemplateView):
 
                 teacher_feedbacks[teacher_id] = {
                     'teacher_name': teacher_name,
-                    'comments': [feedback.description],
+                    'comments': [{
+                        'description': feedback.description,
+                        'datetime': feedback.created
+                    }],
                 }
             else:
-                teacher_feedbacks[teacher_id]['comments'].append(feedback.description)
+                teacher_feedbacks[teacher_id]['comments'].append({
+                    'description': feedback.description,
+                    'datetime': feedback.created
+                })
 
         student_data['teacher_feedbacks'] = teacher_feedbacks
         student_data['skills_assessment'] = self._get_skill_assessment_data(user_id, student, programs)
-        print(student_data['skills_assessment'])
+        import pdb; pdb.set_trace()
         context['student_data'] = student_data
         return context
