@@ -479,7 +479,7 @@ def get_student_unit_skills_assessment(user, course):
     return get_assessment_completion(assessment_data) if assessment_data else None
 
 
-def get_student_program_skills_assessment(student):
+def get_student_program_skills_assessment(student, gen_program=None):
     """
     Evaluate if student has completed his skill assessment
 
@@ -493,7 +493,9 @@ def get_student_program_skills_assessment(student):
 
     intro_assessments_completion = None
     outro_assessments_completion = None
-    gen_program = student.active_class.program if student.active_class else None
+    if gen_program is None:
+        gen_program = student.active_class.program if student.active_class else None
+
     user = student.gen_user.user
     if user and gen_program is not None:
         if gen_program.intro_unit:
