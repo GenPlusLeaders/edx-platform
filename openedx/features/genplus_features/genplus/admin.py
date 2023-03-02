@@ -42,6 +42,7 @@ class GenUserAdmin(admin.ModelAdmin):
         'social_user_exist'
     )
     search_fields = ('user__email', 'email')
+    actions = ['force_change_password']
 
     def social_user_exist(self, obj):
         try:
@@ -54,6 +55,13 @@ class GenUserAdmin(admin.ModelAdmin):
         except AttributeError:
             return '-'
 
+    def force_change_password(modeladmin, request, queryset):
+        queryset.update(has_password_changed=False)
+        messages.add_message(request, messages.INFO,
+                             'Force password updated successfully.')
+
+
+
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
@@ -62,6 +70,7 @@ class SkillAdmin(admin.ModelAdmin):
 
 class CsvImportForm(forms.Form):
     csv_file = forms.FileField()
+    force_change_password = forms.BooleanField(initial=True, required=False)
 
 
 @admin.register(School)
@@ -92,6 +101,7 @@ class SchoolAdmin(admin.ModelAdmin):
     def import_csv(self, request):
         if request.method == "POST":
             csv_file = request.FILES["csv_file"]
+            force_change_password = request.POST.get('force_change_password', False)
             reader = csv.DictReader(codecs.iterdecode(csv_file, 'utf-8'))
             validated_data, error_msg = self.validate_csv(reader)
             user_created = []
@@ -139,6 +149,7 @@ class SchoolAdmin(admin.ModelAdmin):
                             user=user,
                             school=school,
                             email=user.email,
+                            has_password_changed=not force_change_password
                         )
                         if role == GenUserRoles.STUDENT:
                             gen_student = gen_user.student
@@ -429,3 +440,6 @@ class StudentAdmin(admin.ModelAdmin):
             else:
                 program_data[program.year_group.name] = "Not enrolled yet"
         return str(program_data)
+
+
+admin.site.register(GenLog)
