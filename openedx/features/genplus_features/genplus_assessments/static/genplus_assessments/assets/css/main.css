@@ -593,6 +593,7 @@ blockquote cite {
 .rating-assessment .year-info .text {
   display: inline-block;
   vertical-align: middle;
+  line-height: 1.2;
 }
 .rating-assessment .year-info img {
   float: left;
@@ -839,16 +840,17 @@ blockquote cite {
 
 .icon-info {
   color: #ff0d5a;
-  border: 2px solid #ff0d5a;
+  border: 1px solid #ff0d5a;
   display: inline-block;
   vertical-align: middle;
   margin-right: 5px;
-  height: 25px;
-  width: 25px;
+  height: 20px;
+  width: 20px;
   text-align: center;
   border-radius: 50%;
-  font-size: 20px;
-  line-height: 22px;
+  font-size: 15px;
+  line-height: 16px;
+  margin-bottom: 2px;
 }
 
 .list-unstyled {
