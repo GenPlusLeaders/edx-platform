@@ -398,7 +398,7 @@ class TeacherAdmin(admin.ModelAdmin):
 class StudentAdmin(admin.ModelAdmin):
     search_fields = ('gen_user__user__email', 'gen_user__email')
     list_filter = (MoreThanOneClassFilter, 'gen_user__school',)
-    list_display = ('username', 'school', 'enrolled_classes', 'progress')
+    list_display = ('username', 'school', 'enrolled_classes', 'active_class', 'progress')
 
     def username(self, obj):
         return obj.__str__()
@@ -447,3 +447,10 @@ class GenLog(admin.ModelAdmin):
     search_fields = ('metadata',)
     list_display = ('description', 'gen_log_type', 'metadata', 'created')
 
+
+@admin.register(GenError)
+class GenError(admin.ModelAdmin):
+    search_fields = ('email',)
+    list_filter = ('school', 'gen_class', 'error_code', 'role')
+    readonly_fields = ('error_code', 'name', 'email', 'role', 'school', 'gen_class', 'browser',)
+    list_display = ('error_code', 'name', 'email', 'role', 'school', 'gen_class', 'browser', 'timestamp')
