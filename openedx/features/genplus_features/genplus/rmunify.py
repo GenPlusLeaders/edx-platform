@@ -24,8 +24,8 @@ class RmUnifyException(BaseException):
 
 class BaseRmUnify:
     def __init__(self):
-        self.key = '640EFF71-5338-484E-B2EB-41431F53353F'
-        self.secret = '0BBBAFB3-6EAC-4D26-BB01-CDFAD08C543A'
+        self.key = settings.RM_UNIFY_KEY
+        self.secret = settings.RM_UNIFY_SECRET
         self.timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def fetch(self, url):
