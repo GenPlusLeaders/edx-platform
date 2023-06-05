@@ -441,8 +441,6 @@ class StudentAdmin(admin.ModelAdmin):
                 program_data[program.slug] = unit_data
             else:
                 program_data[program.slug] = "Not enrolled yet"
-            for key, value in program_data:
-                program_data += f''
 
         return str(program_data)
 
