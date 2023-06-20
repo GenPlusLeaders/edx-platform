@@ -311,7 +311,7 @@
                 newPosition = $(event.currentTarget).data('element');
             }
 
-            if(this.shouldNavigateModal({'newPosition': newPosition})){
+            if(this.shouldNavigateModal('', newPosition)){
                 return;
             }
 
@@ -399,13 +399,13 @@
         }
 
         Sequence.prototype.selectNext = function(event) {
-            if(!this.shouldNavigateModal({'direction': 'next'})){
+            if(!this.shouldNavigateModal('next')){
                 this._change_sequential('next', event);
             }
         };
 
         Sequence.prototype.selectPrevious = function(event) {
-            if(!this.shouldNavigateModal({'direction': 'previous'})){
+            if(!this.shouldNavigateModal('previous')){
                 this._change_sequential('previous', event);
             }
         };
@@ -461,7 +461,7 @@
             }
         };
 
-        Sequence.prototype.shouldNavigateModal = function ({ direction, newPosition }) {
+        Sequence.prototype.shouldNavigateModal = function (direction, newPosition) {
             if($('.submit-attempt-container').length > 0 && $("span.status").attr("class").split(' ').indexOf('unanswered') > -1){
                 if(direction == 'next'){
                     $('#navigate-question').html('Go to Next Question');
@@ -484,6 +484,7 @@
             }
             return false;
         }
+
         Sequence.prototype.link_for = function(position) {
             return this.$('#sequence-list .nav-item[data-element=' + position + ']');
         };
