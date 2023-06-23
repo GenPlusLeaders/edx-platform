@@ -97,7 +97,6 @@ class StudentResponse:
         problem_block = kwargs.get('problem_block')
         parser = etree.XMLParser(remove_blank_text=True)
         problem = etree.XML(problem_block.get_problem_html(encapsulate=True), parser=parser)
-        skill = self._get_course_skill(problem_block)
 
         student_module = kwargs.get('student_module')
         for key, value in kwargs.get('student_response').items():
@@ -107,7 +106,7 @@ class StudentResponse:
             title = problem.find(f".//label[@for='{key}']").text
             answer = json.loads(JOURNAL_STYLE.format(value), strict=False)
             defaults = {
-                'skill': skill,
+                'skill': self._get_course_skill(problem_block),
                 'journal_type': JournalTypes.STUDENT_POST,
                 'is_editable': False,
                 'title': title,
@@ -127,13 +126,12 @@ class StudentResponse:
         problem_block = kwargs.get('problem_block')
         parser = etree.XMLParser(remove_blank_text=True)
         problem = etree.XML(problem_block.data, parser=parser)
-        skill = self._get_course_skill(problem_block)
 
         student_module = kwargs.get('student_module')
         title = problem.find(".//*[@class='question-text']").text
         answer = self._aggregate_student_answer(**kwargs)
         defaults = {
-            'skill': skill,
+            'skill': self._get_course_skill(problem_block),
             'journal_type': JournalTypes.PROBLEM_ENTRY,
             'is_editable': False,
             'title': title,
@@ -190,9 +188,6 @@ class StudentResponse:
         retrieved SkillAssessmentQuestion, the earned score based on the correctness of the student's response, the total
         score to a problem weight value, the response time as determined earlier, and the question data to the
         parsed problem block data. It then saves the created SkillAssessmentResponse instance to the database.
-
-        If a matching SkillAssessmentQuestion is not found, the function prints a message and exits without creating
-        a SkillAssessmentResponse.
         """
         student_response = kwargs.get('student_response')
         problem_block = kwargs.get('problem_block')
@@ -209,7 +204,7 @@ class StudentResponse:
         problem_xml = etree.fromstring(problem_html, parser=parser)
 
         # Extract the question
-        question = problem_xml.find('.//*[@class="question-text"]').text
+        question_text = problem_xml.find('.//*[@class="question-text"]').text
 
         # Extract the choices and whether they are correct
         choices = {
@@ -221,7 +216,7 @@ class StudentResponse:
         }
 
         # Combine the question and choices into a single dictionary
-        question_and_responses_dict = {'question': question, 'choices': choices}
+        question_responses_dict = {'question': question_text, 'choices': choices}
 
         # Initialize an empty list to store multiple responses
         student_responses = []
@@ -231,8 +226,8 @@ class StudentResponse:
             # Each 'value' corresponds to a choice like 'choice_0'
 
             # Get corresponding choice text and correctness
-            response_text = question_and_responses_dict['choices'][value]['text']
-            response_correct = question_and_responses_dict['choices'][value]['correct']
+            response_text = question_responses_dict['choices'][value]['text']
+            response_correct = question_responses_dict['choices'][value]['correct']
 
             # Store this information in the student_responses list
             student_responses.append({
@@ -242,9 +237,72 @@ class StudentResponse:
             })
 
         # Update the dictionary with the student's responses
-        question_and_responses_dict['student_responses'] = student_responses
-        earned_score = self.calculate_earned_score(question_and_responses_dict, total_score)
+        question_responses_dict['student_responses'] = student_responses
+        earned_score = self._calculate_earned_score(question_responses_dict, total_score)
+        response_time, question = self._get_assessment_time(course_key, problem_key)
 
+        if problem_type == SkillAssessmentTypes.SINGLE_CHOICE:
+            skill_assessment_type = SkillAssessmentTypes.SINGLE_CHOICE
+        elif problem_type == SkillAssessmentTypes.MULTIPLE_CHOICE:
+            skill_assessment_type = SkillAssessmentTypes.MULTIPLE_CHOICE
+
+        # update and create SkillAssessmentResponse object
+        if response_time and question:
+            SkillAssessmentResponse.objects.update_or_create(
+                user=user,
+                question=question,
+                response_time=response_time,
+                defaults={
+                    'earned_score': earned_score,
+                    'total_score': total_score,
+                    'skill_assessment_type': skill_assessment_type,
+                    'question_response': question_responses_dict,
+                }
+            )
+
+    def create_assessment_response_from_rating(self, data):
+        """
+        Creates or updates a SkillAssessmentResponse object based on the provided rating data.
+
+        Args:
+            data (dict): The rating data containing user_id, course_id, problem_id, earned_score,
+                        total_score, and question_response.
+
+        Returns:
+            bool: True if the SkillAssessmentResponse object was created or updated successfully,
+                False otherwise.
+
+        """
+        user_id = data.get('user_id')
+        course_id = data.get('course_id')
+        problem_id = data.get('usage_id')
+        earned_score = data.get('earned_score')
+        total_score = data.get('total_score')
+        question_response_dict = data.get('question_response')
+
+        course_key = CourseKey.from_string(course_id)
+        problem_key = UsageKey.from_string(problem_id).map_into_course(course_key)
+        user = get_user_model().objects.get(pk=user_id)
+        response_time, question = self._get_assessment_time(course_key, problem_key)
+
+        # Update and create SkillAssessmentResponse object
+        if response_time and question:
+            SkillAssessmentResponse.objects.update_or_create(
+                user=user,
+                question=question,
+                response_time=response_time,
+                defaults={
+                    'earned_score': earned_score,
+                    'total_score': total_score,
+                    'skill_assessment_type': SkillAssessmentTypes.RATING,
+                    'question_response': question_response_dict,
+                }
+            )
+            return True
+
+        return False
+
+    def _get_assessment_time(self, course_key, problem_key):
         try:
             # Fetch SkillAssessmentQuestion based on provided course_key and problem_key
             question = SkillAssessmentQuestion.objects.get(
@@ -254,32 +312,14 @@ class StudentResponse:
         except SkillAssessmentQuestion.DoesNotExist:
             # Handle case when the SkillAssessmentQuestion does not exist
             print("SkillAssessmentQuestion does not exist with the provided keys")
-            return
+            return None, None
 
         if question.start_unit == course_key and question.start_unit_location == problem_key:
-            response_time = SkillAssessmentResponseTime.START_OF_YEAR
-        else:
-            response_time = SkillAssessmentResponseTime.END_OF_YEAR
+            return SkillAssessmentResponseTime.START_OF_YEAR, question
 
-        if problem_type == SkillAssessmentTypes.SINGLE_CHOICE:
-            skill_assessment_type = SkillAssessmentTypes.SINGLE_CHOICE
-        elif problem_type == SkillAssessmentTypes.MULTIPLE_CHOICE:
-            skill_assessment_type = SkillAssessmentTypes.MULTIPLE_CHOICE
-        else:
-            skill_assessment_type = SkillAssessmentTypes.RATING
+        return SkillAssessmentResponseTime.END_OF_YEAR, question
 
-        # Create SkillAssessmentResponse object
-        SkillAssessmentResponse.objects.create(
-            user=user,
-            question=question,
-            earned_score=earned_score,
-            total_score=total_score,
-            response_time=response_time,
-            skill_assessment_type=skill_assessment_type,
-            question_response=question_and_responses_dict,
-        )
-
-    def calculate_earned_score(self, question_and_responses_dict, total_score):
+    def _calculate_earned_score(self, question_responses_dict, total_score):
         """
         Calculates the score a student earned based on their responses to a question.
 
@@ -288,7 +328,7 @@ class StudentResponse:
         choices available for the question.
 
         Parameters:
-        question_and_responses_dict (dict): A dictionary containing question, available
+        question_responses_dict (dict): A dictionary containing question, available
                                             choices, and the student's responses. Each
                                             choice and response includes a boolean
                                             indicating if it is correct or not.
@@ -297,11 +337,11 @@ class StudentResponse:
         Returns:
         score (int): The total score the student earned for the question.
         """
-        num_correct_choices = sum(1 for choice in question_and_responses_dict['choices'].values() if choice['correct'])
+        num_correct_choices = sum(1 for choice in question_responses_dict['choices'].values() if choice['correct'])
         num_correct_responses = sum(
-            1 for response in question_and_responses_dict['student_responses'] if response['correct'])
-        base_score = total_score / num_correct_choices
+            1 for response in question_responses_dict['student_responses'] if response['correct'])
 
+        base_score = float(total_score / num_correct_choices)
         score = base_score * num_correct_responses
 
         return score
