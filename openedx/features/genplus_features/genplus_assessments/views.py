@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 import io
 import os
+import six
 from os.path import basename, splitext, dirname, join
 import tempfile
 from itertools import chain
@@ -15,7 +16,17 @@ from django.template import loader
 from django.test import override_settings
 from django.views.generic import TemplateView
 from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
 from django.contrib.staticfiles import finders
+from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
+from web_fragments.fragment import Fragment
+
+from lms.djangoapps.courseware.courses import get_course_with_access
+from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
+from openedx.features.course_experience.course_updates import (
+    dismiss_current_update_for_user, get_current_update_for_user,
+)
 
 from opaque_keys.edx.keys import CourseKey
 from openedx.features.genplus_features.genplus_assessments.models import UserRating, UserResponse
@@ -25,7 +36,7 @@ from .utils import (
     get_student_program_skills_assessment,
     get_user_assessment_result
 )
-from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
+from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher, Skill
 from openedx.features.genplus_features.genplus_learning.models import Program, Unit, UnitCompletion, ProgramEnrollment
 from openedx.features.genplus_features.genplus_learning.constants import ProgramStatuses
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
@@ -280,4 +291,29 @@ class AssessmentReportPDFView(TemplateView):
         student_data['teacher_feedbacks'] = teacher_feedbacks
         student_data['skills_assessment'] = self._get_skill_assessment_data(user_id, student, enrolled_programs)
         context['student_data'] = student_data
+        return context
+
+
+class SkillAssessmentAdminFragmentView(EdxFragmentView):
+
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
+        return super().get(request, **kwargs)
+
+    def render_to_fragment(self, request, course_id=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
+        context = {
+            'api_base_url': settings.LMS_ROOT_URL,
+            'programs_with_units': self._get_programs_and_units(),
+            'skills': list(Skill.objects.all().values_list('name', flat=True))
+        }
+
+        html = render_to_string('genplus_assessments/skill-assessment-admin.html', context)
+        return Fragment(html)
+
+    def _get_programs_and_units(self):
+        programs = Program.objects.prefetch_related('units').filter(status=ProgramStatuses.ACTIVE)
+        context = {}
+        for program in programs:
+            context[program.slug] = program.all_units_ids
+
         return context

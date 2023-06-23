@@ -1,20 +1,26 @@
 import json
 import logging
 import copy
-from django.db.models import Q
+from operator import itemgetter
 
-from rest_framework import views, viewsets
+from django.db.models import Q
+from rest_framework import views, viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import UsageKey, CourseKey
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import Class
-from openedx.features.genplus_features.genplus_assessments.models import UserResponse, UserRating
-from openedx.features.genplus_features.genplus_learning.models import Unit
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher, IsStudentOrTeacher
-from .serializers import ClassSerializer, TextAssessmentSerializer, RatingAssessmentSerializer
+from openedx.features.genplus_features.genplus.models import Class, Skill
+from openedx.features.genplus_features.genplus_assessments.models import UserResponse, UserRating, SkillAssessmentQuestion
+from openedx.features.genplus_features.genplus_learning.models import Unit, Program
+from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher, IsStudentOrTeacher, IsAdmin
+from .serializers import (
+    ClassSerializer,
+    TextAssessmentSerializer,
+    RatingAssessmentSerializer,
+    SkillAssessmentQuestionSerializer
+)
 from openedx.features.genplus_features.genplus_assessments.constants import (
     TOTAL_PROBLEM_SCORE, INTRO_RATING_ASSESSMENT_RESPONSE,
     OUTRO_RATING_ASSESSMENT_RESPONSE, MAX_SKILLS_SCORE
@@ -24,6 +30,7 @@ from openedx.features.genplus_features.genplus_assessments.utils import (
     get_assessment_problem_data,
     get_assessment_completion,
     get_user_assessment_result,
+    StudentResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -420,3 +427,75 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                     response['student_response'][user_id]['score_end_of_year'] = data['rating']
 
         return response
+
+
+class SkillAssessmentAdminViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_skills_assessment_question_mapping(self, request, **kwargs):
+        program_slug = kwargs.get('program_slug', None)
+        try:
+            program = Program.objects.get(slug=program_slug)
+        except Program.DoesNotExist:
+            return Response("Program not found", status=status.HTTP_400_BAD_REQUEST)
+
+        program_questions = SkillAssessmentQuestion.objects.filter(program=program)
+        program_questions_mapping = SkillAssessmentQuestionSerializer(program_questions, many=True).data
+        return Response({
+            'questions_mapping': program_questions_mapping
+        }, status=status.HTTP_200_OK)
+
+    def update_skills_assessment_question_mapping(self, request, **kwargs):
+        program_slug = kwargs.get('program_slug', None)
+        try:
+            program = Program.objects.get(slug=program_slug)
+        except Program.DoesNotExist:
+            return Response("Program not found", status=status.HTTP_400_BAD_REQUEST)
+
+        skills = {}
+        for skill in Skill.objects.all():
+            skills[skill.name] = skill
+
+        data = {}
+        add_questions_data = []
+        remove_questions_ids = []
+        for question in request.data:
+            data[f"{program_slug}{question['start_unit_location']}{question['end_unit_location']}"] = question
+
+        program_questions_qs = SkillAssessmentQuestion.objects.filter(program__slug=program_slug)
+        for question in program_questions_qs:
+            if f"{program_slug}{question.start_unit_location}{question.end_unit_location}" not in data.keys():
+                remove_questions_ids.append(question.id)
+
+        SkillAssessmentQuestion.objects.filter(id__in=remove_questions_ids).delete()
+
+        for index, (key, value) in enumerate(data.items()):
+            SkillAssessmentQuestion.objects.update_or_create(
+                program=program,
+                start_unit_location=value['start_unit_location'],
+                end_unit_location=value['end_unit_location'],
+                defaults={
+                    'question_number': index+1,
+                    'skill': skills.get(value['skill']),
+                    'start_unit': value['start_unit'],
+                    'end_unit': value['end_unit']
+                }
+            )
+
+        return Response({
+            'program_slug': program_slug
+        }, status=status.HTTP_200_OK)
+
+class SaveRatingResponseApiView(views.APIView):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+
+    def post(self, request, **kwargs):
+        data = request.data  # This is the data from the POST request
+        response = StudentResponse().create_assessment_response_from_rating(data)
+
+        # Handle the response accordingly
+        if response:  # Replace with your condition for a successful response
+            return Response({'status': 'success', 'message': 'POST request was successful'}, status=200)
+
+        return Response({'status': 'fail', 'error': 'POST request failed', 'message': 'POST request failed with status code'}, status=400)
