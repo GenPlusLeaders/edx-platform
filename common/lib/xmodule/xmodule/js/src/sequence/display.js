@@ -293,7 +293,7 @@
                 sequenceLinks.click(this.goto);
 
                 this.sr_container.focus();
-                if (this.$("span.status").attr("class").split(' ').indexOf('unanswered') == -1) {
+                if (!this.$("span.status").hasClass('unanswered')) {
                   this.$('input').prop('disabled', true);
                 }
             }
