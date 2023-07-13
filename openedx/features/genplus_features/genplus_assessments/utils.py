@@ -471,13 +471,15 @@ def students_aggregate_result(user_states, aggregate_result):
     for user_state in user_states:
         user_answer = user_state['Answer']
         correct_answer = user_state['Correct Answer']
-        if user_answer not in aggregate_result:
-            aggregate_result[user_answer] = {
-                'count': 1,
-                'is_correct': correct_answer == user_answer
-            }
-        else:
-            aggregate_result[user_answer]['count'] += 1
+        keys = user_answer.split(',')
+        for k in keys:
+            if k not in aggregate_result:
+                aggregate_result[k] = {
+                    'count': 1,
+                    'is_correct': k in correct_answer
+                }
+            else:
+                aggregate_result[k]['count'] += 1
 
     return aggregate_result
 
