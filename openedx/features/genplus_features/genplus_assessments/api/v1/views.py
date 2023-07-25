@@ -479,7 +479,8 @@ class SkillAssessmentAdminViewSet(viewsets.ViewSet):
                     'question_number': value['question_number'],
                     'skill': skills.get(value['skill']),
                     'start_unit': value['start_unit'],
-                    'end_unit': value['end_unit']
+                    'end_unit': value['end_unit'],
+                    'problem_type': value['problem_type'],
                 }
             )
 
