@@ -61,8 +61,6 @@ class GenUserAdmin(admin.ModelAdmin):
                              'Force password updated successfully.')
 
 
-
-
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
     search_fields = ('name',)
@@ -172,8 +170,9 @@ class SchoolAdmin(admin.ModelAdmin):
                     self.message_user(request,
                                       'An Error occurred while parsing the csv. Please make sure that the csv is in the right format.',
                                       level=messages.ERROR)
-            self.message_user(request, 'Your csv file has been uploaded. {}'.format(str({'users_count': len(user_created),
-                                                                                         'users_emails': user_created})))
+            self.message_user(request,
+                              'Your csv file has been uploaded. {}'.format(str({'users_count': len(user_created),
+                                                                                'users_emails': user_created})))
             return redirect("..")
         form = CsvImportForm()
         payload = {"form": form}
@@ -357,8 +356,8 @@ class ClassAdmin(admin.ModelAdmin):
             func = func_maker(value)
             name = 'attach_{}'.format(value.slug.strip())
             actions['attach_{}'.format(value.slug.strip())] = (func, name,
-                                                                          'attach to Program: {}'.format(
-                                                                              value.slug))
+                                                               'attach to Program: {}'.format(
+                                                                   value.slug))
 
         return actions
 
@@ -457,9 +456,10 @@ class StudentAdmin(admin.ModelAdmin):
                 program_data += program_html
         return mark_safe(program_data)
 
+
 @admin.register(GenLog)
 class GenLog(admin.ModelAdmin):
-    list_filter = ('gen_log_type', )
+    list_filter = ('gen_log_type',)
     search_fields = ('metadata', 'description')
     list_display = ('description', 'gen_log_type', 'metadata', 'created')
 
@@ -487,5 +487,3 @@ class GenError(admin.ModelAdmin):
 @admin.register(JournalPost)
 class JournalPostAdmin(admin.ModelAdmin):
     list_display = ('uuid', 'student', 'teacher', 'title', 'description', 'journal_type')
-
-
