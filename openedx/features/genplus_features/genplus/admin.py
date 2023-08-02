@@ -421,27 +421,28 @@ class StudentAdmin(admin.ModelAdmin):
     def progress(self, obj):
         if obj.gen_user.user is None:
             return 'Not logged in yet.'
-        program_data = {}
+        program_data = []
         for program in Program.get_active_programs():
             units = program.units.all()
             completions = UnitCompletion.objects.filter(
                 user=obj.gen_user.user,
                 course_key__in=units.values_list('course', flat=True)
             )
-            unit_data = None
+            unit_data = []
             for unit in units:
                 try:
                     obj.gen_user.student.program_enrollments.get(program=program)
                     completion = completions.filter(user=obj.gen_user.user, course_key=unit.course.id).first()
                     progress = completion.progress if completion else 0
-                    unit_data = f"""<tr>
+                    unit_html = f"""<tr>
                                   <td>{unit.display_name}</td> <td style="background-color: #eee;">{progress}%</td>
                                 </tr>
                               """
+                    unit_data.append(unit_html)
                 except ProgramEnrollment.DoesNotExist:
                     continue
             if unit_data:
-                program_data = f"""
+                program_html = f"""
                                 <table>
                                 <tr>
                                 <td><b>{program.slug}</b></td>
@@ -453,8 +454,9 @@ class StudentAdmin(admin.ModelAdmin):
                               </tr>
                             </table>
                              """
+                program_data.append(program_html)
 
-        return mark_safe(program_data) if program_data else '-'
+        return mark_safe(''.join(program_data))
 
 @admin.register(GenLog)
 class GenLog(admin.ModelAdmin):
