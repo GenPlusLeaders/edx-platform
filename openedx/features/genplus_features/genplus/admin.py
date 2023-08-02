@@ -428,21 +428,33 @@ class StudentAdmin(admin.ModelAdmin):
                 user=obj.gen_user.user,
                 course_key__in=units.values_list('course', flat=True)
             )
-            unit_data = {}
+            unit_data = None
             for unit in units:
                 try:
                     obj.gen_user.student.program_enrollments.get(program=program)
                     completion = completions.filter(user=obj.gen_user.user, course_key=unit.course.id).first()
                     progress = completion.progress if completion else 0
-                    unit_data[unit.display_name] = f"{int(progress)}%"
+                    unit_data = f"""<tr>
+                                  <td>{unit.display_name}</td> <td style="background-color: #eee;">{progress}%</td>
+                                </tr>
+                              """
                 except ProgramEnrollment.DoesNotExist:
                     continue
             if unit_data:
-                program_data[program.slug] = unit_data
-            else:
-                program_data[program.slug] = "Not enrolled yet"
+                program_data = f"""
+                                <table>
+                                <tr>
+                                <td><b>{program.slug}</b></td>
+                                <td><b>Units</b>
+                                <table>
+                                {unit_data}
+                                </table>
+                                </td>
+                              </tr>
+                            </table>
+                             """
 
-        return str(program_data)
+        return mark_safe(program_data) if program_data else '-'
 
 @admin.register(GenLog)
 class GenLog(admin.ModelAdmin):
@@ -474,3 +486,5 @@ class GenError(admin.ModelAdmin):
 @admin.register(JournalPost)
 class JournalPostAdmin(admin.ModelAdmin):
     list_display = ('uuid', 'student', 'teacher', 'title', 'description', 'journal_type')
+
+
