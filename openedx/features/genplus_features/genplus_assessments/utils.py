@@ -850,10 +850,10 @@ def skill_reflection_response(skills, likert_questions, nuance_interogation_ques
                     question_response['student_response']['response_text'], 0
                 ) + 1
         if intro_stats:
-            response['total_intros'] = response.get('total_intros', 0) + len(intros)
+            response[f'total_intros_{skill.lower()}'] = response.get(f'total_intros_{skill.lower()}', 0) + len(intros)
             response['intros'].append(intro_stats)
         if outro_stats:
-            response['total_outros'] = response.get('total_outros', 0) + len(outros)
+            response[f'total_outros_{skill.lower()}'] = response.get(f'total_outros_{skill.lower()}', 0) + len(outros)
             response['outros'].append(outro_stats)
     # Start Nuance Interogation Response Formatting.
     for nuance_interogation_question in nuance_interogation_questions:
@@ -868,7 +868,7 @@ def skill_reflection_response(skills, likert_questions, nuance_interogation_ques
                 question_response['student_response']['response_text'], 0
             ) + 1
         if intro_stats:
-            response['total_nuance_interogation'] = response.get('total_nuance_interogation', 0) + len(intros)
+            response[f'total_nuance_interogation_{skill.lower()}'] = response.get(f'total_nuance_interogation_{skill.lower()}', 0) + len(intros)
             response['nuance_interogation'].append(intro_stats)
 
     return response
