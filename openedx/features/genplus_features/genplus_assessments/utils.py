@@ -824,51 +824,31 @@ def get_user_assessment_result(user, raw_data, program):
     return aggregate_result
 
 
-def skill_reflection_response(skills, likert_questions, nuance_interogation_questions):
-    response = dict(
-        skills=skills,
-        intros=[],
-        outros=[],
-        nuance_interogation=[],
-    )
-    for likert in likert_questions:
-        skill = likert.skill.name
-        intros = list(likert.submissions.filter(problem_location=likert.start_unit_location).all())
-        outros = list(likert.submissions.filter(problem_location=likert.end_unit_location).all())
-        intro_stats, outro_stats = {}, {}
-        for intro, outro in itertools.zip_longest(intros, outros):
-            if intro:
-                intro_stats["skill"] = skill
-                question_response = intro.question_response
-                intro_stats[question_response['student_response']['response_text']] = intro_stats.get(
-                    question_response['student_response']['response_text'], 0
-                ) + 1
-            if outro:
-                outro_stats["skill"] = skill
-                question_response = intro.question_response
-                outro_stats[question_response['student_response']['response_text']] = outro_stats.get(
-                    question_response['student_response']['response_text'], 0
-                ) + 1
-        if intro_stats:
-            response[f'total_intros_{skill.lower()}'] = response.get(f'total_intros_{skill.lower()}', 0) + len(intros)
-            response['intros'].append(intro_stats)
-        if outro_stats:
-            response[f'total_outros_{skill.lower()}'] = response.get(f'total_outros_{skill.lower()}', 0) + len(outros)
-            response['outros'].append(outro_stats)
-    # Start Nuance Interogation Response Formatting.
-    for nuance_interogation_question in nuance_interogation_questions:
-        skill = nuance_interogation_question.skill.name
-        intros = list(nuance_interogation_question.submissions.filter(
-            problem_location=nuance_interogation_question.start_unit_location).all())
-        intro_stats = {}
-        for intro in intros:
-            intro_stats["skill"] = skill
-            question_response = intro.question_response
-            intro_stats[question_response['student_response']['response_text']] = intro_stats.get(
-                question_response['student_response']['response_text'], 0
-            ) + 1
-        if intro_stats:
-            response[f'total_nuance_interogation_{skill.lower()}'] = response.get(f'total_nuance_interogation_{skill.lower()}', 0) + len(intros)
-            response['nuance_interogation'].append(intro_stats)
+def skill_reflection_response(skills, likert_questions, nuance_interrogation_questions):
+    response = {
+        'skills': skills,
+        'intros': [],
+        'outros': [],
+        'nuance_interrogation': [],
+    }
 
+    def process_question_responses(questions, response_key, location_key):
+        for question in questions:
+            skill = question.skill.name
+            submissions = list(question.submissions.filter(problem_location=getattr(question, location_key)).all())
+            stats = defaultdict(int)
+
+            for submission in submissions:
+                question_response = submission.question_response
+                response_text = question_response['student_response']['response_text']
+                stats[response_text] += 1
+
+            if stats:
+                key = f'total_{response_key}_{skill.lower()}'
+                response[key] = response.get(key, 0) + len(submissions)
+                response[response_key].append({'skill': skill, **stats})
+
+    process_question_responses(likert_questions, 'intros', 'start_unit_location')
+    process_question_responses(likert_questions, 'outros', 'end_unit_location')
+    process_question_responses(nuance_interrogation_questions, 'nuance_interrogation', 'start_unit_location')
     return response
