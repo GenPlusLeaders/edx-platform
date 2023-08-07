@@ -825,6 +825,13 @@ def get_user_assessment_result(user, raw_data, program):
 
 
 def skill_reflection_response(skills, likert_questions, nuance_interrogation_questions):
+    """
+    This is to prepare a response for skill reflection combined view
+    :param skills:
+    :param likert_questions:
+    :param nuance_interrogation_questions:
+    :return: {}
+    """
     response = {
         'skills': skills,
         'intros': [],
