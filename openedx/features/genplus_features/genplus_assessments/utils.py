@@ -1,3 +1,4 @@
+import itertools
 import json
 from lxml import etree
 from django.test import RequestFactory
@@ -240,6 +241,7 @@ class StudentResponse:
                 user=user,
                 question=question,
                 response_time=response_time,
+                problem_location=problem_key,
                 defaults={
                     'earned_score': earned_score,
                     'total_score': total_score,
@@ -820,3 +822,53 @@ def get_user_assessment_result(user, raw_data, program):
                 aggregate_result[problem_id]['score_end_of_year'] = data['rating']
 
     return aggregate_result
+
+
+def skill_reflection_response(skills, likert_questions, nuance_interogation_questions):
+    response = dict(
+        skills=skills,
+        intros=[],
+        outros=[],
+        nuance_interogation=[],
+    )
+    for likert in likert_questions:
+        skill = likert.skill.name
+        intros = list(likert.submissions.filter(problem_location=likert.start_unit_location).all())
+        outros = list(likert.submissions.filter(problem_location=likert.end_unit_location).all())
+        intro_stats, outro_stats = {}, {}
+        for intro, outro in itertools.zip_longest(intros, outros):
+            if intro:
+                intro_stats["skill"] = skill
+                question_response = intro.question_response
+                intro_stats[question_response['student_response']['response_text']] = intro_stats.get(
+                    question_response['student_response']['response_text'], 0
+                ) + 1
+            if outro:
+                outro_stats["skill"] = skill
+                question_response = intro.question_response
+                outro_stats[question_response['student_response']['response_text']] = outro_stats.get(
+                    question_response['student_response']['response_text'], 0
+                ) + 1
+        if intro_stats:
+            response['total_intros'] = response.get('total_intros', 0) + len(intros)
+            response['intros'].append(intro_stats)
+        if outro_stats:
+            response['total_outros'] = response.get('total_outros', 0) + len(outros)
+            response['outros'].append(outro_stats)
+    # Start Nuance Interogation Response Formatting.
+    for nuance_interogation_question in nuance_interogation_questions:
+        skill = nuance_interogation_question.skill.name
+        intros = list(nuance_interogation_question.submissions.filter(
+            problem_location=nuance_interogation_question.start_unit_location).all())
+        intro_stats = {}
+        for intro in intros:
+            intro_stats["skill"] = skill
+            question_response = intro.question_response
+            intro_stats[question_response['student_response']['response_text']] = intro_stats.get(
+                question_response['student_response']['response_text'], 0
+            ) + 1
+        if intro_stats:
+            response['total_nuance_interogation'] = response.get('total_nuance_interogation', 0) + len(intros)
+            response['nuance_interogation'].append(intro_stats)
+
+    return response
