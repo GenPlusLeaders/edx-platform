@@ -139,15 +139,6 @@ class StudentResponse:
 
         return None
 
-
-
-
-
-
-
-
-
-
     def _create_and_update_choice_journal_entry(self, **kwargs):
         problem_block = kwargs.get('problem_block')
         parser = etree.XMLParser(remove_blank_text=True)
