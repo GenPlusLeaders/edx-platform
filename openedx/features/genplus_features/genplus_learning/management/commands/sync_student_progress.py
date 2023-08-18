@@ -28,7 +28,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        print(args, options)
         if not options.get('all_users') and len(options.get('user_ids')) < 1:
             raise CommandError('At least one user or --all-users must be specified.')
 
