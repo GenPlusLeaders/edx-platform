@@ -50,7 +50,7 @@ class SkillAssessmentResponseAdmin(admin.ModelAdmin):
 
     def get_question_type(self, obj):
         try:
-            return SkillAssessmentResponse(obj.question.problem_type).name
+            return SkillReflectionQuestionType(obj.question.problem_type).name
         except AttributeError:
             return '-'
 
