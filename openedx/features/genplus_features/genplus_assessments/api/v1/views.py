@@ -518,10 +518,13 @@ class SaveRatingResponseApiView(views.APIView):
 
 class ProgramFilterMixin(views.APIView):
     def get_program_queryset(self):
-        class_id = self.kwargs['class_id']
         program_id = self.request.GET.get('program_id')
-        gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
-        program_ids = [gen_class.program_id]
+        program_ids = [program_id]
+        if program_id is None:
+            class_id = self.kwargs['class_id']
+            gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
+            program_ids = [gen_class.program_id]
+
         qs = Program.get_active_programs()
 
         qs = qs.filter(id__in=program_ids)
