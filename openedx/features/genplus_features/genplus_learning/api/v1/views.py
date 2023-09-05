@@ -17,7 +17,7 @@ from .serializers import (
     ClassStudentSerializer,
     ActivitySerializer,
     ClassUnitSerializer,
-    ProgramAPISerializer
+    ProgramShortSerializer
 )
 from openedx.features.genplus_features.genplus.api.v1.serializers import ClassSummarySerializer
 
@@ -60,7 +60,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
 class ProgramAPIViewSet(ProgramViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudentOrTeacher]
-    serializer_class = ProgramAPISerializer
+    serializer_class = ProgramShortSerializer
 
 class ClassStudentViewSet(mixins.ListModelMixin,
                           viewsets.GenericViewSet):
