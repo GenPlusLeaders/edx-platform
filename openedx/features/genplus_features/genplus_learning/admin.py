@@ -6,8 +6,9 @@ from openedx.features.genplus_features.genplus_learning.models import *
 @admin.register(AcademicYear)
 class AcademicYearAdmin(admin.ModelAdmin):
     search_fields = ('name',)
+    actions = ['mark_as_current', ]
 
-    def mark_as_featured(modeladmin, request, queryset):
+    def mark_as_current(modeladmin, request, queryset):
         if queryset.count() > 1:
             messages.add_message(request, messages.ERROR, 'You cannot mark more than one academic year as current.')
         else:

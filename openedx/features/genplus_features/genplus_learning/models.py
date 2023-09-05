@@ -30,6 +30,13 @@ class AcademicYear(models.Model):
     @classmethod
     def get_current_year(cls):
         return cls.objects.filter(is_current=True).first()
+
+    def save(self, **kwargs):
+        if self.is_current:
+            # marking the other years as non-current
+            AcademicYear.objects.filter(is_current=True).update(is_current=False)
+        super().save(**kwargs)
+
 class YearGroup(models.Model):
     name = models.CharField(max_length=128, unique=True)
     program_name = models.CharField(max_length=128)
