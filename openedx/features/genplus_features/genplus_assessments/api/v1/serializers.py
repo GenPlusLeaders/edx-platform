@@ -1,3 +1,4 @@
+import functools
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from openedx.features.genplus_features.genplus_assessments.constants import SkillReflectionQuestionType
@@ -135,17 +136,27 @@ class SkillReflectionQuestionSerializer(serializers.ModelSerializer):
         map_response = lambda i: {
             **i.question_response['student_response'],
             'user_id': i.user_id,
-            'username':i.user.username,
-            'name':i.user.profile.name,
-            'question':i.question_response['question'],
-        }
-        my_submissions = {
-            'intro': list(map(map_response, intro_submissions)),
-            'outro': list(map(map_response, outro_submissions)),
+            'username': i.user.username,
+            'name': i.user.profile.name,
+            'question': i.question_response['question'],
+            'sid': i.id
         }
 
+        def reducer(problem_key):
+            def func(init, sub):
+                return {
+                    **init,
+                    sub['username']: {
+                        problem_key: sub,
+                        'name': sub['name']
+                    }
+                }
 
-        return my_submissions
+            return func
+
+        reduced = functools.reduce(reducer('intro'), list(map(map_response, intro_submissions)), {})
+        reduced = functools.reduce(reducer('outro'), list(map(map_response, outro_submissions)), reduced)
+        return reduced
 
     class Meta:
         model = SkillAssessmentQuestion
