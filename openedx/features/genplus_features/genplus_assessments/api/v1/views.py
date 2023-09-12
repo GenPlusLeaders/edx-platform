@@ -22,7 +22,8 @@ from .serializers import (
     ClassSerializer,
     TextAssessmentSerializer,
     RatingAssessmentSerializer,
-    SkillAssessmentQuestionSerializer
+    SkillAssessmentQuestionSerializer,
+    SkillReflectionQuestionSerializer,
 )
 from openedx.features.genplus_features.genplus_assessments.constants import (
     TOTAL_PROBLEM_SCORE,
@@ -585,3 +586,12 @@ class SkillReflectionIndividualApiView(ProgramFilterMixin):
         )
 
         return Response(response)
+
+
+class SkillReflectionQuestionModelView(viewsets.ModelViewSet):
+    serializer_class = SkillReflectionQuestionSerializer
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+
+    def get_queryset(self):
+        return SkillAssessmentQuestion.objects.all()

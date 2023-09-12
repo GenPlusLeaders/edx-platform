@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from openedx.features.genplus_features.genplus_assessments.constants import SkillReflectionQuestionType
 from rest_framework import serializers
 
 from openedx.features.genplus_features.genplus.models import Student
@@ -122,3 +123,30 @@ class SkillAssessmentResponseSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return get_user_model().objects.get(pk=obj.user_id).profile.name
+
+
+class SkillReflectionQuestionSerializer(serializers.ModelSerializer):
+    submissions = serializers.SerializerMethodField()
+    skill = serializers.CharField(source='skill.name')
+
+    def get_submissions(self, obj: SkillAssessmentQuestion):
+        intro_submissions = obj.submissions.filter(problem_location=obj.start_unit_location).all()
+        outro_submissions = obj.submissions.filter(problem_location=obj.end_unit_location).all()
+        map_response = lambda i: {
+            **i.question_response['student_response'],
+            'user_id': i.user_id,
+            'username':i.user.username,
+            'name':i.user.profile.name,
+            'question':i.question_response['question'],
+        }
+        my_submissions = {
+            'intro': list(map(map_response, intro_submissions)),
+            'outro': list(map(map_response, outro_submissions)),
+        }
+
+
+        return my_submissions
+
+    class Meta:
+        model = SkillAssessmentQuestion
+        fields = '__all__'
