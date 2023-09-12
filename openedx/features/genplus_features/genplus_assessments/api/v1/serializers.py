@@ -129,16 +129,19 @@ class SkillAssessmentResponseSerializer(serializers.ModelSerializer):
 class SkillReflectionQuestionSerializer(serializers.ModelSerializer):
     submissions = serializers.SerializerMethodField()
     skill = serializers.CharField(source='skill.name')
+    program_name = serializers.CharField(source='program.year_group.name')
+    problem_type_name = serializers.SerializerMethodField()
+
+    def get_problem_type_name(self, obj: SkillAssessmentQuestion):
+        return SkillReflectionQuestionType(obj.problem_type).name
 
     def get_submissions(self, obj: SkillAssessmentQuestion):
         intro_submissions = obj.submissions.filter(problem_location=obj.start_unit_location).all()
         outro_submissions = obj.submissions.filter(problem_location=obj.end_unit_location).all()
         map_response = lambda i: {
             **i.question_response['student_response'],
-            'user_id': i.user_id,
             'username': i.user.username,
             'name': i.user.profile.name,
-            'question': i.question_response['question'],
             'sid': i.id
         }
 
@@ -148,7 +151,8 @@ class SkillReflectionQuestionSerializer(serializers.ModelSerializer):
                     **init,
                     sub['username']: {
                         problem_key: sub,
-                        'name': sub['name']
+                        'name': sub['name'],
+                        'username': sub['username']
                     }
                 }
 
