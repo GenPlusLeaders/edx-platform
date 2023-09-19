@@ -9,13 +9,14 @@ from .constants import GenUserRoles, ClassColors, JournalTypes, SchoolTypes, Cla
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from common.djangoapps.third_party_auth.models import SAMLProviderConfig
+
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 class LocalAuthority(TimeStampedModel):
     name = models.CharField(max_length=64, unique=True)
-    saml_configuration = models.ForeignKey('third_party_auth.SAMLProviderConfig', on_delete=models.SET_NULL, null=True, blank=True)
+    saml_configuration_slug = models.SlugField(null=True, blank=True, max_length=30,
+                                               help_text='Slug of saml configuration i.e rmunify-dev, rmunify-stage')
 
 
 class School(TimeStampedModel):
