@@ -15,7 +15,7 @@ USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 class LocalAuthority(TimeStampedModel):
     name = models.CharField(max_length=64, unique=True)
-    saml_configuration = models.ForeignKey(SAMLProviderConfig, on_delete=models.SET_NULL, null=True, blank=True)
+    saml_configuration = models.ForeignKey('third_party_auth.SAMLProviderConfig', on_delete=models.SET_NULL, null=True, blank=True)
 
 
 class School(TimeStampedModel):
