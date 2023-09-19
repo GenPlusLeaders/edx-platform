@@ -9,12 +9,18 @@ from .constants import GenUserRoles, ClassColors, JournalTypes, SchoolTypes, Cla
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from common.djangoapps.third_party_auth.models import SAMLProviderConfig
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+
+class LocalAuthority(TimeStampedModel):
+    name = models.CharField(max_length=64, unique=True)
+    saml_configuration = models.ForeignKey(SAMLProviderConfig, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 class School(TimeStampedModel):
     SCHOOL_CHOICES = SchoolTypes.__MODEL_CHOICES__
+    local_authority = models.ForeignKey(LocalAuthority, on_delete=models.SET_NULL, null=True)
     guid = models.CharField(primary_key=True, max_length=128)
     name = models.CharField(max_length=64)
     external_id = models.CharField(max_length=32)
