@@ -487,8 +487,9 @@ class SchoolView(APIView):
             return Response({'message': 'No provider found for the school type'}, status=status.HTTP_404_NOT_FOUND)
 
         data = {
-            'school_name': student.school.name,
-            'provider_id': provider.provider_id
+            'icon': provider.icon_image.url if provider.icon_image else None,
+            'provider_id': provider.provider_id,
+            'local_authority_name': student.school.local_authority.name if student.school.local_authority is not None else student.school.name,
         }
 
         return Response(data, status=status.HTTP_200_OK)
