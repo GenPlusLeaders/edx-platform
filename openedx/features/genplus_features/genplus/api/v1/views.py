@@ -489,6 +489,7 @@ class SchoolView(APIView):
         data = {
             'icon': provider.icon_image.url if provider.icon_image else None,
             'provider_id': provider.provider_id,
+            'provider_name': provider.name,
             'local_authority_name': student.school.local_authority.name if student.school.local_authority is not None else student.school.name,
         }
 
