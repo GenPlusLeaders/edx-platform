@@ -19,6 +19,10 @@ class LocalAuthority(TimeStampedModel):
                                                help_text='Slug of saml configuration i.e rmunify-dev, rmunify-stage')
 
 
+    def __str__(self):
+       return self.name
+
+
 class School(TimeStampedModel):
     SCHOOL_CHOICES = SchoolTypes.__MODEL_CHOICES__
     local_authority = models.ForeignKey(LocalAuthority, on_delete=models.SET_NULL, null=True)
