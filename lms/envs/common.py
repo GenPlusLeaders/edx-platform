@@ -3192,6 +3192,7 @@ RM_UNIFY_SECRET = 'rmunify-secret'
 RM_UNIFY_PROVIDER_SLUGS = ['rmunify-dev', 'rmunify-stage']
 ABERDEEN_PROVIDER_SLUGS = ['aberdeen', ]
 
+XPORTER_RELYING_PARTY_ID = 'Learn.genplus.co.uk'
 ######################### GENPLUS SETTINGS #################################
 
 GENPLUS_FRONTEND_URL = ''

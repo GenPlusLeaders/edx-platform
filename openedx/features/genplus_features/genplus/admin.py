@@ -28,7 +28,7 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     process_pending_teacher_program_access
 )
 from common.djangoapps.third_party_auth.models import clean_username
-
+from .xporter import Xporter
 
 @admin.register(GenUser)
 class GenUserAdmin(admin.ModelAdmin):
@@ -281,6 +281,26 @@ class SchoolAdmin(admin.ModelAdmin):
         messages.add_message(request, messages.INFO,
                              'Classes will be updated on background. Please refresh your page after a while.')
 
+    # def sync_xporter_classes(modeladmin, request, queryset):
+    #     schools_ids = queryset.values_list('guid', flat=True)
+    #     for school in School.objects.filter(guid__in=schools_ids):
+    #         if school.type == SchoolTypes.XPORTER:
+    #             xporter = Xporter()
+    #             response = xporter.fetch('https://xporter.groupcall.com/api/v1/School/3281102/Groups/?page=1&pageSize=25')
+    #             for res in response['Group']:
+    #                 _id = res['XID'] if res['ExternalId'] is None else res['ExternalId']
+    #                 gen_class, created = Class.objects.update_or_create(
+    #                     school=school,
+    #                     group_id=_id,
+    #                     name=res['Name'],
+    #                     defaults={"name": res['Name']}
+    #                 )
+    #                 if created:
+    #                     print('{} has been successfully created.'.format(gen_class.name))
+    #
+    #
+
+
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
@@ -404,7 +424,7 @@ class TeacherAdmin(admin.ModelAdmin):
 class StudentAdmin(admin.ModelAdmin):
     search_fields = ('gen_user__user__email', 'gen_user__email')
     list_filter = (MoreThanOneClassFilter, DifferentActiveClassFilter, 'gen_user__school',)
-    list_display = ('username', 'school', 'enrolled_classes', 'active_class', 'progress')
+    list_display = ('username', 'school', 'scn', 'enrolled_classes', 'active_class', 'progress')
     autocomplete_fields = ['active_class']
 
     def username(self, obj):

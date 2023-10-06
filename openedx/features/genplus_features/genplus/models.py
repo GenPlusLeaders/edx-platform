@@ -122,7 +122,7 @@ class Character(models.Model):
 class GenUser(models.Model):
     ROLE_CHOICES = GenUserRoles.__MODEL_CHOICES__
 
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, default=None, null=True, blank=True)
     identity_guid = models.CharField(null=True, max_length=1024)
     user = models.OneToOneField(USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='gen_user')
     role = models.CharField(blank=True, null=True, max_length=32, choices=ROLE_CHOICES)
@@ -174,7 +174,7 @@ class Student(models.Model):
         return self.classes.count() > 0
 
     def __str__(self):
-        return self.gen_user.email
+        return self.gen_user.email or ''
 
 
 class ClassManager(models.Manager):

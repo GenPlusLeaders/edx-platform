@@ -131,3 +131,8 @@ class GenLogTypes:
     __MODEL_CHOICES__ = (
         (gen_log_type, gen_log_type) for gen_log_type in __ALL__
     )
+
+
+class XporterClassTypes:
+    REGISTRATION_GROUP = 'RegGrp'
+    TEACHING_GROUP = 'TeachingGrp'
