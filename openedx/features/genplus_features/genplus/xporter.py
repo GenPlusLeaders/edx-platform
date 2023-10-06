@@ -59,7 +59,7 @@ class Xporter:
         return {"Authorization": "Idaas " + self.get_token()}
 
     def fetch_classes(self, class_type):
-        url = self.BASE_API_URL_V1 + f'School/{self.school.guid}/Groups/?Type={class_type}&page=1&pageSize=25'
+        url = self.BASE_API_URL_V1 + f'School/{self.school.guid}/Groups/?Type={class_type}'
         response = self.fetch(url)
 
         for res in response.get('Group', []):
