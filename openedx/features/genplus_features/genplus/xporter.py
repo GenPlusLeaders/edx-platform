@@ -24,24 +24,25 @@ class Xporter:
     def get_token(self):
         xporter_detail = self.school.xporter_detail
 
-        if xporter_detail.token and xporter_detail.token_expiry >= timezone.now():
-            return xporter_detail.token
+        try:
+            if xporter_detail.token and xporter_detail.token_expiry >= timezone.now():
+                return xporter_detail.token
+        except TypeError:
+            post_obj = {
+                "estab": self.school.pk,
+                "relyingParty": settings.XPORTER_RELYING_PARTY_ID,
+                "password": xporter_detail.secret,
+                "thirdpartyid": "XporterOnDemand"
+            }
 
-        post_obj = {
-            "estab": self.school.pk,
-            "relyingParty": settings.XPORTER_RELYING_PARTY_ID,
-            "password": xporter_detail.secret,
-            "thirdpartyid": "XporterOnDemand"
-        }
+            res = requests.post(self.AUTH_TOKEN_URL, json=post_obj)
 
-        res = requests.post(self.AUTH_TOKEN_URL, json=post_obj)
-
-        if res.status_code == HTTPStatus.OK:
-            res_obj = res.json()
-            xporter_detail.token = res_obj['token']
-            xporter_detail.token_expiry = res_obj['expires']
-            xporter_detail.save()
-            return xporter_detail.token
+            if res.status_code == HTTPStatus.OK:
+                res_obj = res.json()
+                xporter_detail.token = res_obj['token']
+                xporter_detail.token_expiry = res_obj['expires']
+                xporter_detail.save()
+                return xporter_detail.token
 
         return None
 
@@ -67,6 +68,7 @@ class Xporter:
             defaults = {"name": res['Name']}
 
             gen_class, created = Class.objects.update_or_create(
+                type=class_type,
                 school=self.school,
                 group_id=external_id,
                 defaults=defaults
@@ -75,15 +77,14 @@ class Xporter:
             logger.info(f'{gen_class.name} has been successfully {log_info}.')
 
     def fetch_students(self, class_id):
+        gen_class = Class.objects.get(id=class_id)
         url = self.BASE_API_URL_V1 + f'School/{self.school.guid}/Groups/{class_id}?options=includeMembersIds'
-        gen_class = Class.objects.get(group_id=class_id)
         response = self.fetch(url)
         gen_class_res = response.get('Group')
         students = gen_class_res[0].get('StudentIds', '').split(',')
         gen_user_ids = []
 
         for student_id in students:
-            print('student_id before fetching>>>>>>>>>>>>>>>>>>>>>>>>', student_id)
             student = self.get_student(student_id)
 
             if not student:
