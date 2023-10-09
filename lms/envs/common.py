@@ -3190,7 +3190,7 @@ RM_UNIFY_URL = 'https://api.platform.rmunify.com'
 RM_UNIFY_KEY = 'place-rmunify-key-here'
 RM_UNIFY_SECRET = 'rmunify-secret'
 RM_UNIFY_PROVIDER_SLUGS = ['rmunify-dev', 'rmunify-stage']
-ABERDEEN_PROVIDER_SLUGS = ['aberdeen', ]
+ABERDEEN_PROVIDER_SLUGS = ['aberdeen', 'google-stage']
 
 XPORTER_RELYING_PARTY_ID = 'Learn.genplus.co.uk'
 XPORTER_THIRD_PARTY_ID = 'XporterOnDemand'
