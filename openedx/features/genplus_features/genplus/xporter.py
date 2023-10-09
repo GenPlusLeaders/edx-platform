@@ -78,7 +78,7 @@ class Xporter:
 
     def fetch_students(self, class_id):
         gen_class = Class.objects.get(id=class_id)
-        url = self.BASE_API_URL_V1 + f'School/{self.school.guid}/Groups/{class_id}?options=includeMembersIds'
+        url = self.BASE_API_URL_V1 + f'School/{self.school.guid}/Groups/{gen_class.group_id}?options=includeMembersIds'
         response = self.fetch(url)
         gen_class_res = response.get('Group')
         students = gen_class_res[0].get('StudentIds', '').split(',')

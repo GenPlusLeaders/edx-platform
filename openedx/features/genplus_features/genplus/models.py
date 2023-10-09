@@ -29,6 +29,8 @@ class School(TimeStampedModel):
     guid = models.CharField(primary_key=True, max_length=128)
     name = models.CharField(max_length=64)
     external_id = models.CharField(max_length=32)
+    cost_center = models.EmailField(unique=True, default=None, null=True, blank=True,
+                                    help_text='Need in the case of xporter schools.')
     type = models.CharField(blank=True, null=True, max_length=32, choices=SCHOOL_CHOICES)
     is_active = models.BooleanField(default=True,
                                     help_text='If De-selected the users related to this school cannot access the platform')
