@@ -32,7 +32,7 @@ class Xporter:
                 "estab": self.school.pk,
                 "relyingParty": settings.XPORTER_RELYING_PARTY_ID,
                 "password": xporter_detail.secret,
-                "thirdpartyid": "XporterOnDemand"
+                "thirdpartyid": settings.XPORTER_THIRD_PARTY_ID,
             }
 
             res = requests.post(self.AUTH_TOKEN_URL, json=post_obj)
