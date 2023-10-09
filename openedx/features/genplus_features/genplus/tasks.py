@@ -3,7 +3,7 @@ from celery import shared_task
 from edx_django_utils.monitoring import set_code_owner_attribute
 from openedx.features.genplus_features.genplus.rmunify import RmUnify
 from openedx.features.genplus_features.genplus.models import School, Class
-from .constants import SchoolTypes, XporterClassTypes, ClassTypes
+from .constants import SchoolTypes, ClassTypes
 from .xporter import Xporter
 
 log = logging.getLogger(__name__)
@@ -22,9 +22,9 @@ def sync_schools(self, class_type, school_ids):
             RmUnify().fetch_classes(class_type, queryset=schools)
         elif school.type == SchoolTypes.XPORTER:
             class_type = (
-                XporterClassTypes.REGISTRATION_GROUP
+                ClassTypes.XPORTER_REGISTRATION_GROUP
                 if class_type == ClassTypes.REGISTRATION_GROUP
-                else XporterClassTypes.TEACHING_GROUP
+                else ClassTypes.XPORTER_TEACHING_GROUP
             )
             Xporter(school.guid).fetch_classes(class_type)
 

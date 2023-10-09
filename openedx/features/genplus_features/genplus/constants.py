@@ -79,8 +79,10 @@ class ClassTypes:
     """
     TEACHING_GROUP = 'TeachingGroup'
     REGISTRATION_GROUP = 'RegistrationGroup'
+    XPORTER_TEACHING_GROUP = 'TeachingGrp'
+    XPORTER_REGISTRATION_GROUP = 'RegGrp'
 
-    __ALL__ = (TEACHING_GROUP, REGISTRATION_GROUP)
+    __ALL__ = (TEACHING_GROUP, REGISTRATION_GROUP, XPORTER_TEACHING_GROUP, XPORTER_REGISTRATION_GROUP)
     __MODEL_CHOICES__ = (
         (class_type, class_type) for class_type in __ALL__
     )
@@ -131,8 +133,3 @@ class GenLogTypes:
     __MODEL_CHOICES__ = (
         (gen_log_type, gen_log_type) for gen_log_type in __ALL__
     )
-
-
-class XporterClassTypes:
-    REGISTRATION_GROUP = 'RegGrp'
-    TEACHING_GROUP = 'TeachingGrp'
