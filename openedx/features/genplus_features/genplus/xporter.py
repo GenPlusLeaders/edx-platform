@@ -83,6 +83,7 @@ class Xporter:
         gen_user_ids = []
 
         for student_id in students:
+            print('student_id before fetching>>>>>>>>>>>>>>>>>>>>>>>>', student_id)
             student = self.get_student(student_id)
 
             if not student:
@@ -91,12 +92,16 @@ class Xporter:
             student_email = student.get('WorkEmail', '')
             scn = student.get('CandidateNo', '')
             student_id = student.get('Id', '')
-            student_email = student_email if student_email else f'{scn}@{self.school}.uk'
+            first_name = student.get('Forename', '')
+            last_name = student.get('Surname', '')
+            school_name = self.school.name.replace(" ", "").lower()
+            student_email = student_email if student_email else f'{first_name}_{last_name}{scn}@{school_name}.temp'
 
             try:
-                gen_user = self.create_or_get_gen_user(student_email)
+                gen_user = self.create_or_get_gen_user(scn, student_email)
                 gen_user.identity_guid = student_id
                 gen_user.save()
+                gen_user.refresh_from_db()
                 gen_user.student.scn = scn
                 gen_user.student.save()
                 gen_user_ids.append(gen_user.pk)
@@ -108,7 +113,7 @@ class Xporter:
         self.update_gen_class_students(gen_class, gen_students, gen_user_ids)
 
     def get_student(self, student_id):
-        logger.info('fetching for student id ****', student_id)
+        print('fetching for student id ****', student_id)
         url = f'{self.BASE_API_URL_V1}School/{self.school.guid}/Students/{student_id}'
         response = self.fetch(url)
         if response:
@@ -117,15 +122,20 @@ class Xporter:
                 return students[0]
         return None
 
-    def create_or_get_gen_user(self, student_email):
-        gen_user, created = GenUser.objects.get_or_create(
-            email=student_email,
-            role=GenUserRoles.STUDENT,
-            school=self.school,
-        )
-        log_info = 'created' if created else 'updated'
-        logger.info(f'Student with email {gen_user.email} {log_info}.')
-        return gen_user
+    def create_or_get_gen_user(self, scn, student_email):
+        try:
+            # check if student with the same SCN exits in our system
+            student = Student.objects.get(scn=scn)
+            return student.gen_user
+        except Student.DoesNotExist:
+                gen_user, created = GenUser.objects.get_or_create(
+                    email=student_email,
+                    role=GenUserRoles.STUDENT,
+                    school=self.school,
+                )
+                log_info = 'created' if created else 'updated'
+                logger.info(f'Student with email {gen_user.email} {log_info}.')
+                return gen_user
 
     @staticmethod
     def get_gen_students(gen_user_ids):

@@ -281,27 +281,6 @@ class SchoolAdmin(admin.ModelAdmin):
         messages.add_message(request, messages.INFO,
                              'Classes will be updated on background. Please refresh your page after a while.')
 
-    # def sync_xporter_classes(modeladmin, request, queryset):
-    #     schools_ids = queryset.values_list('guid', flat=True)
-    #     for school in School.objects.filter(guid__in=schools_ids):
-    #         if school.type == SchoolTypes.XPORTER:
-    #             xporter = Xporter()
-    #             response = xporter.fetch('https://xporter.groupcall.com/api/v1/School/3281102/Groups/?page=1&pageSize=25')
-    #             for res in response['Group']:
-    #                 _id = res['XID'] if res['ExternalId'] is None else res['ExternalId']
-    #                 gen_class, created = Class.objects.update_or_create(
-    #                     school=school,
-    #                     group_id=_id,
-    #                     name=res['Name'],
-    #                     defaults={"name": res['Name']}
-    #                 )
-    #                 if created:
-    #                     print('{} has been successfully created.'.format(gen_class.name))
-    #
-    #
-
-
-
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
     filter_horizontal = ('skills',)
