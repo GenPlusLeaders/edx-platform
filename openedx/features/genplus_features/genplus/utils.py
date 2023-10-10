@@ -90,10 +90,11 @@ def register_xporter_gen_user(user, gen_user_data):
         try:
             student = Student.objects.get(scn=scn)
             # update the email with the sso claimed email. (in case of xporter it can be diff)
-            student.gen_user.email = user.email
-            student.gen_user.user = user
-            student.gen_user.school = school
-            student.gen_user.save()
+            gen_user = student.gen_user
+            gen_user.email = user.email
+            gen_user.user = user
+            gen_user.school = school
+            gen_user.save()
         except Student.DoesNotExist:
             gen_user = create_gen_user(user, role, '', '', '', school)
             gen_user.refresh_from_db()
