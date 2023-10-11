@@ -28,7 +28,6 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     process_pending_teacher_program_access
 )
 from common.djangoapps.third_party_auth.models import clean_username
-from .xporter import Xporter
 
 @admin.register(GenUser)
 class GenUserAdmin(admin.ModelAdmin):
@@ -70,10 +69,16 @@ class CsvImportForm(forms.Form):
     csv_file = forms.FileField()
     force_change_password = forms.BooleanField(initial=True, required=False)
 
+@admin.register(LocalAuthorityDomain)
+class LocalAuthorityDomainAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
+
+
 @admin.register(LocalAuthority)
 class LocalAuthorityAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_display = ('name', 'saml_configuration_slug')
+    filter_horizontal = ('domains',)
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
@@ -82,6 +87,7 @@ class SchoolAdmin(admin.ModelAdmin):
         'guid',
         'name',
         'type',
+        'cost_center',
         'local_authority',
         'is_active',
         'external_id',

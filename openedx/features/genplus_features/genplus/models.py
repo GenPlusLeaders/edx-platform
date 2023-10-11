@@ -16,6 +16,9 @@ USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 class LocalAuthorityDomain(TimeStampedModel):
     name = models.CharField(max_length=128, unique=True)
 
+    def __str__(self):
+        return self.name
+
 class LocalAuthority(TimeStampedModel):
     name = models.CharField(max_length=64, unique=True)
     saml_configuration_slug = models.SlugField(null=True, blank=True, max_length=30,
