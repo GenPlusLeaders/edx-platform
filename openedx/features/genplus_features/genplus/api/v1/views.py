@@ -445,7 +445,8 @@ class XporterAuth(APIView):
                 guid=school_id,
                 defaults={
                     'name': school_name,
-                    'type': SchoolTypes.XPORTER
+                    'type': SchoolTypes.XPORTER,
+                    'is_active': False
                 }
             )
             XporterDetail.objects.update_or_create(
