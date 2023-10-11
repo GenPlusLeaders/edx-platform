@@ -59,6 +59,8 @@ from openedx.core.djangoapps.user_authn.views.registration_form import (
 )
 from openedx.core.djangoapps.user_authn.toggles import is_require_third_party_auth_enabled
 from openedx.features.genplus_features.genplus.utils import register_rm_unify_gen_user, register_xporter_gen_user
+from openedx.features.genplus_features.genplus.exceptions import GenUserRegistrationException
+from openedx.features.genplus_features.genplus.models import GenLog
 from common.djangoapps.student.helpers import (
     AccountValidationError,
     authenticate_new_user,
@@ -221,18 +223,27 @@ def create_account_with_params(request, params):
 
     if third_party_provider:
         gen_user_data = third_party_provider.get_register_form_data(running_pipeline.get('kwargs'))
-        if third_party_provider.slug in settings.RM_UNIFY_PROVIDER_SLUGS:
-            try:
-                register_rm_unify_gen_user(user, gen_user_data)
-            except ValidationError as err:
-                log.error("Gen user registration failed!: %s", err)
-        elif third_party_provider.slug in settings.ABERDEEN_PROVIDER_SLUGS:
-            try:
-                register_xporter_gen_user(user, gen_user_data)
-            except ValidationError as err:
-                log.error("Gen user registration failed!: %s", err)
+        provider_slug = third_party_provider.slug
 
+        if provider_slug in settings.RM_UNIFY_PROVIDER_SLUGS:
+            registration_function = register_rm_unify_gen_user
+        elif provider_slug in settings.ABERDEEN_PROVIDER_SLUGS:
+            registration_function = register_xporter_gen_user
+        else:
+            log.error("Unknown provider slug: %s", provider_slug)
+            return
 
+        try:
+            registration_function(user, gen_user_data)
+        except (ValidationError, GenUserRegistrationException) as err:
+            log.error("Gen user registration failed!: %s", err)
+            GenLog.registration_failed(
+                gen_user_data.get('email'),
+                details={
+                    'claim_data': str(gen_user_data),
+                    'provider': provider_slug
+                }
+            )
 
     # Sites using multiple languages need to record the language used during registration.
     # If not, compose_and_send_activation_email will be sent in site's default language only.

@@ -75,7 +75,7 @@ def register_xporter_gen_user(user, gen_user_data):
     last_name = gen_user_data.get('last_name')
     gen_user = None
 
-    if role is not None and role in GenUserRoles.TEACHING_ROLES:
+    if role and role.lower() in GenUserRoles.TEACHING_ROLES:
         role = GenUserRoles.XPORTER_TEACHING_STAFF
     else:
         role = GenUserRoles.STUDENT
@@ -109,6 +109,6 @@ def register_xporter_gen_user(user, gen_user_data):
         except GenUser.DoesNotExist:
             gen_user = create_gen_user(user, role, '', '', '', school)
     # update the profile name by concatenating the first_name and last_name
-    user.profile.name = f'{first_name} {last_name}'
-    user.profile.save()
+    gen_user.user.profile.name = f'{first_name} {last_name}'
+    gen_user.user.profile.save()
     process_gen_user_enrollments(gen_user)

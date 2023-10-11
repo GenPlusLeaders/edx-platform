@@ -128,9 +128,10 @@ class GenLogTypes:
     PROGRAM_ENROLLMENTS_REMOVE = 'Program Enrollment remove'
     SCHOOL_UPDATED = 'School Updated'
     STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL = 'Student part of more than one school'
+    REGISTRATION_FAILED = 'Registration failed'
 
     __ALL__ = (RM_UNIFY_PROVISION_UPDATE_USER_DELETE, STUDENT_REMOVED_FROM_CLASS, STUDENT_ADDED_TO_CLASS,
-               PROGRAM_ENROLLMENTS_REMOVE, STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL, SCHOOL_UPDATED)
+               PROGRAM_ENROLLMENTS_REMOVE, STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL, SCHOOL_UPDATED, REGISTRATION_FAILED)
     __MODEL_CHOICES__ = (
         (gen_log_type, gen_log_type) for gen_log_type in __ALL__
     )

@@ -13,10 +13,14 @@ from django.contrib.contenttypes.models import ContentType
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
+class LocalAuthorityDomain(TimeStampedModel):
+    name = models.CharField(max_length=128, unique=True)
+
 class LocalAuthority(TimeStampedModel):
     name = models.CharField(max_length=64, unique=True)
     saml_configuration_slug = models.SlugField(null=True, blank=True, max_length=30,
                                                help_text='Slug of saml configuration i.e rmunify-dev, rmunify-stage')
+    domains = models.ManyToManyField(LocalAuthorityDomain, blank=True, related_name='local_authorities')
 
 
     def __str__(self):
@@ -364,6 +368,14 @@ class GenLog(TimeStampedModel):
         cls.objects.create(
             gen_log_type=GenLogTypes.PROGRAM_ENROLLMENTS_REMOVE,
             description=f'Program Enrollment delete for user {email}',
+            metadata=details
+        )
+
+    @classmethod
+    def registration_failed(cls, email, details=None):
+        cls.objects.create(
+            gen_log_type=GenLogTypes.REGISTRATION_FAILED,
+            description=f'Registration failed for {email}',
             metadata=details
         )
 
