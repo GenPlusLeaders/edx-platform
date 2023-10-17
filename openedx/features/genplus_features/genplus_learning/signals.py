@@ -131,7 +131,7 @@ def delete_course_enrollments(sender, instance, **kwargs):
         GenLog.program_enrollment_log(instance.student.gen_user.email,
                                       details=details)
     except Exception as e:
-        log.excetion(str(e))
+        log.exception(str(e))
 
 
 @receiver(pre_delete, sender=Program)
