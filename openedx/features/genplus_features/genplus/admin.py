@@ -18,6 +18,7 @@ from .filters import (
     MoreThanOneClassFilter,
     DifferentActiveClassFilter,
     WithoutClassStudents,
+    SchoolFilter,
 )
 from django.template.loader import get_template
 from django.shortcuts import redirect, render
@@ -510,4 +511,8 @@ class JournalPostAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_filter = UserAdmin.list_filter + (WithoutClassStudents,)
+
+    list_filter = UserAdmin.list_filter + (
+        WithoutClassStudents,
+        SchoolFilter,
+    )
