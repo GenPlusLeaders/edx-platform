@@ -241,7 +241,8 @@ def create_account_with_params(request, params):
                 gen_user_data.get('email'),
                 details={
                     'claim_data': str(gen_user_data),
-                    'provider': provider_slug
+                    'provider': provider_slug,
+                    'error_message': str(err)
                 }
             )
 

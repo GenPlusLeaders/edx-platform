@@ -70,16 +70,15 @@ def register_rm_unify_gen_user(user, gen_user_data):
 
 def register_xporter_gen_user(user, gen_user_data):
     role = gen_user_data.get('role', None)
-    scn = gen_user_data.get('scn')
-    first_name = gen_user_data.get('first_name')
-    last_name = gen_user_data.get('last_name')
+    scn = gen_user_data.get('scn', None)
     gen_user = None
 
     if role and role.lower() in GenUserRoles.TEACHING_ROLES:
         role = GenUserRoles.XPORTER_TEACHING_STAFF
     else:
         role = GenUserRoles.STUDENT
-
+    if role == GenUserRoles.STUDENT and scn is None:
+        raise ValidationError('SCN is missing in the claims')
     organisation_cost_center = gen_user_data.get('organisation')
     try:
         school = School.objects.get(cost_center=organisation_cost_center)
@@ -89,7 +88,7 @@ def register_xporter_gen_user(user, gen_user_data):
     if role not in GenUserRoles.TEACHING_ROLES:
         try:
             student = Student.objects.get(scn=scn)
-            # update the email with the sso claimed email. (in case of xporter it can be diff)
+            # update the email with the sso claimed email. (in case of xporter it can be differentiated)
             gen_user = student.gen_user
             gen_user.email = user.email
             gen_user.user = user
@@ -100,6 +99,8 @@ def register_xporter_gen_user(user, gen_user_data):
             gen_user.refresh_from_db()
             gen_user.student.scn = scn
             gen_user.student.save()
+        except Student.MultipleObjectsReturned:
+            raise ValidationError('Multiple student exists with this SCN')
     elif role in GenUserRoles.TEACHING_ROLES:
         try:
             gen_user = GenUser.objects.get(email=user.email)
@@ -108,7 +109,4 @@ def register_xporter_gen_user(user, gen_user_data):
             gen_user.save()
         except GenUser.DoesNotExist:
             gen_user = create_gen_user(user, role, '', '', '', school)
-    # update the profile name by concatenating the first_name and last_name
-    gen_user.user.profile.name = f'{first_name} {last_name}'
-    gen_user.user.profile.save()
     process_gen_user_enrollments(gen_user)

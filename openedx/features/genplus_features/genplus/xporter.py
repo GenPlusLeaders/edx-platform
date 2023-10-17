@@ -89,14 +89,13 @@ class Xporter:
 
             if not student:
                 continue
-
-            student_email = student.get('WorkEmail', '')
             scn = student.get('CandidateNo', '')
             student_id = student.get('Id', '')
             first_name = student.get('Forename', '')
             last_name = student.get('Surname', '')
             school_name = self.school.name.replace(" ", "").lower()
-            student_email = student_email if student_email else f'{first_name}_{last_name}{scn}@{school_name}.temp'
+            # create a temp email to assign to the gen_user
+            student_email = f'{first_name}_{last_name}{scn[:4]}@{school_name}.temp'
 
             try:
                 gen_user = self.create_or_get_gen_user(scn, student_email)
