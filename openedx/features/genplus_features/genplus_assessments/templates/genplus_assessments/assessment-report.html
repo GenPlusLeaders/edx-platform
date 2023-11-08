@@ -162,15 +162,17 @@
               </div>
               <div class="content">
                 % for key, value in student_data.get('teacher_feedbacks').items():
-                <h3>Comments from ${ value.get('teacher_name') }:</h3>
-                  % for comment in value.get('comments'):
-                    <blockquote>
-                      <p><strong>${ comment.get('title') }</strong></p>
-                      <q>${ comment.get('description') }</q>
-                      <cite>${ comment.get('datetime').strftime('%d/%m/%Y') }</cite>
-                    </blockquote>
-                  % endfor
-                % endfor
+                  <div class="avoid-page-break">
+                      <h3>Comments from ${ value.get('teacher_name') }:</h3>
+                      % for comment in value.get('comments'):
+                      <blockquote>
+                          <p><strong>${ comment.get('title') }</strong></p>
+                          <q>${ comment.get('description') }</q>
+                          <cite>${ comment.get('datetime').strftime('%d/%m/%Y') }</cite>
+                      </blockquote>
+                      % endfor
+                      % endfor
+                  </div>
               </div>
             </section>
           </div>

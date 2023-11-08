@@ -183,7 +183,7 @@ class AssessmentReportPDFView(TemplateView):
             return self.pdfkit_options
 
         return {
-            'page-size': 'A4',
+            'page-size': 'TABLOID',
             'encoding': 'UTF-8',
             "enable-local-file-access": "",
             "enable-javascript": "",
