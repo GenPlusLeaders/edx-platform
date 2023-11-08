@@ -881,6 +881,12 @@ header.alt {
     display: none;
   }
 }
+.start-new-page {
+    page-break-before: always;
+}
+.avoid-page-break{
+    page-break-inside: avoid;
+}
 @page regular_template {
   header {
     display: none;
