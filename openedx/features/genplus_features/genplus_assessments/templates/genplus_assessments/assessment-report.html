@@ -121,6 +121,7 @@
             % endfor
           % endfor
         </section>
+          <div>
           <h2 class="heading-default">Reflections</h2>
         % for unit in student_data.get('units'):
           % if unit.get('reflections'):
@@ -179,7 +180,7 @@
           </div>
         </section>
         % endif
-      </div>
+        </div>
     </div>
   </div>
   <script type="text/javascript">
@@ -239,6 +240,8 @@
           if (intro.point != 0) {
               const val = intro.point === 1 || intro.point === 2 ? intro.point - 3 : intro.point - 2;
               likert.data.datasets[index].data.push(val);
+          } else {
+              likert.data.datasets[index].data.push(0);
           }
       });
     };

@@ -868,10 +868,6 @@ blockquote cite {
   color: #ff0d5a;
 }
 
-.teacher-feedbacks {
-  page-break-before: always;
-}
-
 header.alt {
   display: none;
 }
@@ -886,6 +882,9 @@ header.alt {
 }
 .avoid-page-break{
     page-break-inside: avoid;
+}
+.skills-assessment{
+    page-break-after: always;
 }
 @page regular_template {
   header {
