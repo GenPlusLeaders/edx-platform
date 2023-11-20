@@ -471,11 +471,11 @@ class CoursewareIndex(View):
             )
             try:
                 gen_user = request.user.gen_user
-                log.info('GP-920 user_email', request.user.email)
-                log.info('GP-920 staff_access', staff_access)
-                log.info('GP-920 global_staff_access', request.user.is_staff)
+                log.info('GP-920 user_email %s', request.user.email)
+                log.info('GP-920 staff_access %s', staff_access)
+                log.info('GP-920 global_staff_access %s', request.user.is_staff)
                 sections = course_block_tree.get('children', [])
-                log.info('GP-920 sections', sections)
+                log.info('GP-920 sections %s', sections)
 
                 if gen_user.is_student:
                     gen_class = gen_user.student.active_class
