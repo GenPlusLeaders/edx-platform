@@ -28,7 +28,7 @@
         <ul class="completion-badges">
           % for unit in student_data.get('units'):
           <li>
-            <div class="image-frame" style="width:100px;height:100px;');background-repeat: no-repeat;background-size: 80px 80px;background-position: center center; ">
+            <div class="image-frame" style="width:90px;height:90px;background-repeat: no-repeat;background-size: 80px 80px;background-position: center center; ">
               <img src="${unit.get('unit_image_url')}" alt="${unit.get('display_name')}" height="50px" width="50px" style="position: absolute;bottom: 0;top: 0;margin: auto;left: 0;right: 0;">
                 % if unit.get('is_complete'):
                     <img class="completed" src="${ images_dir }/check-1.png" alt="Completed">
@@ -46,7 +46,7 @@
           % for badge in student_data.get('booster_badges'):
             <li>
                 <div class="image-frame"
-                     style="width:100px;height:100px;');background-repeat: no-repeat;background-size: 80px 80px;background-position: center center; ">
+                     style="background-repeat: no-repeat;background-size: 80px 80px;background-position: center center; ">
                     <img src="${ badge.get('image_url') }" alt="" height="50px" width="50px" style="position: absolute;bottom: 0;top: 0;margin: auto;left: 0;right: 0;">
                     <img class="completed" src="${ images_dir }/check-1.png" alt="Completed">
                 </div>
@@ -55,6 +55,11 @@
             </li>
           % endfor
         </ul>
+          % if len(student_data.get('booster_badges'))<10:
+          <section class="booster-badges">
+              <img class="group-image" src="${ images_dir }/group.png" alt="No Awarded Booster Badge">
+          </section>
+          % endif
       </section>
       % else :
       <section class="booster-badges">
