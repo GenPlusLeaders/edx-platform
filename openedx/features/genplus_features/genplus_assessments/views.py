@@ -182,13 +182,13 @@ class AssessmentReportPDFView(TemplateView):
             return self.pdfkit_options
 
         return {
-            'page-size': 'TABLOID',
+            'page-size': 'A4',
             'encoding': 'UTF-8',
             "enable-local-file-access": "",
             "enable-javascript": "",
             'margin-top': '1in',
             'margin-right': '0in',
-            'margin-bottom': '0.7in',
+            'margin-bottom': '0in',
             'margin-left': '0in',
             'no-outline': None,
             'header-spacing': '5',
@@ -253,7 +253,7 @@ class AssessmentReportPDFView(TemplateView):
                                 .exclude(year_group__in=enrolled_year_groups).values_list('id', flat=True)
 
         program_ids = list(enrolled_program_ids) + list(unenrolled_active_programs_ids)
-        all_units = Unit.objects.filter(program__in=program_ids).order_by('program', 'order')
+        all_units = Unit.objects.filter(program__in=program_ids).order_by('program__start_date', 'order')
         course_keys = Unit.objects.filter(program__in=enrolled_program_ids).values_list('course', flat=True)
         unit_completions = UnitCompletion.objects.filter(course_key__in=course_keys, user=user_id)
 
