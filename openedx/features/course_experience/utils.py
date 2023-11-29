@@ -17,7 +17,7 @@ from xmodule.modulestore.django import modulestore
 
 @request_cached()
 def get_course_outline_block_tree(request, course_id, user=None, allow_start_dates_in_future=False,
-                                  is_staff=None):  # lint-amnesty, pylint: disable=too-many-statements
+                                  is_staff=False):  # lint-amnesty, pylint: disable=too-many-statements
     """
     Returns the root block of the course outline, with children as blocks.
 
