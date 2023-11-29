@@ -29,15 +29,19 @@
             <li>
               <p><strong>Skills Progress Graph: </strong> This graph compares your starting answers in each unit with your answers at the end. It helps you see how you've progressed. The questions asked about your confidence in certain skills, like how comfortable you are using different tools to communicate. If there's a skill you still don't feel very sure about, it could be something to focus on and get better at.</p>
               <table id="likertTitles"></table>
-              <div><canvas id="likertChart" ></canvas></div>
-            </li>
-            <li>
-              <p><strong>Skills Improvement Graph: </strong> The second graph shows how you did throughout the whole course. It's about how much you think you've improved in a skill after learning more about it. Learning to honestly see your progress is important because it lets you find areas where you can improve and also celebrate the areas where you've made great progress.</p>
-              <table id="nuanceTitles"></table>
-              <div><canvas id="nuanceChart" ></canvas></div>
+              <div style="height: 600px"><canvas id="likertChart" ></canvas></div>
             </li>
           </ol>
         </section>
+          <section class="skills-reflection start-new-page">
+              <ol start="2">
+                  <li>
+                      <p><strong>Skills Improvement Graph: </strong> The second graph shows how you did throughout the whole course. It's about how much you think you've improved in a skill after learning more about it. Learning to honestly see your progress is important because it lets you find areas where you can improve and also celebrate the areas where you've made great progress.</p>
+                      <table id="nuanceTitles"></table>
+                      <div style="height: 600px"><canvas id="nuanceChart" ></canvas></div>
+                  </li>
+              </ol>
+          </section>
         <section class="skills-assessment">
           % for program_skill_assessment in student_data.get('skills_assessment'):
             % for question_id, question in program_skill_assessment.items():
@@ -304,6 +308,8 @@
       options: {
         indexAxis: 'y',
           animation:false,
+          responsive: true,
+          maintainAspectRatio: false,
         elements: {
           bar: {
             inflateAmount: 0,
@@ -358,6 +364,8 @@
       type: 'horizontalBar',
       data: nuanceInterrogation.data,
       options: {
+          responsive: true,
+          maintainAspectRatio: false,
         indexAxis: 'y',
         animation: false,
         elements: {
