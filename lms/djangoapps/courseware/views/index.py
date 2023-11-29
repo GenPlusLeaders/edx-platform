@@ -467,7 +467,8 @@ class CoursewareIndex(View):
             course_block_tree = table_of_contents
         else:
             course_block_tree = get_course_outline_block_tree(
-                request, str(self.course.id), request.user
+                request, str(self.course.id), request.user,
+                is_staff=request.user.is_staff
             )
             try:
                 gen_user = request.user.gen_user
