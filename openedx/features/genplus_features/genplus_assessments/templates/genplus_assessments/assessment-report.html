@@ -240,7 +240,9 @@
         }
           if (intro.point != 0) {
               const val = intro.point === 1 || intro.point === 2 ? intro.point - 3 : intro.point - 2;
-              likert.data.datasets[index].data.push(val);
+              var skillIndex = skillReflectionData.skills.indexOf(intro.skill);
+              if (skillIndex > -1)
+                  likert.data.datasets[index].data[skillIndex] = val;
           } else {
               likert.data.datasets[index].data.push(0);
           }
