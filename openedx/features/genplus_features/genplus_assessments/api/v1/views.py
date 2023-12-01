@@ -4,6 +4,7 @@ import logging
 import copy
 from django.db.models import Q
 from opaque_keys.edx.keys import UsageKey, CourseKey
+from openedx.features.genplus_features.genplus_learning.constants import ProgramStatuses
 from rest_framework import views, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -537,8 +538,12 @@ class ProgramFilterMixin(views.APIView):
 
         if user_id:
             gen_user = GenUser.objects.get(user_id=user_id)
-            program_ids = ProgramEnrollment.visible_objects.filter(
-                student=gen_user.student).values_list('program', flat=True)
+            enrolled_program_ids = ProgramEnrollment.visible_objects.filter(student=gen_user.student).values_list(
+                'program', flat=True)
+            enrolled_programs = Program.objects.filter(id__in=enrolled_program_ids)
+            enrolled_year_groups = enrolled_programs.values_list('year_group', flat=True).distinct().order_by()
+            program_ids = Program.objects.filter(status=ProgramStatuses.ACTIVE).exclude(
+                year_group__in=enrolled_year_groups).values_list('id', flat=True)
 
         qs = Program.get_active_programs()
 
