@@ -12,7 +12,7 @@ from xmodule.modulestore.django import modulestore
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher, IsStudentOrTeacher, IsAdmin, \
     IsUserFromSameSchool
-from openedx.features.genplus_features.genplus.models import Class, Skill
+from openedx.features.genplus_features.genplus.models import Class, Skill, GenUser
 from openedx.features.genplus_features.genplus_assessments.constants import (
     TOTAL_PROBLEM_SCORE,
     INTRO_RATING_ASSESSMENT_RESPONSE,
@@ -34,7 +34,7 @@ from openedx.features.genplus_features.genplus_assessments.utils import (
     skill_reflection_response,
     skill_reflection_individual_response,
 )
-from openedx.features.genplus_features.genplus_learning.models import Unit, Program
+from openedx.features.genplus_features.genplus_learning.models import Unit, Program, ProgramEnrollment
 from openedx.features.genplus_features.utils import get_full_name
 from .serializers import (
     ClassSerializer,
@@ -527,13 +527,18 @@ class SaveRatingResponseApiView(views.APIView):
 
 
 class ProgramFilterMixin(views.APIView):
-    def get_program_queryset(self):
+    def get_program_queryset(self, user_id: int = None):
         program_id = self.request.GET.get('program_id')
         program_ids = [program_id] if program_id else []
         if program_id is None and self.kwargs.get('class_id'):
             class_id = self.kwargs['class_id']
             gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
             program_ids = [gen_class.program_id]
+
+        if user_id:
+            gen_user = GenUser.objects.get(user_id=user_id)
+            program_ids = ProgramEnrollment.visible_objects.filter(
+                student=gen_user.student).values_list('program', flat=True)
 
         qs = Program.get_active_programs()
 
@@ -577,7 +582,8 @@ class SkillReflectionIndividualApiView(ProgramFilterMixin):
 
     def get(self, request, **kwargs):
         user_id = kwargs['user_id']
-        skills = list(self.get_program_queryset().values_list('units__skill__name', flat=True).distinct().order_by(
+        skills = list(self.get_program_queryset(user_id=user_id).values_list('units__skill__name',
+                                                                               flat=True).distinct().order_by(
             'units__program_id').all())
         courses = self.get_program_queryset().values_list('units__course', flat=True).all()
         likert_questions = SkillAssessmentQuestion.objects.filter(
