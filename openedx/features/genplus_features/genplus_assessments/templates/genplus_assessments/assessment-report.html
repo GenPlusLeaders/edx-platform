@@ -244,7 +244,9 @@
               if (skillIndex > -1)
                   likert.data.datasets[index].data[skillIndex] = val;
           } else {
-              likert.data.datasets[index].data.push(0);
+              var skillIndex = skillReflectionData.skills.indexOf(intro.skill);
+              if (skillIndex > -1)
+                  likert.data.datasets[index].data[skillIndex] = 0;
           }
       });
     };
