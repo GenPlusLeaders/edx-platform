@@ -528,22 +528,13 @@ class SaveRatingResponseApiView(views.APIView):
 
 
 class ProgramFilterMixin(views.APIView):
-    def get_program_queryset(self, user_id: int = None):
+    def get_program_queryset(self):
         program_id = self.request.GET.get('program_id')
         program_ids = [program_id] if program_id else []
         if program_id is None and self.kwargs.get('class_id'):
             class_id = self.kwargs['class_id']
             gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
             program_ids = [gen_class.program_id]
-
-        if user_id:
-            gen_user = GenUser.objects.get(user_id=user_id)
-            enrolled_program_ids = ProgramEnrollment.visible_objects.filter(student=gen_user.student).values_list(
-                'program', flat=True)
-            enrolled_programs = Program.objects.filter(id__in=enrolled_program_ids)
-            enrolled_year_groups = enrolled_programs.values_list('year_group', flat=True).distinct().order_by()
-            program_ids = Program.objects.filter(status=ProgramStatuses.ACTIVE).exclude(
-                year_group__in=enrolled_year_groups).values_list('id', flat=True)
 
         qs = Program.get_active_programs()
 
@@ -587,9 +578,9 @@ class SkillReflectionIndividualApiView(ProgramFilterMixin):
 
     def get(self, request, **kwargs):
         user_id = kwargs['user_id']
-        skills = list(self.get_program_queryset(user_id=user_id).values_list('units__skill__name',
-                                                                               flat=True).distinct().order_by(
-            'units__program_id').all())
+        skills = list(set(self.get_program_queryset().values_list('units__skill__name',
+                                                                  flat=True).distinct().order_by(
+            'units__program_id')))
         courses = self.get_program_queryset().values_list('units__course', flat=True).all()
         likert_questions = SkillAssessmentQuestion.objects.filter(
             start_unit__in=courses,
