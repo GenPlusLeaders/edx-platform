@@ -52,6 +52,7 @@ from xmodule.services import ConfigurationService, SettingsService, TeamsConfigu
 from xmodule.tabs import CourseTabList
 from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, STUDIO_VIEW
 
+from ..signals.signals import XBLOCK_DELETED
 from ..utils import (
     ancestor_has_staff_lock,
     find_release_date_source,
@@ -983,6 +984,11 @@ def _delete_item(usage_key, user):
         # Delete user bookmarks
         bookmarks_api.delete_bookmarks(usage_key)
         store.delete_item(usage_key, user.id)
+        XBLOCK_DELETED.send(
+            sender=_delete_item,
+            user_id=user.id,
+            usage_key=usage_key
+        )
 
 
 @login_required

@@ -14,3 +14,9 @@ GRADING_POLICY_CHANGED = Signal(
         'course_key',  # Unicode string representing the course
     ]
 )
+XBLOCK_DELETED = Signal(
+    providing_args=[
+        'user_id',  # Integer User ID
+        'usage_key',  # Unicode string representing the course
+    ]
+)
