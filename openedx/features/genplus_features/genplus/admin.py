@@ -123,7 +123,8 @@ class SchoolAdmin(admin.ModelAdmin):
             force_change_password = request.POST.get('force_change_password', False)
             reader = csv.DictReader(codecs.iterdecode(csv_file, 'utf-8'))
             validated_data, error_msg = self.validate_csv(reader)
-            user_created = []
+            users_created = []
+            users_updated = []
             if not validated_data:
                 self.message_user(request,
                                   error_msg,
@@ -138,12 +139,11 @@ class SchoolAdmin(admin.ModelAdmin):
                     last_name = row['secondname']
                     email = row['email']
                     password = row['password']
+                    role = GenUserRoles.STUDENT
                     school, gen_class = self.get_school_and_class(row['school'],
                                                                   row['classname'],
                                                                   row['classcode'])
-                    if row['role'] == GenUserRoles.STUDENT:
-                        role = GenUserRoles.STUDENT
-                    elif row['role'] == GenUserRoles.TEACHING_STAFF:
+                    if row['role'] == GenUserRoles.TEACHING_STAFF:
                         role = GenUserRoles.TEACHING_STAFF
                     form = AccountCreationForm(
                         data={
@@ -157,19 +157,27 @@ class SchoolAdmin(admin.ModelAdmin):
                     )
 
                     try:
-                        # register user (edx way)
-                        user, profile, registration = do_create_account(form)
-                        # update the user first/last names
-                        user.first_name = first_name
-                        user.last_name = last_name
-                        user.save()
-                        gen_user, created = GenUser.objects.get_or_create(
-                            role=role,
-                            user=user,
-                            school=school,
-                            email=user.email,
-                            has_password_changed=not force_change_password
-                        )
+                        try:
+                            user = User.objects.get(email=email)
+                            gen_user = user.gen_user
+                            users_updated.append(user.email)
+                        except User.DoesNotExist as e:
+                            # register user (edx way)
+                            user, profile, registration = do_create_account(form)
+                            # update the user first/last names
+                            user.first_name = first_name
+                            user.last_name = last_name
+                            user.save()
+                            gen_user, created = GenUser.objects.get_or_create(
+                                role=role,
+                                user=user,
+                                school=school,
+                                email=user.email,
+                                has_password_changed=not force_change_password
+                            )
+                            # activate user
+                            registration.activate()
+                            users_created.append(user.email)
                         if role == GenUserRoles.STUDENT:
                             gen_student = gen_user.student
                             gen_user.refresh_from_db()
@@ -179,9 +187,6 @@ class SchoolAdmin(admin.ModelAdmin):
                             process_pending_student_program_enrollments(gen_user)
                         elif gen_user.is_teacher:
                             process_pending_teacher_program_access(gen_user)
-                        # activate user
-                        registration.activate()
-                        user_created.append(user.email)
                     except AccountValidationError as e:
                         self.message_user(request, str(e), level=messages.ERROR)
                     except ValidationError as e:
@@ -191,9 +196,9 @@ class SchoolAdmin(admin.ModelAdmin):
                     self.message_user(request,
                                       'An Error occurred while parsing the csv. Please make sure that the csv is in the right format.',
                                       level=messages.ERROR)
-            self.message_user(request,
-                              'Your csv file has been uploaded. {}'.format(str({'users_count': len(user_created),
-                                                                                'users_emails': user_created})))
+            self.message_user(request,'Your csv file has been uploaded. {}'.format(str({'users_count': len(users_created),},)))
+            self.message_user(request, 'New Users Created. {}'.format(str({'users_created': users_created},)))
+            self.message_user(request, 'Users Updated. {}'.format(str({'users_updated': users_updated},)))
             return redirect("..")
         form = CsvImportForm()
         payload = {"form": form}
