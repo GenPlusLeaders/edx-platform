@@ -7,12 +7,18 @@ from rest_framework.views import APIView
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import GenUser, Student, Class, Activity
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent
+from openedx.features.genplus_features.genplus.api.v1.permissions import IsStudentOrTeacher, IsTeacher, IsStudent, IsUserFromSameSchool
 from openedx.features.genplus_features.genplus_learning.models import (Program, ProgramEnrollment, ProgramAccessRole,
                                                                        ClassUnit, ClassLesson, UnitCompletion,
                                                                        UnitBlockCompletion)
 from openedx.features.genplus_features.genplus_learning.utils import get_absolute_url, get_user_next_program_lesson
-from .serializers import ProgramSerializer, ClassStudentSerializer, ActivitySerializer, ClassUnitSerializer
+from .serializers import (
+    ProgramSerializer,
+    ClassStudentSerializer,
+    ActivitySerializer,
+    ClassUnitSerializer,
+    ProgramShortSerializer
+)
 from openedx.features.genplus_features.genplus.api.v1.serializers import ClassSummarySerializer
 
 
@@ -32,7 +38,7 @@ class ProgramViewSet(viewsets.ModelViewSet):
         else:
             program_ids = ProgramAccessRole.objects.filter(user=gen_user.user).values_list('program', flat=True).distinct()
 
-        qs = qs.filter(id__in=program_ids)
+        qs = qs.filter(id__in=program_ids).order_by('start_date')
         return qs
 
     def get_serializer_context(self):
@@ -51,11 +57,15 @@ class ProgramViewSet(viewsets.ModelViewSet):
             permission_classes.append(IsTeacher)
         return [permission() for permission in permission_classes]
 
+class ProgramAPIViewSet(ProgramViewSet):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+    serializer_class = ProgramShortSerializer
 
 class ClassStudentViewSet(mixins.ListModelMixin,
                           viewsets.GenericViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsTeacher, IsUserFromSameSchool]
     serializer_class = ClassStudentSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['gen_user__user__username']
@@ -77,7 +87,9 @@ class ClassStudentViewSet(mixins.ListModelMixin,
             gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
         except Class.DoesNotExist:
             return Student.objects.none()
-        return gen_class.students.select_related('gen_user__user').all()
+        return gen_class.students.filter(gen_user__school=self.request.user.gen_user.school).select_related(
+            'gen_user__user'
+        ).all()
 
 
 class ClassSummaryViewSet(viewsets.ModelViewSet):

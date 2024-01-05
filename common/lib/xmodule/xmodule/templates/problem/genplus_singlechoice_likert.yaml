@@ -1,0 +1,36 @@
+---
+metadata:
+    display_name: 2023 Likert
+    markdown: !!null
+data: |
+    <div class="choices-xblock choices-listed choices-rating theme-dark">
+      <problem class="likert">
+        <div class="asn-icon top-left">
+          <img src="/static/images/asset-logo-pink.svg" alt="Logo Left" />
+        </div>
+        <div class="asn-icon top-right with-text">
+          <img src="/static/images/read-alt.png" width="50" alt="Icon Read" />
+          <span class="text-help">Select one answer.</span>
+        </div>
+        <div class="choices-xblock-wapper">
+          <div class="column">
+            <h2>SCENARIO</h2>
+            <p>You are going to exam. Even though you have revised, you are feeling really nervous. Which technique would help you the most?</p>
+            <img width="300" class="align-center" src="/static/images/img-opinion.png" alt="Your Opinion Matters" />
+          </div>
+          <div class="choices-form column">
+            <multiplechoiceresponse>
+              <span class="question-text-wrapper">
+                <strong class="question-text">Did you and your partner communicate effectively?</strong>
+              </span>
+              <choicegroup type="MultipleChoice">
+                <choice class="choice_0" correct="true" point="1">Not confident at all</choice>
+                <choice class="choice_1" correct="true" point="2">Not confident</choice>
+                <choice class="choice_2" correct="true" point="3">Confident</choice>
+                <choice class="choice_3" correct="true" point="4">Very confident</choice>
+              </choicegroup>
+            </multiplechoiceresponse>
+          </div>
+        </div>
+      </problem>
+    </div>

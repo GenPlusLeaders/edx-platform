@@ -1125,6 +1125,7 @@ MAKO_TEMPLATE_DIRS_BASE = [
     OPENEDX_ROOT / 'core' / 'djangoapps' / 'dark_lang' / 'templates',
     OPENEDX_ROOT / 'core' / 'lib' / 'license' / 'templates',
     OPENEDX_ROOT / 'features' / 'course_experience' / 'templates',
+    OPENEDX_ROOT / 'features' / 'genplus_features' / 'genplus_assessments' / 'templates'
 ]
 
 
@@ -3188,7 +3189,13 @@ CROSS_DOMAIN_CSRF_COOKIE_NAME = ''
 RM_UNIFY_URL = 'https://api.platform.rmunify.com'
 RM_UNIFY_KEY = 'place-rmunify-key-here'
 RM_UNIFY_SECRET = 'rmunify-secret'
+GLOW_COMMON_DOMAINS =['glow.sch.uk', ]
+RM_UNIFY_PROVIDER_SLUGS = ['rmunify-dev', 'rmunify-stage']
+ABERDEEN_PROVIDER_SLUGS = ['aberdeen', 'google-stage']
+MICROSOFT_PROVIDER_SLUGS = ['microsoft',]
 
+XPORTER_RELYING_PARTY_ID = 'Learn.genplus.co.uk'
+XPORTER_THIRD_PARTY_ID = 'XporterOnDemand'
 ######################### GENPLUS SETTINGS #################################
 
 GENPLUS_FRONTEND_URL = ''

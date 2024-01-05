@@ -5,25 +5,24 @@ metadata:
 data: |
     <div class="choices-xblock choices-listed theme-dark">
       <problem class="multiple_choice">
-        <!-- <div class="asn-icon top-left">
+        <div class="asn-icon top-left">
           <img src="/static/images/asset-logo-pink.svg" alt="Logo Left" />
-          <img src="/static/images/read-alt.png" width="50" alt="Icon Read" />
-        </div> -->
-        <!-- <div class="asn-icon with-text top-right">
+        </div>
+        <div class="asn-icon with-text top-right">
           <img src="/static/images/read-alt.png" width="50" alt="Icon Read" />
           <span class="text-help">Select up to three answers.</span>
-        </div> -->
-        <div class="choices-xblock-wapper">
+        </div>
+        <div class="choices-xblock-wapper" data-restrictions="3">
           <div class="choices-form">
             <choiceresponse>
-              <strong class="question-text">
-                <span>What did your meta-skills profile show as your top skill strength(s)?</span>
-              </strong>
+              <span class="question-text-wrapper">
+                <strong class="question-text">What did your meta-skills profile show as your top skill strength(s)?</strong>
+              </span>
               <checkboxgroup>
                 <choice class="choice_0" correct="true">Leadership</choice>
                 <choice class="choice_1" correct="true">Resilience</choice>
                 <choice class="choice_2" correct="true">Collaboration</choice>
-                <choice class="choice_3" correct="true">Communication</choice>
+                <choice class="choice_3" correct="false">Communication</choice>
                 <choice class="choice_4" correct="false">Organisation</choice>
                 <choice class="choice_5" correct="false">Initiative</choice>
               </checkboxgroup>

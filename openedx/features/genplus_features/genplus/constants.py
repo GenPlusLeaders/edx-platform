@@ -8,8 +8,10 @@ class GenUserRoles:
     EMPLOYEE = 'Employee'
     TEACHING_STAFF = 'TeachingStaff'
     NON_TEACHING_STAFF = 'NonTeachingStaff'
+    XPORTER_TEACHING_STAFF = 'staff'
 
-    __ALL__ = (STUDENT, FACULTY, AFFILIATE, EMPLOYEE, TEACHING_STAFF, NON_TEACHING_STAFF)
+    TEACHING_ROLES = [TEACHING_STAFF, NON_TEACHING_STAFF, XPORTER_TEACHING_STAFF]
+    __ALL__ = (STUDENT, FACULTY, AFFILIATE, EMPLOYEE, TEACHING_STAFF, NON_TEACHING_STAFF, XPORTER_TEACHING_STAFF)
     __MODEL_CHOICES__ = (
         (status, status) for status in __ALL__
     )
@@ -48,8 +50,9 @@ class JournalTypes:
     """
     TEACHER_FEEDBACK = 'TeacherFeedback'
     STUDENT_POST = 'StudentReflection'
+    PROBLEM_ENTRY = 'ProblemEntry'
 
-    __ALL__ = (TEACHER_FEEDBACK, STUDENT_POST)
+    __ALL__ = (TEACHER_FEEDBACK, STUDENT_POST, PROBLEM_ENTRY)
     __MODEL_CHOICES__ = (
         (journal_type, journal_type) for journal_type in __ALL__
     )
@@ -62,8 +65,9 @@ class SchoolTypes:
     """
     RM_UNIFY = 'RmUnify'
     PRIVATE = 'Private'
+    XPORTER = 'Xporter'
 
-    __ALL__ = (RM_UNIFY, PRIVATE)
+    __ALL__ = (RM_UNIFY, PRIVATE, XPORTER)
     __MODEL_CHOICES__ = (
         (school_type, school_type) for school_type in __ALL__
     )
@@ -76,8 +80,10 @@ class ClassTypes:
     """
     TEACHING_GROUP = 'TeachingGroup'
     REGISTRATION_GROUP = 'RegistrationGroup'
+    XPORTER_TEACHING_GROUP = 'TeachingGrp'
+    XPORTER_REGISTRATION_GROUP = 'RegGrp'
 
-    __ALL__ = (TEACHING_GROUP, REGISTRATION_GROUP)
+    __ALL__ = (TEACHING_GROUP, REGISTRATION_GROUP, XPORTER_TEACHING_GROUP, XPORTER_REGISTRATION_GROUP)
     __MODEL_CHOICES__ = (
         (class_type, class_type) for class_type in __ALL__
     )
@@ -122,9 +128,10 @@ class GenLogTypes:
     PROGRAM_ENROLLMENTS_REMOVE = 'Program Enrollment remove'
     SCHOOL_UPDATED = 'School Updated'
     STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL = 'Student part of more than one school'
+    REGISTRATION_FAILED = 'Registration failed'
 
     __ALL__ = (RM_UNIFY_PROVISION_UPDATE_USER_DELETE, STUDENT_REMOVED_FROM_CLASS, STUDENT_ADDED_TO_CLASS,
-               PROGRAM_ENROLLMENTS_REMOVE, STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL, SCHOOL_UPDATED)
+               PROGRAM_ENROLLMENTS_REMOVE, STUDENT_PART_OF_MORE_THAN_ONE_SCHOOL, SCHOOL_UPDATED, REGISTRATION_FAILED)
     __MODEL_CHOICES__ = (
         (gen_log_type, gen_log_type) for gen_log_type in __ALL__
     )

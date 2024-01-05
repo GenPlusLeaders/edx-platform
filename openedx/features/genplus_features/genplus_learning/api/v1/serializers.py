@@ -27,6 +27,7 @@ from openedx.features.genplus_features.genplus_assessments.utils import (
     get_student_program_skills_assessment,
     get_student_unit_skills_assessment,
 )
+from openedx.features.genplus_features.utils import get_full_name
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -91,16 +92,45 @@ class AssessmentUnitSerializer(serializers.ModelSerializer):
         return get_user_next_course_lesson(gen_user.user, obj.id)
 
 
-class ProgramSerializer(serializers.ModelSerializer):
+class BaseProgramSerializer(serializers.ModelSerializer):
+    is_currently_active_program = serializers.SerializerMethodField()
+    program_name = serializers.CharField(source='year_group.program_name')
+
+    def get_is_currently_active_program(self, obj):
+        gen_user = self.context.get("gen_user")
+        if not gen_user.is_student:
+            return False
+
+        student = gen_user.student
+        if student and student.active_class:
+            return student.active_class.program.id == obj.id
+        return False
+
+    class Meta:
+        model = Program
+class ProgramSerializer(BaseProgramSerializer):
     units = serializers.SerializerMethodField()
     intro_unit = AssessmentUnitSerializer(many=False, read_only=True)
     outro_unit = AssessmentUnitSerializer(many=False, read_only=True)
     year_group_name = serializers.CharField(source='year_group.name')
-    program_name = serializers.CharField(source='year_group.program_name')
 
     class Meta:
         model = Program
-        fields = ('program_name', 'year_group_name', 'intro_unit', 'units', 'outro_unit')
+        fields = (
+            'id',
+            'program_name',
+            'year_group_name',
+            'intro_unit',
+            'units',
+            'outro_unit',
+            'banner_image',
+            'status',
+            'start_date',
+            'end_date',
+            'is_currently_active_program',
+            'staff_browsable',
+            'student_browsable',
+        )
 
     def get_units(self, obj):
         gen_user = self.context.get('gen_user')
@@ -121,6 +151,8 @@ class ProgramSerializer(serializers.ModelSerializer):
                 is_locked = True
                 if CourseEnrollment.is_enrolled(gen_user.user, course_key):
                     is_locked = unit.is_locked(enrollment.gen_class)
+                if is_locked and obj.is_past_program:
+                    is_locked = False
 
                 units_context[unit.pk] = {
                     'is_locked': is_locked,
@@ -171,10 +203,8 @@ class ClassStudentSerializer(serializers.ModelSerializer):
 
     def get_username(self, obj):
         user = obj.gen_user.user
-        profile = UserProfile.objects.filter(user=user).first() if user else None
-        if profile:
-            return profile.name
-        return obj.gen_user.email
+        name = get_full_name(user, default=obj.gen_user.email)
+        return name or obj.gen_user.email
 
     def get_has_first_logon(self, obj):
         if obj.gen_user.from_private_school:
@@ -243,3 +273,22 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = ('id', 'type', 'actor', 'action_object', 'target', 'is_read', 'created')
+
+
+class ProgramShortSerializer(BaseProgramSerializer):
+    class Meta:
+        model = Program
+        fields = (
+            'banner_image',
+            'end_date',
+            'id',
+            'is_currently_active_program',
+            'program_name',
+            'slug',
+            'staff_browsable',
+            'start_date',
+            'status',
+            'student_browsable',
+            'uuid',
+            'year_group',
+        )
