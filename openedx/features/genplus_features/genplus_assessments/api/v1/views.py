@@ -1,35 +1,57 @@
 import json
 import logging
+
 import copy
 from django.db.models import Q
-
-from rest_framework import views, viewsets
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import UsageKey, CourseKey
+from openedx.features.genplus_features.genplus_learning.constants import ProgramStatuses
+from rest_framework import views, viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from xmodule.modulestore.django import modulestore
 
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
-from openedx.features.genplus_features.genplus.models import Class
-from openedx.features.genplus_features.genplus_assessments.models import UserResponse, UserRating
-from openedx.features.genplus_features.genplus_learning.models import Unit
-from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher
-from .serializers import ClassSerializer, TextAssessmentSerializer, RatingAssessmentSerializer
+from openedx.features.genplus_features.genplus.api.v1.permissions import IsTeacher, IsStudentOrTeacher, IsAdmin, \
+    IsUserFromSameSchool
+from openedx.features.genplus_features.genplus.models import Class, Skill, GenUser
 from openedx.features.genplus_features.genplus_assessments.constants import (
-    TOTAL_PROBLEM_SCORE, INTRO_RATING_ASSESSMENT_RESPONSE,
-    OUTRO_RATING_ASSESSMENT_RESPONSE, MAX_SKILLS_SCORE
+    TOTAL_PROBLEM_SCORE,
+    INTRO_RATING_ASSESSMENT_RESPONSE,
+    OUTRO_RATING_ASSESSMENT_RESPONSE,
+    MAX_SKILLS_SCORE,
+    SkillReflectionQuestionType,
+)
+from openedx.features.genplus_features.genplus_assessments.models import (
+    UserResponse,
+    UserRating,
+    SkillAssessmentQuestion,
 )
 from openedx.features.genplus_features.genplus_assessments.utils import (
-    build_students_result, get_assessment_problem_data, get_assessment_completion
+    build_students_result,
+    get_assessment_problem_data,
+    get_assessment_completion,
+    get_user_assessment_result,
+    StudentResponse,
+    skill_reflection_response,
+    skill_reflection_individual_response,
 )
-
+from openedx.features.genplus_features.genplus_learning.models import Unit, Program, ProgramEnrollment
+from openedx.features.genplus_features.utils import get_full_name
+from .serializers import (
+    ClassSerializer,
+    TextAssessmentSerializer,
+    RatingAssessmentSerializer,
+    SkillAssessmentQuestionSerializer,
+    SkillReflectionQuestionSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
 
+# TODO: remove this endpoint
 class ClassFilterApiView(views.APIView):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsTeacher, IsUserFromSameSchool]
 
     def get(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
@@ -50,7 +72,7 @@ class StudentAnswersViewSet(viewsets.ViewSet):
                 containing the students analytics
     """
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsTeacher, IsUserFromSameSchool]
 
     def students_problem_response(self, request, **kwargs):
         class_id = kwargs.get('class_id', None)
@@ -100,9 +122,9 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                 containing the students aggregate or individual class base result data.
     """
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
-    permission_classes = [IsAuthenticated, IsTeacher]
-    intro_assessments = None
-    outro_assessments = None
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher, IsUserFromSameSchool]
+    intro_assessments = []
+    outro_assessments = []
 
     def aggregate_assessments_response(self, request, **kwargs):
         """
@@ -118,12 +140,21 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
 
         try:
             gen_class = Class.objects.get(pk=class_id)
+            program = gen_class.program
+            # TODO Deprecated Start
             if student_id != "all" and student_id is not None:
-                text_assessment = UserResponse.objects.filter(user=student_id, gen_class=class_id, program=gen_class.program)
-                rating_assessment = UserRating.objects.filter(user=student_id, gen_class=class_id, program=gen_class.program)
+                # TODO Disabling rating and text assessment problem data, marking it for deprecation
+                # text_assessment = UserResponse.objects.objects.none()
+                text_assessment = UserResponse.objects.none()
+                # rating_assessment = UserRating.objects.filter(user=student_id, gen_class=class_id, program=program)
+                rating_assessment = UserRating.objects.none()
             else:
-                text_assessment = UserResponse.objects.filter(gen_class=class_id, program=gen_class.program)
-                rating_assessment = UserRating.objects.filter( gen_class=class_id, program=gen_class.program)
+                # TODO Disabling rating and text assessment problem data, marking it for deprecation
+                # text_assessment = UserResponse.objects.filter(gen_class=class_id, program=program)
+                text_assessment = UserResponse.objects.none()
+                # rating_assessment = UserRating.objects.filter( gen_class=class_id, program=program)
+                rating_assessment = UserRating.objects.none()
+            # TODO Deprecated End
 
             text_assessment_data = TextAssessmentSerializer(text_assessment, many=True).data
             rating_assessment_data = RatingAssessmentSerializer(rating_assessment, many=True).data
@@ -133,7 +164,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
                 response['aggregate_all_problem'] = self.get_aggregate_problems_result(raw_data, gen_class)
                 response['single_assessment_result'] = self.get_assessment_result(raw_data, gen_class)
             else:
-                response['single_assessment_result'] = self.get_user_assessment_result(raw_data, gen_class)
+                response['single_assessment_result'] = get_user_assessment_result(self.request.user, raw_data, program)
 
             response['aggregate_skill'] = self.get_aggregate_skill_result(raw_data, gen_class, student_id)
         except Exception as ex:
@@ -181,7 +212,7 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
             for student in students:
                 user_id = 'user_' + str(student.gen_user.user_id)
                 response['student_response'][user_id] = {
-                    'full_name': student.gen_user.user.get_full_name(),
+                    'full_name': get_full_name(student.gen_user.user),
                     'score_start_of_year': 0,
                     'score_end_of_year': 0,
                     'total_score': TOTAL_PROBLEM_SCORE
@@ -416,68 +447,183 @@ class SkillAssessmentViewSet(viewsets.ViewSet):
 
         return response
 
-    def get_user_assessment_result(self, raw_data, gen_class):
-        """
-        Generate result for single user for bar and graph char on base of single assessment
-        as per the user state  under the ``problem_location`` root.
-        Arguments:
-            raw_data (list): data get from UserResponse and UserRating models.
-        Returns:
-                [Dict]: Returns a dictionaries
-                containing a student result for all single assessment.
-        """
-        store = modulestore()
-        assessments = []
-        aggregate_result = {}
-        user = self.request.user
 
-        # get assessment usage key and type for program intro assessment course
-        if self.intro_assessments is None:
-            if gen_class.program.intro_unit:
-                assessments.extend(get_assessment_problem_data(gen_class.program.intro_unit.id, user, self.request))
-        else:
-            assessments.extend(self.intro_assessments)
+class SkillAssessmentAdminViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
-        # get assessment usage key and type for program outro assessment course
-        if self.outro_assessments is None:
-            if gen_class.program.outro_unit:
-                assessments.extend(get_assessment_problem_data(gen_class.program.outro_unit.id, user, self.request))
-        else:
-            assessments.extend(self.outro_assessments)
+    def get_skills_assessment_question_mapping(self, request, **kwargs):
+        program_slug = kwargs.get('program_slug', None)
+        try:
+            program = Program.objects.get(slug=program_slug)
+        except Program.DoesNotExist:
+            return Response("Program not found", status=status.HTTP_400_BAD_REQUEST)
 
-        # prepare dictionary for every particular assessment problem in a course
-        for assessment in assessments:
-            usage_key = UsageKey.from_string(assessment.get('id'))
-            assessment_xblock = store.get_item(usage_key)
-            problem_id = str(assessment_xblock.problem_id)
-            if problem_id not in aggregate_result:
-                aggregate_result[problem_id] = {
-                    'problem_statement': assessment_xblock.question_statement,
-                    'assessment_type': assessment.get('type'),
-                    'skill': assessment_xblock.select_assessment_skill,
-                    'total_problem_score': TOTAL_PROBLEM_SCORE,
-                    'score_start_of_year': 0,
-                    'score_end_of_year': 0,
+        program_questions = SkillAssessmentQuestion.objects.filter(program=program)
+        program_questions_mapping = SkillAssessmentQuestionSerializer(program_questions, many=True).data
+        return Response({
+            'questions_mapping': program_questions_mapping
+        }, status=status.HTTP_200_OK)
+
+    def update_skills_assessment_question_mapping(self, request, **kwargs):
+        program_slug = kwargs.get('program_slug', None)
+        try:
+            program = Program.objects.get(slug=program_slug)
+        except Program.DoesNotExist:
+            return Response("Program not found", status=status.HTTP_400_BAD_REQUEST)
+
+        skills = {}
+        for skill in Skill.objects.all():
+            skills[skill.name] = skill
+
+        data = {}
+        add_questions_data = []
+        remove_questions_ids = []
+        for question in request.data:
+            data[f"{program_slug}{question['start_unit_location']}{question['end_unit_location']}"] = question
+
+        program_questions_qs = SkillAssessmentQuestion.objects.filter(program__slug=program_slug)
+        for question in program_questions_qs:
+            if f"{program_slug}{question.start_unit_location}{question.end_unit_location}" not in data.keys():
+                remove_questions_ids.append(question.id)
+
+        SkillAssessmentQuestion.objects.filter(id__in=remove_questions_ids).delete()
+
+        for index, (key, value) in enumerate(data.items()):
+            filters = dict(
+                program=program,
+                start_unit_location=value['start_unit_location'],
+            )
+            if int(value['problem_type']) == SkillReflectionQuestionType.LIKERT.value:
+                filters.update(end_unit_location=value['end_unit_location'])
+            elif int(value['problem_type']) == SkillReflectionQuestionType.NUANCE_INTERROGATION.value:
+                filters.update(problem_type=value['problem_type'])
+            SkillAssessmentQuestion.objects.update_or_create(
+                **filters,
+                defaults={
+                    'question_number': value['question_number'],
+                    'skill': skills.get(value['skill']),
+                    'start_unit': value['start_unit'],
+                    'end_unit': value['end_unit'],
+                    'problem_type': value['problem_type'],
                 }
-                if assessment.get('type') == 'genz_text_assessment':
-                    aggregate_result[problem_id]['response_start_of_year'] = None
-                    aggregate_result[problem_id]['response_end_of_year'] = None
+            )
 
-        for data in raw_data:
-            problem_id = data['problem_id']
-            if data['assessment_time'] == "start_of_year":
-                if 'score' in data:
-                    aggregate_result[problem_id]['response_start_of_year'] = json.loads(
-                        data['student_response'])
-                    aggregate_result[problem_id]['score_start_of_year'] = data['score']
-                else:
-                    aggregate_result[problem_id]['score_start_of_year'] = data['rating']
-            else:
-                if 'score' in data:
-                    aggregate_result[problem_id]['response_end_of_year'] = json.loads(
-                        data['student_response'])
-                    aggregate_result[problem_id]['score_end_of_year'] = data['score']
-                else:
-                    aggregate_result[problem_id]['score_end_of_year'] = data['rating']
+        return Response({
+            'program_slug': program_slug
+        }, status=status.HTTP_200_OK)
 
-        return aggregate_result
+class SaveRatingResponseApiView(views.APIView):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+
+    def post(self, request, **kwargs):
+        data = request.data  # This is the data from the POST request
+        response = StudentResponse().create_assessment_response_from_rating(data)
+
+        # Handle the response accordingly
+        if response:  # Replace with your condition for a successful response
+            return Response({'status': 'success', 'message': 'POST request was successful'}, status=200)
+
+        return Response({'status': 'fail', 'error': 'POST request failed', 'message': 'POST request failed with status code'}, status=400)
+
+
+class ProgramFilterMixin(views.APIView):
+    def get_program_queryset(self):
+        program_id = self.request.GET.get('program_id')
+        program_ids = [program_id] if program_id else []
+        if program_id is None and self.kwargs.get('class_id'):
+            class_id = self.kwargs['class_id']
+            gen_class = Class.objects.prefetch_related('students').get(pk=class_id)
+            program_ids = [gen_class.program_id]
+
+        qs = Program.get_active_programs()
+
+        if program_ids:
+            qs = qs.filter(id__in=program_ids)
+        return qs
+
+
+class SkillReflectionApiView(ProgramFilterMixin):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+
+    def get(self, request, **kwargs):
+        class_id = kwargs['class_id']
+        skills = list(self.get_program_queryset().values_list('units__skill__name', flat=True).distinct().all())
+        courses = self.get_program_queryset().values_list('units__course', flat=True).all()
+        likert_questions = SkillAssessmentQuestion.objects.filter(
+            start_unit__in=courses,
+            problem_type=SkillReflectionQuestionType.LIKERT.value,
+        ).all()
+
+        nuance_interogation_questions = SkillAssessmentQuestion.objects.filter(
+            start_unit__in=courses,
+            problem_type=SkillReflectionQuestionType.NUANCE_INTERROGATION.value,
+        ).all()
+
+        response = skill_reflection_response(
+            skills,
+            likert_questions,
+            nuance_interogation_questions,
+            class_id,
+            request.user
+        )
+
+        return Response(response)
+
+
+class SkillReflectionIndividualApiView(ProgramFilterMixin):
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+
+    def get(self, request, **kwargs):
+        user_id = kwargs['user_id']
+        skills = list()
+        for sk in self.get_program_queryset().values_list('units__skill__name', flat=True).order_by(
+            'units__program_id'):
+            if sk not in skills:
+                skills.append(sk)
+        courses = self.get_program_queryset().values_list('units__course', flat=True).all()
+        likert_questions = SkillAssessmentQuestion.objects.filter(
+            start_unit__in=courses,
+            problem_type=SkillReflectionQuestionType.LIKERT.value,
+        ).all()
+
+        nuance_interogation_questions = SkillAssessmentQuestion.objects.filter(
+            start_unit__in=courses,
+            problem_type=SkillReflectionQuestionType.NUANCE_INTERROGATION.value,
+        ).all()
+
+        response = skill_reflection_individual_response(
+            skills,
+            likert_questions,
+            nuance_interogation_questions,
+            user_id
+        )
+
+        return Response(response)
+
+
+class SkillReflectionQuestionModelView(viewsets.ModelViewSet):
+    serializer_class = SkillReflectionQuestionSerializer
+    authentication_classes = [SessionAuthenticationCrossDomainCsrf]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({
+            'program_id': self.request.GET.get('program_id'),
+            'problem_type': self.request.GET.get('problem_type'),
+            'class_id': self.request.GET.get('class_id'),
+        })
+        return context
+
+    def get_queryset(self):
+        program_id = self.request.GET.get('program_id')
+        problem_type = self.request.GET.get('problem_type')
+        filter = {}
+        if program_id:
+            filter['program_id'] = program_id
+        if problem_type:
+            filter['problem_type'] = problem_type
+        return SkillAssessmentQuestion.objects.filter(skill__isnull=False, **filter).all()

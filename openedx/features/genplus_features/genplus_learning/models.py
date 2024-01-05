@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from django.conf import settings
 from django.db import models
@@ -22,6 +23,22 @@ def validate_percent(value):
     if (value is None) or (not 0 <= value <= 100):
         raise ValidationError(_('{value} must be between 0 and 100').format(value=value))
 
+class AcademicYear(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+    is_current = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_current_year(cls):
+        return cls.objects.filter(is_current=True).first()
+
+    def save(self, **kwargs):
+        if self.is_current:
+            # marking the other years as non-current
+            AcademicYear.objects.filter(is_current=True).update(is_current=False)
+        super().save(**kwargs)
 
 class YearGroup(models.Model):
     name = models.CharField(max_length=128, unique=True)
@@ -37,12 +54,15 @@ class Program(TimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4)
     slug = models.SlugField(max_length=64, unique=True, blank=True)
     year_group = models.ForeignKey(YearGroup, on_delete=models.CASCADE, related_name='programs')
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.SET_NULL, null=True, blank=True, related_name='programs')
     start_date = models.DateField()
     end_date = models.DateField()
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=ProgramStatuses.UNPUBLISHED)
     banner_image = models.ImageField(upload_to="program_banner_images", default="")
     intro_unit = models.OneToOneField(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='intro_unit_program')
     outro_unit = models.OneToOneField(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='outro_unit_program')
+    staff_browsable = models.BooleanField(null=True, blank=True)
+    student_browsable = models.BooleanField(null=True, blank=True)
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
@@ -78,8 +98,12 @@ class Program(TimeStampedModel):
     def get_active_programs(cls):
         return cls.objects.filter(status=ProgramStatuses.ACTIVE)
 
+    @property
+    def is_past_program(self):
+        return self.end_date < date.today()
+
     def __str__(self):
-        return self.year_group.name
+        return self.slug
 
 
 class Unit(models.Model):
@@ -187,6 +211,7 @@ class ClassLesson(models.Model):
     def display_name(self):
         return modulestore().get_item(self.usage_key).display_name
 
+    # TODO: Remove this after ClassFilterApiView has been removed
     @property
     def lms_url(self):
         return f"{settings.LMS_ROOT_URL}/courses/{str(self.course_key)}/jump_to/{str(self.usage_key)}"

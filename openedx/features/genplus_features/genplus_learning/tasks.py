@@ -6,21 +6,22 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from celery import shared_task
 from edx_django_utils.monitoring import set_code_owner_attribute
-from celery_utils.logged_task import LoggedTask
-from celery_utils.persist_on_failure import LoggedPersistOnFailureTask
-
 from opaque_keys.edx.keys import UsageKey, CourseKey
 from completion.models import BlockCompletion
+from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
+
+from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
 from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.course_modes.models import CourseMode
-from openedx.features.genplus_features.genplus.models import Class
+from openedx.features.genplus_features.genplus.models import Class, Student
 from openedx.features.genplus_features.genplus.constants import GenUserRoles
 from openedx.features.genplus_features.genplus_learning.models import (
     Program, ProgramEnrollment, UnitCompletion, UnitBlockCompletion
 )
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.utils import (
-    get_course_completion, get_progress_and_completion_status
+    get_course_completion,
+    get_progress_and_completion_status
 )
 from openedx.features.genplus_features.genplus_learning.access import allow_access, revoke_access
 from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
@@ -44,9 +45,14 @@ def enroll_class_students_to_program(self, class_id, program_id, class_student_i
 
     units = program.units.all()
     all_students = gen_class.students.select_related('gen_user').all()
-    enrolled_students = ProgramEnrollment.objects\
-                            .filter(program=program, student__in=all_students)\
-                            .values_list('student', flat=True)
+    # if students are already the part of same program with different class then delete those enrollments
+    ProgramEnrollment.objects \
+        .filter(program=program, student__in=all_students) \
+        .exclude(gen_class=gen_class) \
+        .delete()
+    enrolled_students = ProgramEnrollment.objects \
+        .filter(program=program, gen_class=gen_class, student__in=all_students) \
+        .values_list('student', flat=True)
     unenrolled_students = all_students.exclude(pk__in=enrolled_students)
 
     if program_unit_ids:
@@ -105,10 +111,10 @@ def unenroll_class_students_from_program(self, class_id, program_id, class_stude
         log.info("Class or program id does not exist")
         return
 
-    removed_class_students = gen_class.students.select_related('gen_user').filter(pk__in=class_student_ids)
+    removed_class_students = Student.objects.filter(pk__in=class_student_ids)
 
     for student in removed_class_students:
-        ProgramEnrollment.objects.filter(program=program, student=student).delete()
+        ProgramEnrollment.objects.filter(program=program, gen_class=gen_class, student=student).delete()
         if student.active_class.pk == gen_class.pk:
             student.active_class = None
             student.save()
@@ -128,7 +134,7 @@ def allow_program_access_to_class_teachers(self, class_id, program_id, class_tea
         log.info("Class or program id does not exist")
         return
 
-    users = User.objects.filter(gen_user__school=gen_class.school, gen_user__role=GenUserRoles.TEACHING_STAFF)
+    users = User.objects.filter(gen_user__school=gen_class.school, gen_user__role__in=GenUserRoles.TEACHING_ROLES)
     if class_teacher_ids:
         users = users.filter(gen_user__teacher__in=class_teacher_ids)
 
@@ -149,7 +155,7 @@ def revoke_program_access_for_class_teachers(self, class_id, program_id, class_t
         log.info("Class or program id does not exist")
         return
 
-    users = User.objects.filter(gen_user__school=gen_class.school, gen_user__role=GenUserRoles.TEACHING_STAFF)
+    users = User.objects.filter(gen_user__school=gen_class.school, gen_user__role__in=GenUserRoles.TEACHING_ROLES)
     if class_teacher_ids:
         users = users.filter(gen_user__teacher__in=class_teacher_ids)
 
@@ -163,6 +169,10 @@ def revoke_program_access_for_class_teachers(self, class_id, program_id, class_t
 )
 @set_code_owner_attribute
 def update_unit_and_lesson_completions(self, user_id, course_key_str, usage_key_str):
+    user = User.objects.get(id=user_id)
+    if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled() or is_staff_progress_tracking_disabled(user):
+        return
+
     usage_key = UsageKey.from_string(usage_key_str)
     block_type = usage_key.block_type
     aggregator_types = ['course', 'chapter', 'sequential', 'vertical']
@@ -170,7 +180,6 @@ def update_unit_and_lesson_completions(self, user_id, course_key_str, usage_key_
     if block_type not in aggregator_types:
         course_key = CourseKey.from_string(course_key_str)
         block_id = usage_key.block_id
-        user = User.objects.get(id=user_id)
         course_completion = get_course_completion(course_key_str, user, ['course'], block_id)
 
         if not (course_completion and course_completion.get('attempted')):
@@ -206,9 +215,20 @@ def update_unit_and_lesson_completions(self, user_id, course_key_str, usage_key_
                 }
                 if is_complete:
                     defaults['completion_date'] = datetime.now().replace(tzinfo=pytz.UTC)
+                    BlockCompletion.objects.submit_completion(
+                        user=user,
+                        block_key=block_usage_key,
+                        completion=1.0,
+                    )
 
                 UnitBlockCompletion.objects.update_or_create(
                     user=user, course_key=course_key, usage_key=block_usage_key,
                     defaults=defaults
                 )
+
                 return
+
+
+def is_staff_progress_tracking_disabled(user):
+    user_is_staff = user.gen_user.is_teacher
+    return user_is_staff and TEACHER_PROGRESS_TACKING_DISABLED_SWITCH.is_enabled()

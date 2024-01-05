@@ -1125,6 +1125,7 @@ MAKO_TEMPLATE_DIRS_BASE = [
     OPENEDX_ROOT / 'core' / 'djangoapps' / 'dark_lang' / 'templates',
     OPENEDX_ROOT / 'core' / 'lib' / 'license' / 'templates',
     OPENEDX_ROOT / 'features' / 'course_experience' / 'templates',
+    OPENEDX_ROOT / 'features' / 'genplus_features' / 'genplus_assessments' / 'templates'
 ]
 
 
@@ -1219,7 +1220,7 @@ DEFAULT_TEMPLATE_ENGINE_DIRS = DEFAULT_TEMPLATE_ENGINE['DIRS'][:]
 
 AUTHENTICATION_BACKENDS = [
     'rules.permissions.ObjectPermissionBackend',
-    'openedx.core.djangoapps.oauth_dispatch.dot_overrides.backends.EdxRateLimitedAllowAllUsersModelBackend',
+    'django.contrib.auth.backends.AllowAllUsersModelBackend',
     'bridgekeeper.backends.RulePermissionBackend',
 ]
 
@@ -1986,7 +1987,7 @@ CREDIT_NOTIFICATION_CACHE_TIMEOUT = 5 * 60 * 60
 
 MIDDLEWARE = [
     'openedx.core.lib.x_forwarded_for.middleware.XForwardedForMiddleware',
-
+    'django_user_agents.middleware.UserAgentMiddleware',
     # Avoid issue with https://blog.heroku.com/chrome-changes-samesite-cookie
     # Override was found here https://github.com/django/django/pull/11894
     'django_cookies_samesite.middleware.CookiesSameSite',
@@ -2064,9 +2065,6 @@ MIDDLEWARE = [
 
     'lms.djangoapps.discussion.django_comment_client.utils.ViewNameMiddleware',
     'codejail.django_integration.ConfigureCodeJailMiddleware',
-
-    # catches any uncaught RateLimitExceptions and returns a 403 instead of a 500
-    'ratelimitbackend.middleware.RateLimitMiddleware',
 
     # for expiring inactive sessions
     'openedx.core.djangoapps.session_inactivity_timeout.middleware.SessionInactivityTimeout',
@@ -3112,8 +3110,6 @@ INSTALLED_APPS = [
     # Learning Sequence Navigation
     'openedx.core.djangoapps.content.learning_sequences.apps.LearningSequencesConfig',
 
-    'ratelimitbackend',
-
     # Backends for receiving edX LMS events
     'event_routing_backends.apps.EventRoutingBackendsConfig',
 
@@ -3153,7 +3149,10 @@ GENPLUS_INSTALLED_APPS = [
     'tinymce',
     'adminsortable2',
     'drf_multiple_model',
+    'django_user_agents',
 ]
+
+GENPLUS_GOOGLE_ANALYTICS_ID = ''
 
 INSTALLED_APPS.extend(GENPLUS_INSTALLED_APPS)
 
@@ -3168,8 +3167,13 @@ TINYMCE_DEFAULT_CONFIG = {
     'cleanup_on_startup': True,
     'custom_undo_redo_levels': 10,
     'width': '100%',
-    'height': 750
+    'height': 750,
+    'relative_urls': False,
+    'remove_script_host': False,
+    'convert_urls': False,
+
 }
+USERNAME_MAX_LENGTH = 60
 
 ######################### CSRF #########################################
 
@@ -3182,10 +3186,16 @@ CSRF_TRUSTED_ORIGINS = []
 CROSS_DOMAIN_CSRF_COOKIE_DOMAIN = ''
 CROSS_DOMAIN_CSRF_COOKIE_NAME = ''
 
-RM_UNIFY_URL = 'https://api.platform.rmunify.com/graph/'
+RM_UNIFY_URL = 'https://api.platform.rmunify.com'
 RM_UNIFY_KEY = 'place-rmunify-key-here'
 RM_UNIFY_SECRET = 'rmunify-secret'
+GLOW_COMMON_DOMAINS =['glow.sch.uk', ]
+RM_UNIFY_PROVIDER_SLUGS = ['rmunify-dev', 'rmunify-stage']
+ABERDEEN_PROVIDER_SLUGS = ['aberdeen', 'google-stage']
+MICROSOFT_PROVIDER_SLUGS = ['microsoft',]
 
+XPORTER_RELYING_PARTY_ID = 'Learn.genplus.co.uk'
+XPORTER_THIRD_PARTY_ID = 'XporterOnDemand'
 ######################### GENPLUS SETTINGS #################################
 
 GENPLUS_FRONTEND_URL = ''

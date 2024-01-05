@@ -1,34 +1,32 @@
-from django.middleware import csrf
-from django.http import Http404
+import logging
 from django.utils.decorators import method_decorator
-from django.db import IntegrityError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.conf import settings
+from rest_framework.parsers import FormParser
 
 from rest_framework import generics, status, views, viewsets
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework import filters
-from rest_framework import mixins
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from drf_multiple_model.mixins import FlatMultipleModelMixin
-
+from common.djangoapps.third_party_auth.models import SAMLProviderConfig
 from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 from openedx.features.genplus_features.genplus.models import (
-    GenUser, Character, Class, Teacher, Student, JournalPost, Skill
+    GenUser, Character, Class, Teacher, Student, JournalPost, Skill, School, XporterDetail, LocalAuthorityDomain
 )
-from openedx.features.genplus_features.genplus.constants import JournalTypes, EmailTypes
+from openedx.features.genplus_features.genplus.exceptions import XporterException
+from openedx.features.genplus_features.genplus.constants import JournalTypes, EmailTypes, SchoolTypes
 from openedx.features.genplus_features.common.display_messages import SuccessMessages, ErrorMessages
 from openedx.features.genplus_features.genplus_badges.api.v1.serializers import JournalBoosterBadgeSerializer
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from django.views.decorators.debug import sensitive_post_parameters
+
+from openedx.features.genplus_features.utils import get_full_name
 from .serializers import (
     CharacterSerializer,
     ClassListSerializer,
@@ -46,6 +44,9 @@ from .serializers import (
 from .permissions import IsStudent, IsTeacher, IsStudentOrTeacher, IsGenUser, FromPrivateSchool
 from .mixins import GenzMixin
 from .pagination import JournalListPagination
+from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 
 sensitive_post_parameters_m = method_decorator(
@@ -154,7 +155,7 @@ class ClassViewSet(GenzMixin, viewsets.ModelViewSet):
         return Class.visible_objects.filter(school=self.school)
 
     def list(self, request, *args, **kwargs):  # pylint: disable=unused-argument
-        favorite_classes = self.gen_user.teacher.favorite_classes.all()
+        favorite_classes = self.gen_user.teacher.favorite_classes.filter(school=self.school)
         favorite_classes_serializer = self.get_serializer(favorite_classes, many=True)
         class_queryset = self.filter_queryset(self.get_queryset())
         class_serializer = self.get_serializer(
@@ -197,7 +198,7 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
     authentication_classes = [SessionAuthenticationCrossDomainCsrf]
     permission_classes = [IsAuthenticated, IsStudentOrTeacher]
     queryset = JournalPost.objects.none()
-    sorting_field = 'created'
+    sorting_field = 'modified'
     pagination_class = JournalListPagination
     sort_descending = True
 
@@ -227,7 +228,7 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
 
     def sort_results(self, results):
         # Sorting on the basis of a common field in all the objects.
-        results.sort(key=lambda obj: obj['created'], reverse=True)
+        results.sort(key=lambda obj: obj['modified'], reverse=True)
         return results
 
     def get_querylist(self):
@@ -236,13 +237,13 @@ class JournalViewSet(GenzMixin, FlatMultipleModelMixin, viewsets.ModelViewSet):
 
         if self.gen_user.is_student:
             student = self.gen_user.student
-            journal_posts = journal_posts.filter(student=student)
-            booster_badges = BoosterBadgeAward.objects.filter(user=self.gen_user.user)
+            journal_posts = journal_posts.filter(student=student).order_by('-modified')
+            booster_badges = BoosterBadgeAward.objects.filter(user=self.gen_user.user).order_by('-modified')
         else:
             student_id = query_params.get('student_id')
             student = get_object_or_404(Student, pk=student_id)
-            journal_posts = journal_posts.filter(student=student)
-            booster_badges = BoosterBadgeAward.objects.filter(user__gen_user=student.gen_user)
+            journal_posts = journal_posts.filter(student=student).order_by('-modified')
+            booster_badges = BoosterBadgeAward.objects.filter(user__gen_user=student.gen_user).order_by('-modified')
 
         return [
             {
@@ -355,9 +356,12 @@ class ContactAPIView(views.APIView):
             email = request.user.email
 
             data = {
-                'name': request.user.profile.name,
+                'first_name': request.user.first_name,
+                'full_name': get_full_name(request.user),
                 'school': request.user.gen_user.school.name,
                 'message': message,
+                'date_time': record.created.strftime("%d %B %Y %-I:%M %p"),
+                'contact_email': settings.CONTACT_EMAIL
             }
 
             plain_message = get_template('genplus/contact_us_email.txt')
@@ -394,6 +398,9 @@ class ChangePasswordByTeacherView(GenzMixin, views.APIView):
                     user = student.gen_user.user
                     user.set_password(password)
                     user.save()
+                    # force change password
+                    user.gen_user.has_password_changed = False
+                    user.gen_user.save()
                     users_list.append(user.email)
             return Response({"message": SuccessMessages.PASSWORD_CHANGED_BY_TEACHER.format(users=','.join(users_list))},
                             status=status.HTTP_200_OK)
@@ -411,9 +418,89 @@ class ChangePasswordView(GenzMixin, generics.GenericAPIView):
         return super(ChangePasswordView, self).dispatch(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        is_force_change = self.request.data.get('is_force_change', False)
+        serializer = self.get_serializer(data=request.data, context={
+            'request': self.request,
+            'is_force_change': is_force_change
+        })
         if serializer.is_valid():
             serializer.save()
+            if is_force_change:
+                self.request.user.gen_user.has_password_changed = True
+                self.request.user.gen_user.save()
             return Response({"message": "New password has been saved."})
         else:
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class XporterAuth(APIView):
+    parser_classes = [FormParser, ]
+
+    def post(self, request):
+        try:
+            school_id = request.data.get('schoolId')
+            school_name = request.data.get('schoolName')
+            secret = request.data.get('schoolSecret')
+            school_email = request.data.get('schoolEmail')
+            partner_id = request.data.get('partnerId')
+            school, _ = School.objects.update_or_create(
+                guid=school_id,
+                defaults={
+                    'name': school_name,
+                    'type': SchoolTypes.XPORTER,
+                    'is_active': False
+                }
+            )
+            XporterDetail.objects.update_or_create(
+                school_id=school_id,
+                defaults={
+                    'secret': secret,
+                    'school_email': school_email,
+                    'partner_id': partner_id
+                }
+            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except XporterException as e:
+            logger.exception(str(e))
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class SchoolView(APIView):
+    def post(self, request):
+        user_email = request.data.get('email')
+
+        if not user_email:
+            return Response({'message': 'No email provided!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_email_domain = user_email.split('@')[1]
+        if user_email_domain in settings.GLOW_COMMON_DOMAINS:
+            return Response({'message': 'User belongs to Glow account.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        try:
+            local_authority_domain = LocalAuthorityDomain.objects.get(name=user_email_domain)
+            if local_authority_domain.local_authorities.exists():
+                local_authority = local_authority_domain.local_authorities.first()
+                if local_authority.saml_configuration_slug is None:
+                    return Response({'message': 'Student belongs to a private school'},
+                                    status=status.HTTP_404_NOT_FOUND)
+
+                if local_authority.saml_configuration_slug in settings.RM_UNIFY_PROVIDER_SLUGS:
+                    return Response({'message': 'User belongs to Glow account.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+                provider_queryset = SAMLProviderConfig.objects.current_set()
+                provider = provider_queryset.filter(slug=local_authority.saml_configuration_slug, enabled=True,
+                                                    archived=False).first()
+                if provider:
+                    data = {
+                        'icon': provider.icon_image.url if provider.icon_image else None,
+                        'provider_id': provider.provider_id,
+                        'provider_name': provider.name,
+                        'local_authority_name': local_authority.name
+                    }
+                    return Response(data, status=status.HTTP_200_OK)
+                return Response({'message': 'Student belongs to a private school'},
+                                status=status.HTTP_404_NOT_FOUND)
+        except (LocalAuthorityDomain.DoesNotExist, Exception):
+            return Response({'message': 'Student belongs to a private school'}, status=status.HTTP_404_NOT_FOUND)
+
+

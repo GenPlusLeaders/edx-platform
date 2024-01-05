@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.generic.base import RedirectView
 from edx_api_doc_tools import make_docs_urls
 from edx_django_utils.plugins import get_plugin_url_patterns
-from ratelimitbackend import admin
+from django.contrib import admin
 
 from lms.djangoapps.branding import views as branding_views
 from lms.djangoapps.debug import views as debug_views
@@ -891,8 +891,6 @@ urlpatterns += [
 
     # Backwards compatibility with XQueue, which uses URLs that are not prefixed with /certificates/
     url(r'^update_certificate$', certificates_views.update_certificate, name='update_certificate'),
-    url(r'^update_example_certificate$', certificates_views.update_example_certificate,
-        name='update_example_certificate'),
     url(r'^request_certificate$', certificates_views.request_certificate,
         name='request_certificate'),
 

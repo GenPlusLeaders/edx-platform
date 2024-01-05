@@ -8,6 +8,7 @@
 
 import mimetypes
 
+from django.db import transaction
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseNotFound, HttpResponseServerError
 from django.shortcuts import redirect
@@ -22,6 +23,7 @@ from common.djangoapps.edxmako.shortcuts import render_to_response, render_to_st
 from common.djangoapps.util.cache import cache_if_anonymous
 from common.djangoapps.util.views import fix_crum_request
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
+from openedx.features.genplus_features.genplus.models import GenError, GenUser
 
 valid_templates = []
 
@@ -122,4 +124,26 @@ def render_429(request, exception=None):  # lint-amnesty, pylint: disable=unused
 
 @fix_crum_request
 def render_500(request):
+    try:
+        with transaction.atomic():
+            gen_user = GenUser.objects.filter(user=request.user).first()
+            profile_name = request.user.profile.name if request.user.profile else ''
+            gen_error = GenError.objects.create(
+                email=request.user.email,
+                name=profile_name,
+                error_code=500,
+                device=request.user_agent.device.family,
+                os=f'{request.user_agent.os.family}-{request.user_agent.os.version_string}',
+                browser=f'{request.user_agent.browser.family}-{request.user_agent.browser.version_string}'
+            )
+            if gen_user:
+                gen_error.role = gen_user.role
+                gen_error.school = gen_user.school
+                if gen_user.is_student:
+                    gen_error.gen_class = gen_user.student.active_class
+
+                gen_error.save()
+    except:
+        pass
+
     return HttpResponseServerError(render_to_string('static_templates/server-error.html', {}, request=request))

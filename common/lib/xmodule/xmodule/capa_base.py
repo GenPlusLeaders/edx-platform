@@ -273,7 +273,19 @@ class CapaFields:
     )
     is_journal_entry = Boolean(
         display_name=_("Save as Journal Entry"),
-        help=_("Save this problem response to Student Journal"),
+        help=_("Show this problem response on Student Journals page"),
+        default=False,
+        scope=Scope.settings
+    )
+    is_skill_assessment = Boolean(
+        display_name=_("Save as Skill Assessment"),
+        help=_("Show this problem response on Teacher Skill Assessment Dashboard"),
+        default=False,
+        scope=Scope.settings
+    )
+    is_student_answer = Boolean(
+        display_name=_("Show In Student Answers"),
+        help=_("Show this problem response on Student Answers page"),
         default=False,
         scope=Scope.settings
     )
@@ -1368,8 +1380,9 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             success = 'submitted'
 
         # save genplus student response
+        event_info['real_answers'] = self.lcp.get_question_answers()
         from openedx.features.genplus_features.genplus_assessments.utils import StudentResponse
-        StudentResponse().save_problem_response(self, data)
+        StudentResponse().save_problem_response(self, data, event_info)
 
         return {
             'success': success,

@@ -3,8 +3,9 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save
-from .models import GenUser, Student, Teacher, Class, JournalPost, Activity
-from .constants import JournalTypes, ActivityTypes
+from .models import GenUser, Student, Teacher, Class, JournalPost, Activity, GenLog
+from .constants import JournalTypes, ActivityTypes, GenLogTypes, SchoolTypes
+from ..utils import get_full_name
 
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
@@ -18,6 +19,35 @@ def create_user_profile(sender, instance, created, **kwargs):
             Student.objects.create(gen_user=instance)
         elif instance.is_teacher:
             Teacher.objects.create(gen_user=instance)
+    if instance.user is not None and instance.school.type == SchoolTypes.XPORTER:
+            # update the user profile name in case of xporter school
+            try:
+                _user = instance.user
+                _user.profile.name = get_full_name(_user)
+                _user.profile.save()
+            except Exception as e:
+                logger.exception(str(e))
+
+    if not created:
+        # create a gen log if school is updated for gen user
+        if instance.school != instance.pre_save_instance.school:
+            GenLog.objects.create(
+                gen_log_type=GenLogTypes.SCHOOL_UPDATED,
+                description=f'school updated for {instance.email}',
+                metadata={
+                    'old_school': instance.pre_save_instance.school.name,
+                    'new_school': instance.school.name,
+                    'email': instance.email
+                }
+            )
+
+
+@receiver(pre_save, sender=GenUser)
+def add_pre_save_instance(sender, instance, **kwargs):
+    try:
+        instance.pre_save_instance = GenUser.objects.get(pk=instance.pk)
+    except GenUser.DoesNotExist:
+        instance.pre_save_instance = instance
 
 
 # capturing activity of student during onboard character selection
@@ -36,16 +66,17 @@ def create_activity_on_onboarded(sender, instance, created, update_fields=None, 
 @receiver(post_save, sender=JournalPost)
 def create_activity_for_journal(sender, instance, created, **kwargs):
     if created:
-        actor_obj = None
         if instance.journal_type == JournalTypes.STUDENT_POST:
             actor_obj = instance.student
             activity_type = ActivityTypes.JOURNAL_ENTRY_BY_STUDENT
         elif instance.journal_type == JournalTypes.TEACHER_FEEDBACK:
             actor_obj = instance.teacher
             activity_type = ActivityTypes.JOURNAL_ENTRY_BY_TEACHER
-        Activity.objects.create(
-            actor=actor_obj,
-            type=activity_type,
-            action_object=instance,
-            target=instance.student
-        )
+
+        if instance.journal_type in [JournalTypes.STUDENT_POST, JournalTypes.TEACHER_FEEDBACK]:
+            Activity.objects.create(
+                actor=actor_obj,
+                type=activity_type,
+                action_object=instance,
+                target=instance.student
+            )

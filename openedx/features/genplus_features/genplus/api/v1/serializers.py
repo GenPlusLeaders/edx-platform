@@ -4,15 +4,22 @@ from openedx.features.genplus_features.genplus.models import Teacher, Character,
 from openedx.features.genplus_features.common.display_messages import ErrorMessages
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.forms import SetPasswordForm
-from openedx.core.djangoapps.oauth_dispatch.api import destroy_oauth_tokens
+from django.contrib.auth.hashers import check_password
+
+from openedx.features.genplus_features.utils import get_full_name
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='profile.name')
+    name = serializers.SerializerMethodField()
     role = serializers.CharField(source='gen_user.role')
     school = serializers.CharField(source='gen_user.school.name')
     school_type = serializers.CharField(source='gen_user.school.type')
+    is_school_active = serializers.BooleanField(source='gen_user.school.is_active')
     csrf_token = serializers.SerializerMethodField('get_csrf_token')
+    has_changed_password = serializers.SerializerMethodField('get_password_changed')
+
+    def get_name(self, instance):
+        return get_full_name(instance)
 
     def to_representation(self, instance):
         user_info = super(UserInfoSerializer, self).to_representation(instance)
@@ -24,6 +31,8 @@ class UserInfoSerializer(serializers.ModelSerializer):
                 'has_access_to_lessons': gen_user.student.has_access_to_lessons,
                 'character_id': gen_user.student.character.id
                 if gen_user.student.character else None,
+                'class_id': gen_user.student.active_class.id
+                if gen_user.student.active_class else None,
                 'profile_image': request.build_absolute_uri(
                     gen_user.student.character.profile_pic.url)
                 if gen_user.student.character else None,
@@ -45,10 +54,15 @@ class UserInfoSerializer(serializers.ModelSerializer):
     def get_csrf_token(self, instance):
         return self.context.get('request').COOKIES.get('csrftoken')
 
+    def get_password_changed(self, instance):
+        if instance.gen_user.from_private_school:
+            return instance.gen_user.has_password_changed
+        return True
+
     class Meta:
         model = get_user_model()
         fields = ('id', 'name', 'username', 'csrf_token', 'role',
-                  'first_name', 'last_name', 'email', 'school', 'school_type')
+                  'first_name', 'last_name', 'email', 'school', 'school_type', 'is_school_active', 'has_changed_password')
 
 
 class TeacherSerializer(serializers.ModelSerializer):
@@ -62,11 +76,8 @@ class TeacherSerializer(serializers.ModelSerializer):
     def get_user_id(self, obj):
         return obj.gen_user.user.id
 
-    def get_name(self, obj):
-        profile = UserProfile.objects.filter(user=obj.gen_user.user).first()
-        if profile:
-            return profile.name
-        return None
+    def get_name(self, instance):
+        return get_full_name(instance.gen_user.user, default=instance.gen_user.email)
 
 
 class SkillSerializer(serializers.ModelSerializer):
@@ -118,10 +129,19 @@ class ClassListSerializer(serializers.ModelSerializer):
 class ClassSummarySerializer(serializers.ModelSerializer):
     school_name = serializers.CharField(source="school.name")
     program_name = serializers.CharField(source="program.year_group.name", default=None)
+    program_id = serializers.IntegerField(source="program.id", default=None)
+    year_group_id = serializers.IntegerField(source="program.year_group.id", default=None)
 
     class Meta:
         model = Class
-        fields = ('group_id', 'name', 'school_name', 'program_name',)
+        fields = (
+            'group_id',
+            'name',
+            'school_name',
+            'program_name',
+            'program_id',
+            'year_group_id',
+        )
 
 
 class FavoriteClassSerializer(serializers.Serializer):
@@ -141,7 +161,7 @@ class JournalListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JournalPost
-        fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'is_editable', 'created')
+        fields = ('id', 'title', 'skill', 'description', 'teacher', 'journal_type', 'is_editable', 'modified')
 
 
 class StudentPostSerializer(serializers.ModelSerializer):
@@ -162,16 +182,22 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length=128)
     new_password1 = serializers.CharField(max_length=128)
     new_password2 = serializers.CharField(max_length=128)
+    is_force_change = serializers.BooleanField(default=False)
 
     set_password_form_class = SetPasswordForm
 
     def __init__(self, *args, **kwargs):
         super(ChangePasswordSerializer, self).__init__(*args, **kwargs)
         self.request = self.context.get('request')
+        self.is_force_change = self.context.get('is_force_change')
         self.user = getattr(self.request, 'user', None)
+        # check if force change then remove old_password field
+        if self.is_force_change:
+            self.fields.pop('old_password')
 
     def validate_old_password(self, value):
         invalid_password_conditions = (
+            self.is_force_change,
             self.user,
             not self.user.check_password(value)
         )
@@ -180,18 +206,26 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(ErrorMessages.OLD_PASSWORD_ERROR)
         return value
 
+    def validate_new_password1(self, value):
+        # check if new password is not same as the old one
+        if check_password(value, self.user.password):
+            raise serializers.ValidationError(ErrorMessages.NEW_SAME_AS_OLD_PASSWORD_ERROR)
+        return value
+
+
+
     def validate(self, attrs):
         self.set_password_form = self.set_password_form_class(
             user=self.user, data=attrs
         )
-
         if not self.set_password_form.is_valid():
-            print(self.set_password_form.errors)
             raise serializers.ValidationError(self.set_password_form.errors)
         return attrs
 
     def save(self):
         self.set_password_form.save()
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(self.request, self.user)
 
 
 class ChangePasswordByTeacherSerializer(serializers.Serializer):

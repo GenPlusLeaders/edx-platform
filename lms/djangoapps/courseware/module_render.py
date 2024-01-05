@@ -41,6 +41,7 @@ from xblock.exceptions import NoSuchHandlerError, NoSuchViewError
 from xblock.reference.plugins import FSService
 from xblock.runtime import KvsFieldData
 
+from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
 from common.djangoapps import static_replace
 from capa.xqueue_interface import XQueueInterface
 from lms.djangoapps.courseware.access import get_user_role, has_access
@@ -85,6 +86,7 @@ from openedx.core.lib.xblock_utils import wrap_xblock
 from openedx.features.course_duration_limits.access import course_expiration_wrapper
 from openedx.features.discounts.utils import offer_banner_wrapper
 from openedx.features.content_type_gating.services import ContentTypeGatingService
+from openedx.features.genplus_features.genplus_learning.models import ClassLesson
 from common.djangoapps.student.models import anonymous_id_for_user, user_by_anonymous_id
 from common.djangoapps.student.roles import CourseBetaTesterRole
 from common.djangoapps.track import contexts
@@ -187,6 +189,16 @@ def toc_for_course(user, request, course, active_chapter, active_section, field_
         previous_of_active_section, next_of_active_section = None, None
         last_processed_section, last_processed_chapter = None, None
         found_active_section = False
+        lessons = {}
+        try:
+            gen_user = request.user.gen_user
+            if gen_user.is_student:
+                gen_class = gen_user.student.active_class
+                lessons = ClassLesson.objects.filter(class_unit__gen_class=gen_class, course_key=course.id).values_list('usage_key', 'is_locked')
+                lessons = dict(lessons)
+        except Exception as err:
+            log.error('An error occurred fetching class lessons: %s', err)
+
         for chapter in chapters:
             # Only show required content, if there is required content
             # chapter.hide_from_toc is read-only (bool)
@@ -227,7 +239,7 @@ def toc_for_course(user, request, course, active_chapter, active_section, field_
                     if last_processed_section:
                         previous_of_active_section = last_processed_section.copy()
                         previous_of_active_section['chapter_url_name'] = last_processed_chapter.url_name
-                elif found_active_section and not next_of_active_section:
+                elif found_active_section and not next_of_active_section and not lessons.get(chapter.location, False):
                     next_of_active_section = section_context.copy()
                     next_of_active_section['chapter_url_name'] = chapter.url_name
 
@@ -532,7 +544,11 @@ def get_module_system_for_user(
         handlers = {
             'grade': handle_grade_event,
         }
-        if ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled():
+        if ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled() and not is_staff_progress_tracking_disabled(
+            user,
+            descriptor,
+            course_id
+        ):
             handlers.update({
                 'completion': handle_completion_event,
                 'progress': handle_deprecated_progress_event,
@@ -563,7 +579,11 @@ def get_module_system_for_user(
         """
         Submit a completion object for the block.
         """
-        if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled():  # lint-amnesty, pylint: disable=no-else-raise
+        if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled() or is_staff_progress_tracking_disabled(
+            user,
+            descriptor,
+            course_id
+        ):  # lint-amnesty, pylint: disable=no-else-raise
             raise Http404
         else:
             BlockCompletion.objects.submit_completion(
@@ -597,7 +617,11 @@ def get_module_system_for_user(
         edx-solutions.  New XBlocks should not emit these events, but instead
         emit completion events directly.
         """
-        if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled():  # lint-amnesty, pylint: disable=no-else-raise
+        if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled() or is_staff_progress_tracking_disabled(
+            user,
+            descriptor,
+            course_id
+        ):  # lint-amnesty, pylint: disable=no-else-raise
             raise Http404
         else:
             requested_user_id = event.get('user_id', user.id)
@@ -1309,3 +1333,8 @@ def append_data_to_webob_response(response, data):
         response_data.update(data)
         response.body = json.dumps(response_data).encode('utf-8')
     return response
+
+
+def is_staff_progress_tracking_disabled(user, descriptor, course_id):
+    user_is_staff = bool(has_access(user, 'staff', descriptor.location, course_id))
+    return user_is_staff and TEACHER_PROGRESS_TACKING_DISABLED_SWITCH.is_enabled()

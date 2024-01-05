@@ -13,10 +13,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   color: $text-color;
-  font-size: 1rem;
+  font-size: 14px;
   line-height: 1.3;
   margin: .75in;
   padding-top: .5rem;
+}
+
+.cover-wrapper {
+  padding: 0;
+}
+
+.cover-content {
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: $heading-font;
+  font-weight: normal;
 }
 
 hr {
@@ -29,15 +42,30 @@ img {
 }
 
 canvas {
-  page-break-inside: avoid;
-  max-width: 80%;
-  margin: 0 auto 1rem;
+  display: block;
+  width: 800px;
+  margin: 0 auto 2rem;
 }
 
 blockquote {
   margin: 0 1rem 2rem;
   padding: .3rem 2rem;
-  border-left: 5px solid $pink;
+
+  h3 {
+    margin: 0;
+  }
+
+  q {
+    display: block;
+  }
+
+  cite {
+    font-style: normal;
+  }
+}
+
+.heading-default {
+  color: $pink;
 }
 
 .container {
@@ -55,8 +83,22 @@ blockquote {
 .header {
   position: relative;
   z-index: 1;
-  margin-bottom: 4rem;
-  page-break-inside: avoid;
+  margin-bottom: 1rem;
+  text-align: center;
+
+  &.small {
+    text-align: right;
+    margin-top: 0;
+
+    img {
+      width: 300px;
+      height: auto;
+     }
+  }
+
+  .student-name {
+    font-size: 2rem;
+  }
 
   .container {
 
@@ -244,14 +286,75 @@ blockquote {
   }
 }
 
-.feedback {
-  border: .5rem solid $pink-lighter;
-  border-radius: $default-radius;
+.assessment-intro {
   overflow: hidden;
+  border-radius: 20px;
+  padding: 1rem 2rem;
+  border: .5rem solid $pink;
+  margin-bottom: 2rem;
+
+  h2 {
+    float: left;
+    width: 40%;
+    margin: 0;
+    padding-right: 20px;
+  }
+
+  .year-info {
+    position: relative;
+    float: left;
+    width: 30%;
+    padding: 10px 10px 10px 40px;
+
+    img {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 2.32rem;
+      width: 2rem;
+      margin-top: -1.16rem;
+    }
+  }
+}
+
+.rating-assessment {
+  border: .25rem solid $text-color;
+  border-radius: $default-radius;
+  white-space: nowrap;
   padding: .5rem 1rem;
   margin-bottom: 1rem;
   page-break-inside: avoid;
   @include clearfix;
+
+  .question-text {
+    display: inline-block;
+    vertical-align: middle;
+    white-space: normal;
+    width: 360px;
+  }
+
+  .year-info {
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+    width: 240px;
+    padding: 10px;
+
+    .text {
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1.2;
+    }
+
+    img {
+      float: left;
+    }
+
+    .star-rating {
+      float: left;
+      padding: 4px 0 0 1rem;
+    }
+  }
 
   p {
     margin: 0;
@@ -259,12 +362,42 @@ blockquote {
   }
 }
 
-.multiple-choices {
+.text-assessment {
   page-break-inside: avoid;
+
+  .question-text {
+    padding: 0 2rem;
+  }
+
+  .answers {
+    overflow: hidden;
+    padding-left: 1rem;
+  }
+
+  .answer-list {
+    position: relative;
+    float: left;
+    width: 45%;
+    border-radius: 20px;
+    border: 0.25rem solid $pink-lighter;
+
+    &.end-year {
+      float: right;
+      border-color: $blue-lighter;
+    }
+
+    img {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 2.32rem;
+      width: 2rem;
+      margin: -1.16rem 0 0 -1.16rem;
+    }
+  }
 
   p {
     margin: 0 0 .5rem;
-    padding-left: .5rem;
   }
 }
 
@@ -331,55 +464,49 @@ blockquote {
   }
 }
 
-.unit-complition {
-  page-break-before: always;
+.unit-completion {
   @include clearfix;
 
-  h3 {
+  h2 {
     color: $pink;
-    float: left;
     margin-right: 1rem;
-    width: 14%;
   }
 }
 
-.complition-badges {
+.completion-badges {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: .6rem;
+  font-size: .9rem;
   text-align: center;
   text-transform: uppercase;
-  overflow: hidden;
   @include clearfix;
-
-  li {
-    float: left;
-    margin-right: .5rem;
-  }
-
-  .text {
-    display: block;
-  }
 
   .image-frame {
     height: 5rem;
     width: 5rem;
-    border-radius: 50%;
-    margin: 0 auto .6rem;
-    border: .5rem solid $pink-lighter;
+    margin: 0 auto .8rem;
     background: #fff;
-    padding: .5rem;
     position: relative;
     z-index: 1;
 
     .completed {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 0;
+      right: 0;
+      width: 20px;
       max-width: 3rem;
-      margin: -18px 0 0 -24px;
     }
+  }
+
+  li {
+    display: inline-block;
+    vertical-align: top;
+    margin: .25rem;
+  }
+
+  .text {
+    display: block;
   }
 }
 
@@ -429,17 +556,27 @@ blockquote {
 }
 
 .booster-badges {
+  @include clearfix;
 
-  h2 {
+  h2,
+  h3 {
     color: $pink;
+  }
+
+  .group-image {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
   }
 
   .badges {
     margin: 0;
     padding: 0;
     list-style: none;
-    overflow: hidden;
     font-size: .8rem;
+    text-align: center;
 
     .date {
       display: block;
@@ -447,12 +584,43 @@ blockquote {
 
     li {
       text-align: center;
-      float: left;
       margin: 0 1rem 2rem;
+      display: inline-block;
+      vertical-align: top;
 
       img {
         max-width: 6rem;
       }
     }
   }
+}
+
+.icon-info {
+  color: $pink;
+  border: 1px solid $pink;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 5px;
+  height: 20px;
+  width: 20px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 16px;
+  margin-bottom: 2px;
+}
+
+.list-unstyled {
+  list-style: none;
+}
+
+.skills-reflection {
+
+  .heading {
+    color: $pink;
+  }
+}
+
+.teacher-feedbacks {
+  page-break-before: always;
 }

@@ -322,10 +322,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   color: #1c223f;
-  font-size: 1rem;
+  font-size: 14px;
   line-height: 1.3;
   margin: 0.75in;
   padding-top: 0.5rem;
+}
+
+.cover-wrapper {
+  padding: 0;
+}
+
+.cover-content {
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: "Fredoka", "Ubuntu", sans-serif;
+  font-weight: normal;
 }
 
 hr {
@@ -338,15 +351,27 @@ img {
 }
 
 canvas {
-  page-break-inside: avoid;
-  max-width: 80%;
-  margin: 0 auto 1rem;
+  display: block;
+  width: 800px;
+  margin: 0 auto 2rem;
 }
 
 blockquote {
   margin: 0 1rem 2rem;
   padding: 0.3rem 2rem;
-  border-left: 5px solid #ff0d5a;
+}
+blockquote h3 {
+  margin: 0;
+}
+blockquote q {
+  display: block;
+}
+blockquote cite {
+  font-style: normal;
+}
+
+.heading-default {
+  color: #ff0d5a;
 }
 
 .container {
@@ -369,8 +394,19 @@ blockquote {
 .header {
   position: relative;
   z-index: 1;
-  margin-bottom: 4rem;
-  page-break-inside: avoid;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.header.small {
+  text-align: right;
+  margin-top: 0;
+}
+.header.small img {
+  width: 300px;
+  height: auto;
+}
+.header .student-name {
+  font-size: 2rem;
 }
 .header .container .text-block {
   overflow: hidden;
@@ -522,32 +558,110 @@ blockquote {
   margin: 0 0 1.2rem;
 }
 
-.feedback {
-  border: 0.5rem solid #eecae2;
-  border-radius: 20px;
+.assessment-intro {
   overflow: hidden;
+  border-radius: 20px;
+  padding: 1rem 2rem;
+  border: 0.5rem solid #ff0d5a;
+  margin-bottom: 2rem;
+}
+.assessment-intro h2 {
+  float: left;
+  width: 40%;
+  margin: 0;
+  padding-right: 20px;
+}
+.assessment-intro .year-info {
+  position: relative;
+  float: left;
+  width: 30%;
+  padding: 10px 10px 10px 40px;
+}
+.assessment-intro .year-info img {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2.32rem;
+  width: 2rem;
+  margin-top: -1.16rem;
+}
+
+.rating-assessment {
+  border: 0.25rem solid #1c223f;
+  border-radius: 20px;
+  white-space: nowrap;
   padding: 0.5rem 1rem;
   margin-bottom: 1rem;
   page-break-inside: avoid;
 }
-.feedback:before, .feedback:after {
+.rating-assessment:before, .rating-assessment:after {
   content: "";
   display: table;
 }
-.feedback:after {
+.rating-assessment:after {
   clear: both;
 }
-.feedback p {
+.rating-assessment .question-text {
+  display: inline-block;
+  vertical-align: middle;
+  white-space: normal;
+  width: 360px;
+}
+.rating-assessment .year-info {
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  width: 240px;
+  padding: 10px;
+}
+.rating-assessment .year-info .text {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.rating-assessment .year-info img {
+  float: left;
+}
+.rating-assessment .year-info .star-rating {
+  float: left;
+  padding: 4px 0 0 1rem;
+}
+.rating-assessment p {
   margin: 0;
   overflow: hidden;
 }
 
-.multiple-choices {
+.text-assessment {
   page-break-inside: avoid;
 }
-.multiple-choices p {
+.text-assessment .question-text {
+  padding: 0 2rem;
+}
+.text-assessment .answers {
+  overflow: hidden;
+  padding-left: 1rem;
+}
+.text-assessment .answer-list {
+  position: relative;
+  float: left;
+  width: 45%;
+  border-radius: 20px;
+  border: 0.25rem solid #eecae2;
+}
+.text-assessment .answer-list.end-year {
+  float: right;
+  border-color: #9ed5e0;
+}
+.text-assessment .answer-list img {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2.32rem;
+  width: 2rem;
+  margin: -1.16rem 0 0 -1.16rem;
+}
+.text-assessment p {
   margin: 0 0 0.5rem;
-  padding-left: 0.5rem;
 }
 
 .alphabets-list {
@@ -607,63 +721,55 @@ blockquote {
   margin-left: 0.25rem;
 }
 
-.unit-complition {
-  page-break-before: always;
-}
-.unit-complition:before, .unit-complition:after {
+.unit-completion:before, .unit-completion:after {
   content: "";
   display: table;
 }
-.unit-complition:after {
+.unit-completion:after {
   clear: both;
 }
-.unit-complition h3 {
+.unit-completion h2 {
   color: #ff0d5a;
-  float: left;
   margin-right: 1rem;
-  width: 14%;
 }
 
-.complition-badges {
+.completion-badges {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.6rem;
+  font-size: 0.9rem;
   text-align: center;
   text-transform: uppercase;
-  overflow: hidden;
 }
-.complition-badges:before, .complition-badges:after {
+.completion-badges:before, .completion-badges:after {
   content: "";
   display: table;
 }
-.complition-badges:after {
+.completion-badges:after {
   clear: both;
 }
-.complition-badges li {
-  float: left;
-  margin-right: 0.5rem;
-}
-.complition-badges .text {
-  display: block;
-}
-.complition-badges .image-frame {
-  height: 5rem;
-  width: 5rem;
-  border-radius: 50%;
-  margin: 0 auto 0.6rem;
-  border: 0.5rem solid #eecae2;
+.completion-badges .image-frame {
+  height: 3rem;
+  width: 3rem;
+  margin: 0 auto 0.2rem;
   background: #fff;
-  padding: 0.5rem;
   position: relative;
   z-index: 1;
 }
-.complition-badges .image-frame .completed {
+.completion-badges .image-frame .completed {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  right: 0;
+  width: 20px;
   max-width: 3rem;
-  margin: -18px 0 0 -24px;
+}
+.completion-badges li {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0.25rem;
+}
+.completion-badges .text {
+  display: block;
 }
 
 .fill-in-blanks {
@@ -701,26 +807,65 @@ blockquote {
   color: #ff0d5a;
 }
 
-.booster-badges h2 {
+.booster-badges:before, .booster-badges:after {
+  content: "";
+  display: table;
+}
+.booster-badges:after {
+  clear: both;
+}
+.booster-badges h2,
+.booster-badges h3 {
   color: #ff0d5a;
+}
+.booster-badges .group-image {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 .booster-badges .badges {
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
   font-size: 0.8rem;
+  text-align: center;
 }
 .booster-badges .badges .date {
   display: block;
 }
 .booster-badges .badges li {
   text-align: center;
-  float: left;
   margin: 0 1rem 2rem;
+  display: inline-block;
+  vertical-align: top;
 }
 .booster-badges .badges li img {
   max-width: 6rem;
+}
+
+.icon-info {
+  color: #ff0d5a;
+  border: 1px solid #ff0d5a;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 5px;
+  height: 20px;
+  width: 20px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 16px;
+  margin-bottom: 2px;
+}
+
+.list-unstyled {
+  list-style: none;
+}
+
+.skills-reflection .heading {
+  color: #ff0d5a;
 }
 
 header.alt {
@@ -731,6 +876,15 @@ header.alt {
   header.alt {
     display: none;
   }
+}
+.start-new-page {
+    page-break-before: always;
+}
+.avoid-page-break{
+    page-break-inside: avoid;
+}
+.skills-assessment{
+    page-break-after: always;
 }
 @page regular_template {
   header {

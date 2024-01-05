@@ -11,7 +11,7 @@ from django.utils.html import strip_tags
 from tinymce.models import HTMLField
 from openedx.features.genplus_features.genplus.models import Skill, Teacher
 from .constants import AcademicYears
-
+from ..utils import get_full_name
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +73,10 @@ class Article(TimeStampedModel):
         return teacher.favorite_articles.filter(article=self.pk).count() > 0
 
     def save(self, **kwargs):
-        read_time = self.get_read_time(self.title, self.content)
-        watch_time = self.get_video_time(self.content)
-        self.time = self.time + read_time + watch_time
+        if self._state.adding:
+            read_time = self.get_read_time(self.title, self.content)
+            watch_time = self.get_video_time(self.content)
+            self.time = self.time + read_time + watch_time
         if self.is_featured:
             # marking the other article as non-featured
             Article.objects.filter(is_featured=True).update(is_featured=False)
@@ -152,7 +153,7 @@ class ArticleRating(TimeStampedModel):
 
     def __str__(self):
         return '{} has rated {} stars to article {}'.format(
-            self.teacher.gen_user.user.get_full_name(),
+            get_full_name(self.teacher.gen_user.user),
             self.rating,
             self.article.title
         )
@@ -231,7 +232,7 @@ class HelpGuideRating(TimeStampedModel):
 
     def __str__(self):
         return '{} has rated {} stars to guide {}'.format(
-            self.teacher.gen_user.user.get_full_name(),
+            get_full_name(self.teacher.gen_user.user),
             self.rating,
             self.help_guide.title
         )
