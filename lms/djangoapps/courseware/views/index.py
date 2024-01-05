@@ -26,6 +26,7 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from web_fragments.fragment import Fragment
 
+from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
 from common.djangoapps.edxmako.shortcuts import render_to_response, render_to_string
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect, Redirect
 from lms.djangoapps.experiments.utils import get_experiment_user_metadata_context
@@ -220,11 +221,15 @@ class CoursewareIndex(View):
         if self.course.has_children_at_depth(CONTENT_DEPTH):
             self._reset_section_to_exam_if_required()
             self.chapter = self._find_chapter()
+            if (request.user.gen_user.is_teacher) and (TEACHER_PROGRESS_TACKING_DISABLED_SWITCH.is_enabled()):
+                self.chapter.position = 1
             self.section = self._find_section()
 
             if self.chapter and self.section:
                 self._redirect_if_not_requested_section()
-                self._save_positions()
+                if (not request.user.gen_user.is_teacher) or (
+                not TEACHER_PROGRESS_TACKING_DISABLED_SWITCH.is_enabled()):
+                    self._save_positions()
                 self._prefetch_and_bind_section()
                 self._redirect_to_learning_mfe()
 
@@ -471,10 +476,16 @@ class CoursewareIndex(View):
             )
             try:
                 gen_user = request.user.gen_user
+                log.info('GP-920 user_email %s', request.user.email)
+                log.info('GP-920 staff_access %s', staff_access)
+                log.info('GP-920 global_staff_access %s', request.user.is_staff)
+                sections = course_block_tree.get('children', [])
+                log.info('GP-920 sections %s', sections)
+
                 if gen_user.is_student:
                     gen_class = gen_user.student.active_class
+                    log.info('GP-920 log for active_class', gen_class)
                     lessons = ClassLesson.objects.filter(class_unit__gen_class=gen_class, course_key=self.course.id)
-                    sections = course_block_tree.get('children', [])
                     for i, section in enumerate(sections):
                         lesson = lessons.get(usage_key=UsageKey.from_string(section.get('id')))
                         sections[i]['is_locked'] = lesson.is_locked if lesson else False
@@ -610,6 +621,7 @@ def render_accordion(request, course, table_of_contents, active_section, active_
             ('due_date_display_format', course.due_date_display_format),
         ] + list(TEMPLATE_IMPORTS.items())
     )
+    log.info('GP-920 render_accordion context', context)
     return render_to_string('courseware/accordion.html', context)
 
 

@@ -70,9 +70,9 @@ class RmUnify(BaseRmUnify):
         for school in schools:
             obj, created = School.objects.update_or_create(
                 name=school['DisplayName'],
-                external_id=school['ExternalId'],
+                guid= school['OrganisationGuid'],
                 type=SchoolTypes.RM_UNIFY,
-                defaults={"guid": school['OrganisationGuid']}
+                defaults={"external_id": school['ExternalId']}
             )
             response = 'created' if created else 'updated'
             logger.info('{} has been {} successfully.'.format(school['DisplayName'], response))
@@ -154,6 +154,16 @@ class RmUnify(BaseRmUnify):
         except Exception as e:
             logger.exception(str(e))
             return True
+
+    def fetch_teachers(self, schoold_id):
+        try:
+            resource_url = f'{schoold_id}/TeachingStaff'
+            url = self.generate_url(self.ORGANISATION, resource_url)
+            return self.fetch(url)
+        except Exception as e:
+            logger.exception(str(e))
+            return False
+
 
 
 class RmUnifyProvisioning(BaseRmUnify):

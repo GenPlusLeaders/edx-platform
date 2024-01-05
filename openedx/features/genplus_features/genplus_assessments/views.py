@@ -1,6 +1,10 @@
 from __future__ import absolute_import, print_function, unicode_literals
+
+import json
+
 import io
 import os
+import six
 from os.path import basename, splitext, dirname, join
 import tempfile
 from itertools import chain
@@ -15,22 +19,36 @@ from django.template import loader
 from django.test import override_settings
 from django.views.generic import TemplateView
 from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
 from django.contrib.staticfiles import finders
+from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
+from openedx.features.genplus_features.genplus_assessments.api.v1.views import SkillReflectionIndividualApiView
+from web_fragments.fragment import Fragment
+
+from lms.djangoapps.courseware.courses import get_course_with_access
+from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
+from openedx.features.course_experience.course_updates import (
+    dismiss_current_update_for_user, get_current_update_for_user,
+)
 
 from opaque_keys.edx.keys import CourseKey
 from openedx.features.genplus_features.genplus_assessments.models import UserRating, UserResponse
+from .constants import SkillReflectionQuestionType
 from .utils import (
     build_course_report_for_students,
     get_absolute_url,
     get_student_program_skills_assessment,
     get_user_assessment_result
 )
-from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher
+from openedx.features.genplus_features.genplus.models import GenUser, Student, JournalPost, Teacher, Skill
 from openedx.features.genplus_features.genplus_learning.models import Program, Unit, UnitCompletion, ProgramEnrollment
 from openedx.features.genplus_features.genplus_learning.constants import ProgramStatuses
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.constants import JournalTypes
 from openedx.features.genplus_features.genplus_assessments.api.v1.serializers import RatingAssessmentSerializer, TextAssessmentSerializer
+from ..utils import get_full_name
+
 
 class AssessmentReportPDFView(TemplateView):
     filename = None
@@ -38,6 +56,8 @@ class AssessmentReportPDFView(TemplateView):
     pdfkit_options = None
     template_path = 'genplus_assessments/assessment-report.html'
     header_template_path = 'genplus_assessments/assessment-header.html'
+    footer_template_path = 'genplus_assessments/footer.html'
+    cover_template_path = 'genplus_assessments/cover.html'
     stylesheet_path = 'static/genplus_assessments/assets/css/main.css'
     static_images_path = 'static/genplus_assessments/assets/images'
 
@@ -66,8 +86,10 @@ class AssessmentReportPDFView(TemplateView):
             student = user.student
         else:
             raise PermissionDenied()
+        skill_reflection_data = SkillReflectionIndividualApiView.as_view()(request, user_id=user_id)
 
         context = self.get_context_data(user_id, student, **kwargs)
+        context.update(skill_reflection_data=json.dumps(skill_reflection_data.data))
 
         if 'html' in request.GET:
             # Output HTML
@@ -104,6 +126,15 @@ class AssessmentReportPDFView(TemplateView):
             kwargs['configuration'] = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_bin)
 
         try:
+            if self.cover_template_path:
+                absolute_image_dir_path = join(script_dir, self.static_images_path)
+                with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as cover_html:
+                    kwargs['cover'] = cover_html.name
+                    context['images_dir'] = absolute_image_dir_path
+                    rendered_html = render_to_string(self.cover_template_path, context).encode('utf-8')
+                    cover_html.write(rendered_html)
+                    cover_html.flush()
+
             if self.stylesheet_path:
                 filename = join(script_dir, self.stylesheet_path)
                 print("filename", filename)
@@ -122,7 +153,14 @@ class AssessmentReportPDFView(TemplateView):
                     header_html.write(rendered_html)
                     header_html.flush()
 
-            pdf = pdfkit.from_string(html, False, options, **kwargs)
+            if self.footer_template_path:
+                with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as footer_html:
+                    options['footer-html'] = footer_html.name
+                    rendered_html = render_to_string(self.footer_template_path, context).encode('utf-8')
+                    footer_html.write(rendered_html)
+                    footer_html.flush()
+
+            pdf = pdfkit.from_string(html, False, options, verbose=True, **kwargs)
             return pdf
         finally:
             # Ensure temporary file is deleted after finishing work
@@ -130,6 +168,10 @@ class AssessmentReportPDFView(TemplateView):
                 os.remove(options['header-html'])
             if self.stylesheet_path:
                 os.remove(options['user-style-sheet'])
+            if self.cover_template_path:
+                os.remove(kwargs['cover'])
+            if self.footer_template_path:
+                os.remove(options['footer-html'])
 
     def get_pdfkit_options(self):
         """
@@ -144,12 +186,13 @@ class AssessmentReportPDFView(TemplateView):
             'encoding': 'UTF-8',
             "enable-local-file-access": "",
             "enable-javascript": "",
-            'margin-top': '2.3in',
+            'margin-top': '1in',
             'margin-right': '0in',
-            'margin-bottom': '1in',
+            'margin-bottom': '0in',
             'margin-left': '0in',
             'no-outline': None,
-            'header-spacing': '10',
+            'header-spacing': '5',
+            'javascript-delay': '2000'
         }
 
     def get_filename(self, user_id):
@@ -161,7 +204,7 @@ class AssessmentReportPDFView(TemplateView):
         name = ''
         if self.filename is None:
             if user:
-                name = f'{user.profile.name}'.replace(' ', '')
+                name = get_full_name(user).strip()
             if not name:
                 name = splitext(basename(self.template_path))[0]
             return f'{name}.pdf'
@@ -185,8 +228,10 @@ class AssessmentReportPDFView(TemplateView):
         skills_assessment = []
         user = User.objects.get(id=user_id)
         for program in programs:
-            user_rating_qs  = UserRating.objects.filter(user=user_id, program=program.id)
-            user_response_qs  = UserResponse.objects.filter(user=user_id, program=program.id)
+            # user_rating_qs  = UserRating.objects.filter(user=user_id, program=program.id) TODO cleanup
+            user_rating_qs = UserRating.objects.none()
+            # user_response_qs  = UserResponse.objects.filter(user=user_id, program=program.id) TODO cleanup
+            user_response_qs = UserResponse.objects.none()
             text_assessment_data = TextAssessmentSerializer(user_response_qs, many=True).data
             rating_assessment_data = RatingAssessmentSerializer(user_rating_qs, many=True).data
             raw_data = text_assessment_data + rating_assessment_data
@@ -201,14 +246,9 @@ class AssessmentReportPDFView(TemplateView):
 
         enrolled_program_ids = ProgramEnrollment.visible_objects.filter(student=student).values_list('program', flat=True)
         enrolled_programs = Program.objects.filter(id__in=enrolled_program_ids)
-        enrolled_year_groups = enrolled_programs.values_list('year_group', flat=True).distinct().order_by()
 
-        unenrolled_active_programs_ids = Program.objects \
-                                .filter(status=ProgramStatuses.ACTIVE) \
-                                .exclude(year_group__in=enrolled_year_groups).values_list('id', flat=True)
-
-        program_ids = list(enrolled_program_ids) + list(unenrolled_active_programs_ids)
-        all_units = Unit.objects.filter(program__in=program_ids).order_by('program', 'order')
+        program_ids = Program.objects .filter(status=ProgramStatuses.ACTIVE)
+        all_units = Unit.objects.filter(program__in=program_ids).order_by('program__start_date', 'order')
         course_keys = Unit.objects.filter(program__in=enrolled_program_ids).values_list('course', flat=True)
         unit_completions = UnitCompletion.objects.filter(course_key__in=course_keys, user=user_id)
 
@@ -226,13 +266,15 @@ class AssessmentReportPDFView(TemplateView):
         student_name = ''
         school_name = ''
         if student.user:
-            student_name = student.user.profile.name
+            student_name = get_full_name(student.user)
+            class_name = student.active_class.name
             school_name = student.gen_user.school.name
 
         student_data = {
             "user_id": user_id,
             "full_name": student_name,
             "school_name": school_name,
+            "class_name": class_name,
             "character_image_url": character_image_url,
             "units": [],
         }
@@ -260,7 +302,7 @@ class AssessmentReportPDFView(TemplateView):
             if teacher_id not in teacher_feedbacks.keys():
                 teacher_name = ''
                 if feedback.teacher.user:
-                    teacher_name = feedback.teacher.user.profile.name
+                    teacher_name = get_full_name(feedback.teacher.user)
 
                 teacher_feedbacks[teacher_id] = {
                     'teacher_name': teacher_name,
@@ -280,4 +322,30 @@ class AssessmentReportPDFView(TemplateView):
         student_data['teacher_feedbacks'] = teacher_feedbacks
         student_data['skills_assessment'] = self._get_skill_assessment_data(user_id, student, enrolled_programs)
         context['student_data'] = student_data
+        return context
+
+
+class SkillAssessmentAdminFragmentView(EdxFragmentView):
+
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
+        return super().get(request, **kwargs)
+
+    def render_to_fragment(self, request, course_id=None, **kwargs):  # lint-amnesty, pylint: disable=arguments-differ
+        context = {
+            'api_base_url': settings.LMS_ROOT_URL,
+            'programs_with_units': self._get_programs_and_units(),
+            'skills': list(Skill.objects.all().values_list('name', flat=True)),
+            'problem_types': SkillReflectionQuestionType.to_list(),
+        }
+
+        html = render_to_string('genplus_assessments/skill-assessment-admin.html', context)
+        return Fragment(html)
+
+    def _get_programs_and_units(self):
+        programs = Program.objects.prefetch_related('units').filter(status=ProgramStatuses.ACTIVE)
+        context = {}
+        for program in programs:
+            context[program.slug] = program.all_units_ids
+
         return context

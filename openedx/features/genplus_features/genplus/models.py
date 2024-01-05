@@ -1,5 +1,6 @@
 import os
 import uuid
+from django.core import signing
 from django.conf import settings
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
@@ -9,15 +10,37 @@ from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
+
 USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+
+class LocalAuthorityDomain(TimeStampedModel):
+    name = models.CharField(max_length=128, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class LocalAuthority(TimeStampedModel):
+    name = models.CharField(max_length=64, unique=True)
+    saml_configuration_slug = models.SlugField(null=True, blank=True, max_length=30,
+                                               help_text='Slug of saml configuration i.e rmunify-dev, rmunify-stage')
+    domains = models.ManyToManyField(LocalAuthorityDomain, blank=True, related_name='local_authorities')
+
+
+    def __str__(self):
+       return self.name
 
 
 class School(TimeStampedModel):
     SCHOOL_CHOICES = SchoolTypes.__MODEL_CHOICES__
+    local_authority = models.ForeignKey(LocalAuthority, on_delete=models.SET_NULL, null=True)
     guid = models.CharField(primary_key=True, max_length=128)
     name = models.CharField(max_length=64)
     external_id = models.CharField(max_length=32)
+    cost_center = models.CharField(max_length=32,unique=True, default=None, null=True, blank=True,
+                                    help_text='Need in the case of xporter schools.')
     type = models.CharField(blank=True, null=True, max_length=32, choices=SCHOOL_CHOICES)
+    is_active = models.BooleanField(default=True,
+                                    help_text='If De-selected the users related to this school cannot access the platform')
 
     def __str__(self):
         return self.name
@@ -27,6 +50,38 @@ class School(TimeStampedModel):
             self.guid = f'private-{str(uuid.uuid4())[0:10]}'
             self.external_id = f'private-{str(uuid.uuid4())[0:10]}'
         super(School, self).save(*args, **kwargs)
+    class Meta:
+        ordering = ['name', ]
+
+
+class XporterDetail(TimeStampedModel):
+    school = models.OneToOneField(School, on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='xporter_detail')
+    _secret = models.CharField(max_length=1024, null=True, blank=True)
+    school_email = models.EmailField(null=True, blank=True)
+    partner_id = models.CharField(max_length=1024, null=True, blank=True)
+    _token = models.TextField(null=True, blank=True)
+    token_expiry = models.DateTimeField(null=True, blank=True)
+    last_exception_message = models.TextField(null=True, blank=True)
+
+    # setter and getter of the encrypted fields
+    @property
+    def secret(self):
+        # decrypt the encrypted value
+        return signing.loads(self._secret)
+
+    @secret.setter
+    def secret(self, value):
+        # Picks the `SECRET_KEY` provided in settings.py and encrypt it
+        self._secret = signing.dumps(value)
+
+    @property
+    def token(self):
+        return signing.loads(self._token)
+
+    @token.setter
+    def token(self, value):
+        self._token = signing.dumps(value)
 
 
 class Skill(models.Model):
@@ -78,7 +133,7 @@ class Character(models.Model):
 class GenUser(models.Model):
     ROLE_CHOICES = GenUserRoles.__MODEL_CHOICES__
 
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, default=None, null=True, blank=True)
     identity_guid = models.CharField(null=True, max_length=1024)
     user = models.OneToOneField(USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name='gen_user')
     role = models.CharField(blank=True, null=True, max_length=32, choices=ROLE_CHOICES)
@@ -96,11 +151,32 @@ class GenUser(models.Model):
 
     @property
     def is_teacher(self):
-        return self.role == GenUserRoles.TEACHING_STAFF
+        return self.role in GenUserRoles.TEACHING_ROLES
 
     @property
     def from_private_school(self):
         return self.school.type == SchoolTypes.PRIVATE
+
+    @property
+    def name(self):
+        if self.school.type == SchoolTypes.XPORTER:
+            first_name = getattr(self.user, 'first_name', '').strip()
+            last_name = getattr(self.user, 'last_name', '').strip()
+            if first_name or last_name:
+                return f'{first_name} {last_name}'.strip()
+        else:
+            if self.user:
+                profile_name = getattr(self.user.profile, 'name', '').strip()
+                if profile_name:
+                    return profile_name
+            else:
+                return self.email
+            first_name = getattr(self.user, 'first_name', '').strip()
+            last_name = getattr(self.user, 'last_name', '').strip()
+            if first_name or last_name:
+                return f'{first_name} {last_name}'.strip()
+
+        return self.email
 
     def __str__(self):
         return self.email
@@ -130,7 +206,7 @@ class Student(models.Model):
         return self.classes.count() > 0
 
     def __str__(self):
-        return self.gen_user.email
+        return self.gen_user.email or ''
 
 
 class ClassManager(models.Manager):
@@ -318,6 +394,14 @@ class GenLog(TimeStampedModel):
         cls.objects.create(
             gen_log_type=GenLogTypes.PROGRAM_ENROLLMENTS_REMOVE,
             description=f'Program Enrollment delete for user {email}',
+            metadata=details
+        )
+
+    @classmethod
+    def registration_failed(cls, email, details=None):
+        cls.objects.create(
+            gen_log_type=GenLogTypes.REGISTRATION_FAILED,
+            description=f'Registration failed for {email}',
             metadata=details
         )
 
