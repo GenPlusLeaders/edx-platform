@@ -1,23 +1,20 @@
 import logging
+from django.conf import settings
+from django.dispatch import receiver
+from django.db.models.signals import post_save, m2m_changed, pre_save, pre_delete
 
 from completion.models import BlockCompletion
-from django.conf import settings
-from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
-from django.dispatch import receiver
-
-import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
 from common.djangoapps.student.models import CourseEnrollment
-from openedx.features.genplus_features.genplus.constants import ActivityTypes, GenLogTypes
-from openedx.features.genplus_features.genplus.models import Activity, Class, GenLog
-from openedx.features.genplus_features.genplus_learning.cache import ProgramCache
+from xmodule.modulestore.django import SignalHandler, modulestore
+from lms.djangoapps.grades.signals.signals import PROBLEM_RAW_SCORE_CHANGED
+from genplus.lms.djangoapps.genplus.models import Class, Teacher, Activity, GenLog
+from genplus.lms.djangoapps.genplus.constants import ActivityTypes, GenLogTypes
+from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
+import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
 from openedx.features.genplus_features.genplus_learning.models import (
-    ClassLesson,
-    ClassUnit,
-    Program,
-    ProgramEnrollment,
-    UnitBlockCompletion,
+    Program, ProgramEnrollment, Unit, ClassUnit, ClassLesson , UnitBlockCompletion
 )
-from xmodule.modulestore.django import modulestore
+from openedx.features.genplus_features.genplus_learning.cache import ProgramCache
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +90,20 @@ def class_students_changed(sender, instance, action, **kwargs):
     if action == 'post_remove':
         # create gen_log for the removal of student
         GenLog.create_student_log(instance, list(pk_set), GenLogTypes.STUDENT_REMOVED_FROM_CLASS)
+
+
+@receiver(post_save, sender=BlockCompletion)
+def problem_raw_score_changed_handler(sender, **kwargs):
+    instance = kwargs['instance']
+    course_id = str(instance.context_key)
+    if not instance.context_key.is_course:
+        return
+    usage_id = str(instance.block_key)
+    user_id = instance.user_id
+
+    genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
+        args=[user_id, course_id, usage_id]
+    )
 
 
 # capture activity on lesson completion

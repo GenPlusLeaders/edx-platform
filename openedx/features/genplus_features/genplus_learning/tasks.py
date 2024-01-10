@@ -1,33 +1,30 @@
 import logging
 from datetime import datetime
-
 import pytz
-from celery import shared_task
-from completion.models import BlockCompletion
-from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from celery import shared_task
 from edx_django_utils.monitoring import set_code_owner_attribute
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.keys import UsageKey, CourseKey
+from completion.models import BlockCompletion
+from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
 
 from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
-from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.models import CourseEnrollment
-from openedx.features.genplus_features.genplus.constants import GenUserRoles
-from openedx.features.genplus_features.genplus.models import Class, Student
-from openedx.features.genplus_features.genplus_learning.access import allow_access, revoke_access
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
+from common.djangoapps.course_modes.models import CourseMode
+from genplus.lms.djangoapps.genplus.models import Class, Student
+from genplus.lms.djangoapps.genplus.constants import GenUserRoles
 from openedx.features.genplus_features.genplus_learning.models import (
-    Program,
-    ProgramEnrollment,
-    UnitBlockCompletion,
-    UnitCompletion
+    Program, ProgramEnrollment, UnitCompletion, UnitBlockCompletion
 )
-from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
+from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
 from openedx.features.genplus_features.genplus_learning.utils import (
     get_course_completion,
     get_progress_and_completion_status
 )
+from openedx.features.genplus_features.genplus_learning.access import allow_access, revoke_access
+from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
 
 log = logging.getLogger(__name__)
 
