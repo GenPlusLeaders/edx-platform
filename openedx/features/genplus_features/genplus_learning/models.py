@@ -63,6 +63,7 @@ class Program(TimeStampedModel):
     outro_unit = models.OneToOneField(CourseOverview, on_delete=models.SET_NULL, null=True, blank=True, related_name='outro_unit_program')
     staff_browsable = models.BooleanField(null=True, blank=True)
     student_browsable = models.BooleanField(null=True, blank=True)
+    sort_order = models.IntegerField(default=None)
     history = HistoricalRecords()
 
     def save(self, *args, **kwargs):
