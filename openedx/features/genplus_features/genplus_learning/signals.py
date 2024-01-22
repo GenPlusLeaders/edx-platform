@@ -1,20 +1,33 @@
 import logging
-from django.conf import settings
-from django.dispatch import receiver
-from django.db.models.signals import post_save, m2m_changed, pre_save, pre_delete
+from datetime import datetime
 
+import pytz
 from completion.models import BlockCompletion
-from common.djangoapps.student.models import CourseEnrollment
-from xmodule.modulestore.django import SignalHandler, modulestore
-from lms.djangoapps.grades.signals.signals import PROBLEM_RAW_SCORE_CHANGED
-from openedx.features.genplus_features.genplus.models import Class, Teacher, Activity, GenLog
-from openedx.features.genplus_features.genplus.constants import ActivityTypes, GenLogTypes
-from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
+from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
+from django.dispatch import receiver
+from opaque_keys.edx.keys import UsageKey
+
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
-from openedx.features.genplus_features.genplus_learning.models import (
-    Program, ProgramEnrollment, Unit, ClassUnit, ClassLesson , UnitBlockCompletion
-)
+from common.djangoapps.student.models import CourseEnrollment
+from openedx.features.genplus_features.genplus.constants import ActivityTypes, GenLogTypes
+from openedx.features.genplus_features.genplus.models import Activity, Class, GenLog
 from openedx.features.genplus_features.genplus_learning.cache import ProgramCache
+from openedx.features.genplus_features.genplus_learning.models import (
+    ClassLesson,
+    ClassUnit,
+    Program,
+    ProgramEnrollment,
+    UnitBlockCompletion,
+    UnitCompletion
+)
+from openedx.features.genplus_features.genplus_learning.utils import (
+    get_course_completion,
+    get_progress_and_completion_status
+)
+from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)
 
@@ -95,11 +108,38 @@ def class_students_changed(sender, instance, action, **kwargs):
 @receiver(post_save, sender=BlockCompletion)
 def problem_raw_score_changed_handler(sender, **kwargs):
     instance = kwargs['instance']
+    user_id = instance.user_id
     course_id = str(instance.context_key)
+    user = User.objects.get(id=user_id)
+    if not ENABLE_COMPLETION_TRACKING_SWITCH.is_enabled() or genplus_learning_tasks.is_staff_progress_tracking_disabled(user):
+        return
     if not instance.context_key.is_course:
         return
     usage_id = str(instance.block_key)
-    user_id = instance.user_id
+    usage_key = UsageKey.from_string(usage_id)
+    block_type = usage_key.block_type
+    block_id = usage_key.block_id
+    aggregator_types = ['course', 'chapter', 'sequential', 'vertical']
+
+    if block_type not in aggregator_types:
+        course_completion = get_course_completion(course_id, user, ['course'], block_id)
+        if not (course_completion and course_completion.get('attempted')):
+            return
+        progress, is_complete = get_progress_and_completion_status(
+            course_completion.get('total_completed_blocks'),
+            course_completion.get('total_blocks')
+        )
+        defaults = {
+            'progress': progress,
+            'is_complete': is_complete,
+        }
+        if is_complete:
+            defaults['completion_date'] = datetime.now().replace(tzinfo=pytz.UTC)
+
+        UnitCompletion.objects.update_or_create(
+            user=instance.user, course_key=course_id,
+            defaults=defaults
+        )
 
     genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
         args=[user_id, course_id, usage_id]
