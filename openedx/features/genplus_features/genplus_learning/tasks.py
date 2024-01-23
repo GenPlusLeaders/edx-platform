@@ -1,30 +1,28 @@
 import logging
 from datetime import datetime
-import pytz
 
-from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+import pytz
 from celery import shared_task
-from edx_django_utils.monitoring import set_code_owner_attribute
-from opaque_keys.edx.keys import UsageKey, CourseKey
 from completion.models import BlockCompletion
 from completion.waffle import ENABLE_COMPLETION_TRACKING_SWITCH
+from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
+from edx_django_utils.monitoring import set_code_owner_attribute
+from opaque_keys.edx.keys import CourseKey, UsageKey
 
 from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
-from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.course_modes.models import CourseMode
-from openedx.features.genplus_features.genplus.models import Class, Student
+from common.djangoapps.student.models import CourseEnrollment
 from openedx.features.genplus_features.genplus.constants import GenUserRoles
-from openedx.features.genplus_features.genplus_learning.models import (
-    Program, ProgramEnrollment, UnitCompletion, UnitBlockCompletion
-)
+from openedx.features.genplus_features.genplus.models import Class, Student
+from openedx.features.genplus_features.genplus_learning.access import allow_access, revoke_access
 from openedx.features.genplus_features.genplus_learning.constants import ProgramEnrollmentStatuses
+from openedx.features.genplus_features.genplus_learning.models import Program, ProgramEnrollment, UnitBlockCompletion
+from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
 from openedx.features.genplus_features.genplus_learning.utils import (
     get_course_completion,
     get_progress_and_completion_status
 )
-from openedx.features.genplus_features.genplus_learning.access import allow_access, revoke_access
-from openedx.features.genplus_features.genplus_learning.roles import ProgramStaffRole
 
 log = logging.getLogger(__name__)
 
@@ -181,25 +179,6 @@ def update_unit_and_lesson_completions(self, user_id, course_key_str, usage_key_
         course_key = CourseKey.from_string(course_key_str)
         block_id = usage_key.block_id
         course_completion = get_course_completion(course_key_str, user, ['course'], block_id)
-
-        if not (course_completion and course_completion.get('attempted')):
-            return
-
-        progress, is_complete = get_progress_and_completion_status(
-            course_completion.get('total_completed_blocks'),
-            course_completion.get('total_blocks')
-        )
-        defaults = {
-            'progress': progress,
-            'is_complete': is_complete,
-        }
-        if is_complete:
-            defaults['completion_date'] = datetime.now().replace(tzinfo=pytz.UTC)
-
-        UnitCompletion.objects.update_or_create(
-            user=user, course_key=course_key,
-            defaults=defaults
-        )
 
         for block in course_completion['children']:
             if block['attempted']:
