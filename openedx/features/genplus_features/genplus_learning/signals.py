@@ -105,7 +105,8 @@ def problem_raw_score_changed_handler(sender, **kwargs):
     user_id = instance.user_id
 
     genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
-        args=[user_id, course_id, usage_id]
+        args=[user_id, course_id, usage_id],
+        queue=settings.HIGH_PRIORITY_QUEUE
     )
 
 

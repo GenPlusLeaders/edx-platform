@@ -1019,6 +1019,8 @@ EXPLICIT_QUEUES = {
         'queue': PROGRAM_CERTIFICATES_ROUTING_KEY},
     'openedx.core.djangoapps.coursegraph.dump_course_to_neo4j': {
         'queue': COURSEGRAPH_JOB_QUEUE},
+    'openedx.features.genplus_features.genplus_learning.tasks.update_unit_and_lesson_completions': {
+        'queue': HIGH_PRIORITY_QUEUE},
 }
 
 LOGO_IMAGE_EXTRA_TEXT = ENV_TOKENS.get('LOGO_IMAGE_EXTRA_TEXT', '')
