@@ -629,6 +629,8 @@ def build_course_report_for_students(user_id, course_key, student_list):
             containing the student data which will be included in the
             final csv, and the features/keys to include in that CSV.
     """
+    from openedx.features.genplus_features.genplus_learning.utils import generate_report_data
+
     store = modulestore()
     user = get_user_model().objects.get(pk=user_id)
     usage_key = store.make_course_usage_key(course_key)
@@ -664,7 +666,7 @@ def build_course_report_for_students(user_id, course_key, student_list):
                     try:
                         user_state_iterator = user_state_client.iter_all_for_block(
                             block_key, student_list=student_list)
-                        for username, state in block.generate_report_data(user_state_iterator):
+                        for username, state in generate_report_data(block, user_state_iterator):
                             generated_report_data[username].append(state)
                     except NotImplementedError:
                         pass
