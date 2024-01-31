@@ -22,9 +22,9 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     get_user_next_course_lesson,
     get_lesson_lms_url
 )
-from genplus.lms.djangoapps.genplus.models import Student, JournalPost, Activity, Teacher
+from genplus.lms.djangoapps.genplus_core.models import Student, JournalPost, Activity, Teacher
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
-from genplus.lms.djangoapps.genplus.api.v1.serializers import TeacherSerializer
+from genplus.lms.djangoapps.genplus_core.api.v1.serializers import TeacherSerializer
 from openedx.features.genplus_features.common.utils import get_generic_serializer
 from edx_django_utils.db import use_read_replica_if_available
 from openedx.features.genplus_features.genplus_assessments.utils import (
