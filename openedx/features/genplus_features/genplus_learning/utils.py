@@ -5,6 +5,7 @@ import six
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.test import RequestFactory
 from django.urls import reverse
 from opaque_keys.edx.keys import UsageKey
@@ -37,6 +38,8 @@ from openedx.features.genplus_features.genplus_learning.roles import ProgramInst
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore
 from xmodule.util.sandboxing import get_python_lib_zip
+from completion_aggregator.models import Aggregator
+from completion_aggregator.api.v1.views import CompletionDetailView
 
 
 def calculate_class_lesson_progress(course_key, usage_key, gen_class):
@@ -528,3 +531,56 @@ def generate_report_data(self, user_state_iterator, limit_responses=None):
             if correct_answer_text is not None:
                 report[_("Correct Answer")] = correct_answer_text
             yield (user_state.username, report)
+
+def _get_user_completion(chapter_id, results):
+    """
+    Return the user completion percentage, using the completion response.
+
+    In case the user completion cannot be returned as a result of missing user completion, we return None,
+    indicating its absence.
+    """
+    if not results:
+        return None
+
+    user_completion = next(filter(lambda r: r, results), None)
+
+    # No completion returned, hence we cannot get the percentage either
+    # Indicate no user completion by returning None
+    if not user_completion:
+        return None
+
+    if chapter_id:
+        chapters = user_completion['chapter']
+        chapter = next(filter(lambda c: c['block_key'].split('@')[-1] == chapter_id, chapters), None)
+
+    completion_kind = chapter if chapter_id else user_completion
+
+    if not completion_kind:
+        return None
+
+    return round(float(completion_kind['completion']['percent']) * 100)
+
+
+def get_completion_details(request, course_key, chapter_id, user=None, requested_fields=None):
+    new_req = request.GET.copy()
+    new_req['username'] = user.username if user else request.user.username
+    if chapter_id is not None:
+        new_req['requested_fields'] = "chapter"
+    if requested_fields:
+        new_req['requested_fields'] = requested_fields
+
+    request.GET = new_req
+    with transaction.atomic():
+        return CompletionDetailView.as_view()(request, str(course_key)).data
+
+
+def get_aggregated_progress(request, course_key, chapter_id=None):
+    completion_percentage = 0
+    completion_resp = get_completion_details(request, course_key, chapter_id)
+    if completion_resp:
+        results = completion_resp.get('results')
+        user_completion_percentage = _get_user_completion(chapter_id, results)
+
+        if user_completion_percentage:
+            completion_percentage = user_completion_percentage
+    return completion_percentage

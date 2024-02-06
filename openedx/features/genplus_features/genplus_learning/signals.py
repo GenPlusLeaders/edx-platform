@@ -4,6 +4,8 @@ from completion.models import BlockCompletion
 from django.conf import settings
 from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
 from django.dispatch import receiver
+from django.test import RequestFactory
+from openedx.core.djangoapps.content.learning_sequences.api import get_course_outline
 
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
 from common.djangoapps.student.models import CourseEnrollment
@@ -17,7 +19,7 @@ from openedx.features.genplus_features.genplus_learning.models import (
     ProgramEnrollment,
     UnitBlockCompletion,
 )
-from xmodule.modulestore.django import modulestore
+from xmodule.modulestore.django import modulestore, SignalHandler
 
 log = logging.getLogger(__name__)
 
@@ -94,22 +96,6 @@ def class_students_changed(sender, instance, action, **kwargs):
         # create gen_log for the removal of student
         GenLog.create_student_log(instance, list(pk_set), GenLogTypes.STUDENT_REMOVED_FROM_CLASS)
 
-
-@receiver(post_save, sender=BlockCompletion)
-def problem_raw_score_changed_handler(sender, **kwargs):
-    instance = kwargs['instance']
-    course_id = str(instance.context_key)
-    if not instance.context_key.is_course:
-        return
-    usage_id = str(instance.block_key)
-    user_id = instance.user_id
-
-    genplus_learning_tasks.update_unit_and_lesson_completions.apply_async(
-        args=[user_id, course_id, usage_id],
-        queue=settings.HIGH_PRIORITY_QUEUE
-    )
-
-
 # capture activity on lesson completion
 @receiver(post_save, sender=UnitBlockCompletion)
 def create_activity_on_lesson_completion(sender, instance, created, **kwargs):
@@ -147,3 +133,8 @@ def program_deleted(sender, instance, **kwargs):
 def program_updated(sender, instance, created, **kwargs):
     if not created:
         ProgramCache.clear_mapping_for_all_courses(instance)
+@receiver(SignalHandler.course_published)
+def course_published(course_key, **kwargs):
+    print(kwargs)
+    course_outline_blocks = get_course_outline(course_key)
+    print(course_outline_blocks)
