@@ -224,13 +224,17 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         class_units = self.context.get('class_units')
         for class_unit in class_units:
             completion_resp = get_completion_details(request._request, class_unit.course_key, None, obj.user, 'chapter')
-            _results = completion_resp.get('results', []).pop() or []
+            _results = completion_resp.get('results', []) or []
+            _results = _results.pop() if _results else _results
             progress = {'unit_display_name': class_unit.unit.display_name}
             chapters = modulestore().get_course(class_unit.course_key).children
             for index, key in enumerate(chapters):
-                chapter = next(filter(lambda chp: chp['block_key'] == str(key), _results['chapter']),
-                               None)
-                chapters[index] = True if chapter and chapter['completion'].get('percent', 0) == 1 else False
+                if _results:
+                    chapter = next(filter(lambda chp: chp['block_key'] == str(key), _results['chapter']),
+                                   None)
+                    chapters[index] = True if chapter and chapter['completion'].get('percent', 0) == 1 else False
+                else:
+                    chapters[index] = False
             progress['lesson_completions'] = chapters
             results.append(progress)
         return results
