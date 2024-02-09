@@ -2,10 +2,9 @@ import logging
 
 from completion.models import BlockCompletion
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
 from django.dispatch import receiver
-from django.test import RequestFactory
-from openedx.core.djangoapps.content.learning_sequences.api import get_course_outline
 
 import openedx.features.genplus_features.genplus_learning.tasks as genplus_learning_tasks
 from common.djangoapps.student.models import CourseEnrollment
@@ -17,9 +16,10 @@ from openedx.features.genplus_features.genplus_learning.models import (
     ClassUnit,
     Program,
     ProgramEnrollment,
-    UnitBlockCompletion,
+    UnitBlockCompletion
 )
-from xmodule.modulestore.django import modulestore, SignalHandler
+from openedx.features.genplus_features.genplus_learning.utils import get_cache_key
+from xmodule.modulestore.django import modulestore
 
 log = logging.getLogger(__name__)
 
@@ -133,8 +133,9 @@ def program_deleted(sender, instance, **kwargs):
 def program_updated(sender, instance, created, **kwargs):
     if not created:
         ProgramCache.clear_mapping_for_all_courses(instance)
-@receiver(SignalHandler.course_published)
-def course_published(course_key, **kwargs):
-    print(kwargs)
-    course_outline_blocks = get_course_outline(course_key)
-    print(course_outline_blocks)
+
+
+@receiver(post_save, sender=BlockCompletion)
+def problem_raw_score_changed_handler(sender, instance, **kwargs):
+    cache_key = get_cache_key(instance.context_key, chapter_id=None, user=instance.user)
+    cache.delete(cache_key)
