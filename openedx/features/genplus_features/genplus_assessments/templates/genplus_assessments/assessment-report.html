@@ -236,7 +236,14 @@
          likert.xLabels.push(introLabel.text)
         });
         if (index === 0) {
-          likert.titles.push({ skill: intro.skill, title: intro.question });
+            likert.titles.push({
+                skill: intro.skill,
+                title: intro.question,
+                order: skillReflectionData.skills.indexOf(intro.skill)
+            });
+            likert.titles.sort(function (a, b) {
+                return a.order > b.order ? 1 : -1;
+            });
         }
           if (intro.point != 0) {
               const val = intro.point === 1 || intro.point === 2 ? intro.point - 3 : intro.point - 2;
@@ -253,7 +260,14 @@
 
     function prepareNuanceInterrogation(interros) {
       interros.forEach(function(interro) {
-        nuanceInterrogation.titles.push({ skill: interro.skill, title: interro.question });
+          nuanceInterrogation.titles.push({
+              skill: interro.skill,
+              title: interro.question,
+              order: skillReflectionData.skills.indexOf(interro.skill)
+          });
+          nuanceInterrogation.titles.sort(function (a, b) {
+              return a.order > b.order ? 1 : -1;
+          });
         nuanceInterrogation.data.datasets[0].data.push(interro.point);
         if (nuanceInterrogation.xLabels.length < 2) {
           interro.choices.forEach(function(choice) {
