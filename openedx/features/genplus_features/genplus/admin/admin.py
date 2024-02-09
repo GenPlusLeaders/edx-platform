@@ -1,20 +1,21 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
-from openedx.features.genplus_features.genplus.models import *
-from openedx.features.genplus_features.genplus_learning.models import Program, UnitCompletion, ProgramEnrollment
-from django.contrib import messages
-import openedx.features.genplus_features.genplus.tasks as genplus_tasks
 from django.urls import reverse
-from django.utils.text import format_lazy
 from django.utils.safestring import mark_safe
-from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.utils.text import format_lazy
+
+import openedx.features.genplus_features.genplus.tasks as genplus_tasks
 from openedx.features.genplus_features.genplus.filters import (
-    MoreThanOneClassFilter,
     DifferentActiveClassFilter,
-    WithoutClassStudents,
+    MoreThanOneClassFilter,
     SchoolFilter,
+    WithoutClassStudents
 )
+from openedx.features.genplus_features.genplus.models import *
+from openedx.features.genplus_features.genplus_learning.models import Program, ProgramEnrollment, UnitCompletion
+from openedx.features.genplus_features.genplus_learning.utils import get_aggregated_progress
 
 User = get_user_model()
 admin.site.unregister(User)
@@ -196,6 +197,10 @@ class StudentAdmin(admin.ModelAdmin):
     list_display = ('username', 'school', 'scn', 'enrolled_classes', 'active_class', 'progress')
     autocomplete_fields = ['active_class']
 
+    def get_queryset(self, request):
+        self.request = request
+        return super().get_queryset(request)
+
     def username(self, obj):
         return obj.__str__()
 
@@ -218,16 +223,10 @@ class StudentAdmin(admin.ModelAdmin):
         program_data = ''
         for program in Program.get_active_programs():
             units = program.units.all()
-            completions = UnitCompletion.objects.filter(
-                user=obj.gen_user.user,
-                course_key__in=units.values_list('course', flat=True)
-            )
             unit_data = ''
             for unit in units:
                 try:
-                    obj.gen_user.student.program_enrollments.get(program=program)
-                    completion = completions.filter(user=obj.gen_user.user, course_key=unit.course.id).first()
-                    progress = completion.progress if completion else 0
+                    progress = get_aggregated_progress(self.request, unit.course.id,user=obj.gen_user.user)
                     unit_html = f"""<tr>
                                   <td>{unit.display_name}</td> <td style="background-color: #eee;">{progress}%</td>
                                 </tr>
