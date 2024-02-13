@@ -1,24 +1,33 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from completion_aggregator.models import Aggregator
 from openedx.features.genplus_features.genplus.constants import ActivityTypes
 from openedx.features.genplus_features.genplus.models import Activity
 from openedx.features.genplus_features.genplus_badges.events.completion import program_badge_check, unit_badge_check
 
 from .models import BoosterBadgeAward
+from django.contrib.auth.models import User
+from completion_aggregator.dispatch import AggregatorUpdate
 
 
-@receiver(post_save, sender=Aggregator)
-def create_unit_badge(sender, instance, **kwargs):
-    if instance.aggregation_name == 'course' and instance.percent == 1:
-        unit_badge_check(instance.user, instance.course_key)
+@receiver(AggregatorUpdate)
+def create_unit_badge(sender, aggregation_data, **kwargs):
+    course = next(
+        filter(lambda aggregator: aggregator['aggregation_name'] == 'course', aggregation_data), None
+    )
+    if course and course['percent'] == 1:
+        user = User.objects.get(pk=course['user'])
+        unit_badge_check(user, course.course_key)
 
 
-@receiver(post_save, sender=Aggregator)
-def create_program_badge(sender, instance, **kwargs):
-    if instance.aggregation_name == 'course' and instance.percent == 1:
-        program_badge_check(instance.user, instance.course_key)
+@receiver(AggregatorUpdate)
+def create_program_badge(sender, aggregation_data, **kwargs):
+    course = next(
+        filter(lambda aggregator: aggregator['aggregation_name'] == 'course', aggregation_data), None
+    )
+    if course and course['percent'] == 1:
+        user = User.objects.get(pk=course['user'])
+        program_badge_check(user, course['course_key'])
 
 
 # capture activity on badge award
