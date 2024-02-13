@@ -17,7 +17,7 @@ def create_unit_badge(sender, aggregation_data, **kwargs):
     )
     if course and course['percent'] == 1:
         user = User.objects.get(pk=course['user'])
-        unit_badge_check(user, course.course_key)
+        unit_badge_check(user, course['course_key'])
 
 
 @receiver(AggregatorUpdate)
