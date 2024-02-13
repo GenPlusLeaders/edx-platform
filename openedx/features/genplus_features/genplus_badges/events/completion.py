@@ -61,7 +61,7 @@ def program_badge_check(user, course_key):
     program = unit.program
     course_keys = program.units.all().values_list('course', flat=True)
 
-    completions = Aggregator.objects.filter(user=user, percent=1, course_key__in=course_keys)
+    completions = Aggregator.objects.filter(user=user, percent=1, course_key__in=course_keys, aggregation_name='course')
     if course_keys.count() == completions.count():
         badge_class_qs = BadgeClass.objects.filter(
             slug=program.slug,
