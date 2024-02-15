@@ -13,7 +13,6 @@ import capa.inputtypes as inputtypes
 from common.config.waffle import TEACHER_PROGRESS_TACKING_DISABLED_SWITCH
 from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.models import CourseEnrollment
-from completion_aggregator.api.v1.views import CompletionDetailView
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from openedx.features.course_experience.utils import get_course_outline_block_tree
 from openedx.features.genplus_features.genplus.models import Student
@@ -567,7 +566,8 @@ def get_completion_details(request, course_key, chapter_id, user=None, requested
 
     request.GET = new_req
     with transaction.atomic():
-        return CompletionDetailView.as_view()(request, str(course_key)).data
+        from openedx.features.genplus_features.genplus_learning.views import GenPlusCompletionDetailView
+        return GenPlusCompletionDetailView.as_view()(request, str(course_key)).data
 
 
 def get_cache_key(course_key, chapter_id=None, user=None):

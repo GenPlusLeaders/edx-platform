@@ -2,10 +2,11 @@ import logging
 
 from django.conf import settings
 
-from lms.djangoapps.badges.models import BadgeClass, CourseEventBadgesConfiguration
+from completion_aggregator.models import Aggregator
+from lms.djangoapps.badges.models import BadgeClass
 from lms.djangoapps.badges.utils import requires_badges_enabled
-from xmodule.modulestore.django import modulestore
 from openedx.features.genplus_features.genplus_learning.models import Unit
+from xmodule.modulestore.django import modulestore
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,10 +60,8 @@ def program_badge_check(user, course_key):
 
     program = unit.program
     course_keys = program.units.all().values_list('course', flat=True)
-    completions = user.unitcompletion_set.filter(
-        is_complete=True,
-        course_key__in=course_keys,
-    )
+
+    completions = Aggregator.objects.filter(user=user, percent=1, course_key__in=course_keys, aggregation_name='course')
     if course_keys.count() == completions.count():
         badge_class_qs = BadgeClass.objects.filter(
             slug=program.slug,
