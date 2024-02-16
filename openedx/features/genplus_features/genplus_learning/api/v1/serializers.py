@@ -17,9 +17,7 @@ from openedx.features.genplus_features.genplus_learning.utils import (
     calculate_class_lesson_progress,
     get_absolute_url,
     get_user_next_course_lesson,
-    get_lesson_lms_url,
-    get_aggregated_progress,
-    get_completion_details,
+    get_lesson_lms_url
 )
 from openedx.features.genplus_features.genplus.models import Student, JournalPost, Activity, Teacher
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
@@ -141,11 +139,14 @@ class ProgramSerializer(BaseProgramSerializer):
         units_context = {}
 
         if gen_user.is_student:
+            course_ids = units.values_list('course', flat=True)
+            completions = UnitCompletion.objects.filter(user=gen_user.user, course_key__in=course_ids)
             badges = BadgeAssertion.objects.filter(user=gen_user.user, badge_class__issuing_component='genplus__unit')
 
             for unit in units:
                 course_key = unit.course.id
                 enrollment = gen_user.student.program_enrollments.get(program=obj)
+                completion = completions.filter(course_key=course_key).first()
                 badge = badges.filter(badge_class__course_id=course_key).first()
                 is_locked = True
                 if CourseEnrollment.is_enrolled(gen_user.user, course_key):
@@ -155,7 +156,7 @@ class ProgramSerializer(BaseProgramSerializer):
 
                 units_context[unit.pk] = {
                     'is_locked': is_locked,
-                    'progress': get_aggregated_progress(request._request, course_key),
+                    'progress': completion.progress if completion else 0,
                     'completion_badge_url': get_absolute_url(request, badge.badge_class.image) if badge else None,
                 }
 
@@ -219,22 +220,18 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         return get_student_program_skills_assessment(student=obj)
 
     def get_unit_lesson_completion(self, obj):
-        request = self.context.get('request')
         results = []
         class_units = self.context.get('class_units')
         for class_unit in class_units:
-            completion_resp = get_completion_details(request._request, class_unit.course_key, None, obj.user, 'chapter')
-            _results = completion_resp.get('results', []) or []
-            _results = _results.pop() if _results else _results
             progress = {'unit_display_name': class_unit.unit.display_name}
             chapters = modulestore().get_course(class_unit.course_key).children
+            completion_qs = UnitBlockCompletion.objects.filter(user=obj.user,
+                                                               usage_key__in=chapters,
+                                                               block_type='chapter',
+                                                               is_complete=True)
+            completions = completion_qs.values_list('usage_key', flat=True)
             for index, key in enumerate(chapters):
-                if _results:
-                    chapter = next(filter(lambda chp: chp['block_key'] == str(key), _results['chapter']),
-                                   None)
-                    chapters[index] = True if chapter and chapter['completion'].get('percent', 0) == 1 else False
-                else:
-                    chapters[index] = False
+                chapters[index] = True if key in completions else False
             progress['lesson_completions'] = chapters
             results.append(progress)
         return results
