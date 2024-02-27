@@ -1,7 +1,10 @@
+import logging
+from completion.models import BlockCompletion
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+from opaque_keys.edx.keys import CourseKey
+
 from openedx.core.djangoapps.signals.signals import COURSE_COMPLETED
-from openedx.features.genplus_features.genplus_learning.models import UnitCompletion
 from openedx.features.genplus_features.genplus.models import Activity
 from openedx.features.genplus_features.genplus.constants import ActivityTypes
 from openedx.features.genplus_features.genplus_badges.events.completion import (
@@ -10,14 +13,22 @@ from openedx.features.genplus_features.genplus_badges.events.completion import (
 )
 from .models import BoosterBadgeAward
 
+logger = logging.getLogger(__name__)
 
-@receiver(COURSE_COMPLETED, sender=UnitCompletion)
+
+@receiver(COURSE_COMPLETED, sender=BlockCompletion)
 def create_unit_badge(sender, user, course_key, **kwargs):
+    logger.info(f'Received course completed signal {str(user)},{str(course_key)}')
+    if isinstance(course_key, str):
+        course_key = CourseKey.from_string(course_key)
     unit_badge_check(user, course_key)
 
 
-@receiver(COURSE_COMPLETED, sender=UnitCompletion)
+@receiver(COURSE_COMPLETED, sender=BlockCompletion)
 def create_program_badge(sender, user, course_key, **kwargs):
+    logger.info(f'Received course completed signal {str(user)},{str(course_key)}')
+    if isinstance(course_key, str):
+        course_key = CourseKey.from_string(course_key)
     program_badge_check(user, course_key)
 
 
