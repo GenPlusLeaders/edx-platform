@@ -21,16 +21,12 @@ def create_unit_badge(sender, user, course_key, **kwargs):
     logger.info(f'Received course completed signal {str(user)},{str(course_key)}')
     if isinstance(course_key, str):
         course_key = CourseKey.from_string(course_key)
-    unit_badge_check(user, course_key)
 
-
-@receiver(COURSE_COMPLETED, sender=BlockCompletion)
-def create_program_badge(sender, user, course_key, **kwargs):
-    logger.info(f'Received course completed signal {str(user)},{str(course_key)}')
-    if isinstance(course_key, str):
-        course_key = CourseKey.from_string(course_key)
-    program_badge_check(user, course_key)
-
+    try:
+        unit_badge_check(user, course_key)
+        program_badge_check(user, course_key)
+    except Exception as ex:
+        logger.exception(f'Something went wrong {str(ex)}')
 
 # capture activity on badge award
 @receiver(post_save, sender=BoosterBadgeAward)
