@@ -260,6 +260,7 @@
 
     function prepareNuanceInterrogation(interros) {
       interros.forEach(function(interro) {
+          console.log(interro)
           nuanceInterrogation.titles.push({
               skill: interro.skill,
               title: interro.question,
@@ -268,8 +269,16 @@
           nuanceInterrogation.titles.sort(function (a, b) {
               return a.order > b.order ? 1 : -1;
           });
-        nuanceInterrogation.data.datasets[0].data.push(interro.point);
-        if (nuanceInterrogation.xLabels.length < 2) {
+          if (interro.point != 0) {
+              var skillIndex = skillReflectionData.skills.indexOf(interro.skill);
+              if (skillIndex > -1)
+                  nuanceInterrogation.data.datasets[0].data[skillIndex] = interro.point;
+          } else {
+              var skillIndex = skillReflectionData.skills.indexOf(interro.skill);
+              if (skillIndex > -1)
+                  nuanceInterrogation.data.datasets[0].data[skillIndex] = 0;
+          }
+          if (nuanceInterrogation.xLabels.length < 2) {
           interro.choices.forEach(function(choice) {
             nuanceInterrogation.xLabels.push(choice)
           })
