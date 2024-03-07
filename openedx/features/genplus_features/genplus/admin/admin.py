@@ -108,7 +108,7 @@ class ClassAdmin(admin.ModelAdmin):
             queryset = None
             if object_id is not None:
                 obj = Class.objects.get(pk=object_id)
-            if obj.school is not None:
+            if obj and obj.school is not None:
                 queryset = Student.objects.filter(gen_user__school=obj.school)
             else:
                 queryset = Student.objects.all()
