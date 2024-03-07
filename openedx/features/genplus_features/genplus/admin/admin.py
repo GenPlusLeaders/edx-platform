@@ -74,67 +74,69 @@ class CharacterAdmin(admin.ModelAdmin):
 @admin.register(Class)
 class ClassAdmin(admin.ModelAdmin):
     list_display = (
-        'name',
-        'is_visible',
-        'program',
-        'type',
-        'enrolled_students',
-        'last_synced'
+        "name",
+        "is_visible",
+        "program",
+        "type",
+        "enrolled_students",
+        "last_synced",
     )
-    list_filter = ('school', 'is_visible', 'program', 'type')
-    search_fields = ('name',)
-    filter_horizontal = ('students',)
-    actions = ['mark_visible', 'mark_invisible', 'sync_students']
+    list_filter = ("school", "is_visible", "program", "type")
+    search_fields = ("name",)
+    filter_horizontal = ("students",)
+    actions = ["mark_visible", "mark_invisible", "sync_students"]
 
     def sync_students(modeladmin, request, queryset):
-        class_ids = queryset.values_list('id', flat=True)
-        genplus_tasks.sync_student.apply_async(
-            args=[list(class_ids)]
+        class_ids = queryset.values_list("id", flat=True)
+        genplus_tasks.sync_student.apply_async(args=[list(class_ids)])
+        messages.add_message(
+            request,
+            messages.INFO,
+            "Students will be updated on background. Please refresh your page after a while.",
         )
-        messages.add_message(request, messages.INFO,
-                             'Students will be updated on background. Please refresh your page after a while.')
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        db = kwargs.get('using')
-        obj = kwargs.get('obj')
-        object_id = request.resolver_match.kwargs.get('object_id')
-        if db_field.name == 'students':
-            kwargs['widget'] = FilteredSelectMultiple(
+        obj = kwargs.get("obj")
+        object_id = request.resolver_match.kwargs.get("object_id")
+        if db_field.name == "students":
+            kwargs["widget"] = FilteredSelectMultiple(
                 db_field.verbose_name, is_stacked=False
             )
         else:
             return super().formfield_for_manytomany(db_field, request, **kwargs)
-        if 'queryset' not in kwargs:
+        if "queryset" not in kwargs:
             queryset = None
             if object_id is not None:
                 obj = Class.objects.get(pk=object_id)
-            if obj.school is not None:
+            if obj and obj.school is not None:
                 queryset = Student.objects.filter(gen_user__school=obj.school)
             else:
                 queryset = Student.objects.all()
             if queryset is not None:
-                kwargs['queryset'] = queryset
+                kwargs["queryset"] = queryset
         form_field = db_field.formfield(**kwargs)
-        msg = 'Hold down “Control”, or “Command” on a Mac, to select more than one.'
+        msg = "Hold down “Control”, or “Command” on a Mac, to select more than one."
         help_text = form_field.help_text
         form_field.help_text = (
-            format_lazy('{} {}', help_text, msg) if help_text else msg
+            format_lazy("{} {}", help_text, msg) if help_text else msg
         )
         return form_field
 
     def enrolled_students(self, obj):
-        url = reverse('admin:genplus_student_changelist')
-        students_ids = obj.students.values_list('id', flat=True)
+        url = reverse("admin:genplus_student_changelist")
+        students_ids = obj.students.values_list("id", flat=True)
         return mark_safe(
-            '<a href="%s?id__in=%s">%s</a>' % (url, ','.join(map(str, students_ids)), obj.students.count()))
+            '<a href="%s?id__in=%s">%s</a>'
+            % (url, ",".join(map(str, students_ids)), obj.students.count())
+        )
 
     def mark_visible(modeladmin, request, queryset):
         queryset.update(is_visible=True)
-        messages.add_message(request, messages.INFO, 'Marked Visible')
+        messages.add_message(request, messages.INFO, "Marked Visible")
 
     def mark_invisible(modeladmin, request, queryset):
         queryset.update(is_visible=False)
-        messages.add_message(request, messages.INFO, 'Marked Invisible')
+        messages.add_message(request, messages.INFO, "Marked Invisible")
 
     def get_actions(self, request):
         def func_maker(value):
@@ -146,6 +148,34 @@ class ClassAdmin(admin.ModelAdmin):
                     obj.save()
 
             return update_func
+
+        actions = super(ClassAdmin, self).get_actions(request)
+        for value in Program.objects.all():
+            func = func_maker(value)
+            name = f"attach_{value.slug.strip()}"
+            actions[f"attach_{value.slug.strip()}"] = (
+                func,
+                name,
+                f"attach to Program: {value.slug}",
+            )
+
+        return actions
+
+    def get_readonly_fields(self, request, obj=None):
+        if not obj:
+            return self.readonly_fields + ("program",)
+
+        if obj and obj.program:
+            return self.readonly_fields + ("program",)
+
+        return self.readonly_fields
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "program":
+            kwargs["queryset"] = Program.get_active_programs()
+        return super(ClassAdmin, self).formfield_for_foreignkey(
+            db_field, request, **kwargs
+        )
 
         actions = super(ClassAdmin, self).get_actions(request)
         for value in Program.objects.all():
