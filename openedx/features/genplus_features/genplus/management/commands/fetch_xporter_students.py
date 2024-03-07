@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         for gen_class in Class.objects.filter(school__type=SchoolTypes.XPORTER, is_visible=True):
             try:
-                self.stdout.write(self.style.INFO(f'Fetching students for {gen_class.name}'))
+                self.stdout.write(self.style.WARNING(f'Fetching students for {gen_class.name}'))
                 xporter = Xporter(gen_class.school.guid)
                 xporter.fetch_students(gen_class.id)
             except XporterException:
