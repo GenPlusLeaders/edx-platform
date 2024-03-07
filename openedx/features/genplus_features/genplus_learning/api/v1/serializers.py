@@ -159,7 +159,7 @@ class ProgramSerializer(BaseProgramSerializer):
 
                 units_context[unit.pk] = {
                     'is_locked': is_locked,
-                    'progress': round(user_completion_structure['course'].get('percent', 0) * 100, 2),
+                    'progress': int(user_completion_structure['course'].get('percent', 0) * 100),
                     'completion_badge_url': get_absolute_url(request, badge.badge_class.image) if badge else None,
                 }
 
