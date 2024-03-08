@@ -1,6 +1,3 @@
-import logging
-
-from django.apps import apps
 from django.conf import settings
 from rest_framework import serializers
 from xmodule.modulestore.django import modulestore
@@ -26,15 +23,13 @@ from openedx.features.genplus_features.genplus.models import Student, JournalPos
 from openedx.features.genplus_features.genplus_badges.models import BoosterBadgeAward
 from openedx.features.genplus_features.genplus.api.v1.serializers import TeacherSerializer
 from openedx.features.genplus_features.common.utils import get_generic_serializer
-from edx_django_utils.db import use_read_replica_if_available
 from openedx.features.genplus_features.genplus_assessments.utils import (
     get_student_program_skills_assessment,
     get_student_unit_skills_assessment,
 )
 from openedx.features.genplus_features.utils import get_full_name
-from genz.common.djangoapps.genz_aggregator.utils import get_completion_structure
 
-logger = logging.getLogger(__name__)
+
 class UnitSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     is_locked = serializers.SerializerMethodField()
@@ -144,12 +139,14 @@ class ProgramSerializer(BaseProgramSerializer):
         units_context = {}
 
         if gen_user.is_student:
+            course_ids = units.values_list('course', flat=True)
+            completions = UnitCompletion.objects.filter(user=gen_user.user, course_key__in=course_ids)
             badges = BadgeAssertion.objects.filter(user=gen_user.user, badge_class__issuing_component='genplus__unit')
 
             for unit in units:
                 course_key = unit.course.id
-                user_completion_structure = get_completion_structure(gen_user.user.id, course_key=course_key)
                 enrollment = gen_user.student.program_enrollments.get(program=obj)
+                completion = completions.filter(course_key=course_key).first()
                 badge = badges.filter(badge_class__course_id=course_key).first()
                 is_locked = True
                 if CourseEnrollment.is_enrolled(gen_user.user, course_key):
@@ -159,7 +156,7 @@ class ProgramSerializer(BaseProgramSerializer):
 
                 units_context[unit.pk] = {
                     'is_locked': is_locked,
-                    'progress': round(user_completion_structure['course'].get('percent', 0) * 100, 2),
+                    'progress': completion.progress if completion else 0,
                     'completion_badge_url': get_absolute_url(request, badge.badge_class.image) if badge else None,
                 }
 
@@ -228,21 +225,15 @@ class ClassStudentSerializer(serializers.ModelSerializer):
         for class_unit in class_units:
             progress = {'unit_display_name': class_unit.unit.display_name}
             chapters = modulestore().get_course(class_unit.course_key).children
-            CourseBlock = apps.get_model('genz_aggregator', 'CourseBlock')
-            try:
-                completion_qs = use_read_replica_if_available(CourseBlock.objects.filter(
-                    user_id=obj.gen_user.user_id,
-                    block_key__in=chapters,
-                    block_type='chapter',
-                    percent=1)
-                )
-                completions = list(completion_qs.values_list('block_key', flat=True))
-                for index, key in enumerate(chapters):
-                    chapters[index] = True if key in completions else False
-                progress['lesson_completions'] = chapters
-                results.append(progress)
-            except Exception as ex:
-                logger.error(f'{str(ex)} - {str(obj)}')
+            completion_qs = UnitBlockCompletion.objects.filter(user=obj.user,
+                                                               usage_key__in=chapters,
+                                                               block_type='chapter',
+                                                               is_complete=True)
+            completions = completion_qs.values_list('usage_key', flat=True)
+            for index, key in enumerate(chapters):
+                chapters[index] = True if key in completions else False
+            progress['lesson_completions'] = chapters
+            results.append(progress)
         return results
 
 

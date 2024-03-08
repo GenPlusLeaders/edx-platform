@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.apps import apps
 
 from lms.djangoapps.badges.models import BadgeClass, CourseEventBadgesConfiguration
 from lms.djangoapps.badges.utils import requires_badges_enabled
@@ -55,17 +54,14 @@ def unit_badge_check(user, course_key):
 @requires_badges_enabled
 def program_badge_check(user, course_key):
     unit = Unit.objects.filter(course__id=course_key).first()
-    CourseBlock = apps.get_model('genz_aggregator', 'CourseBlock')
     if not unit:
         return
 
     program = unit.program
     course_keys = program.units.all().values_list('course', flat=True)
-    completions = CourseBlock.objects.filter(
+    completions = user.unitcompletion_set.filter(
+        is_complete=True,
         course_key__in=course_keys,
-        user=user,
-        percent=1,
-        block_type='course'
     )
     if course_keys.count() == completions.count():
         badge_class_qs = BadgeClass.objects.filter(

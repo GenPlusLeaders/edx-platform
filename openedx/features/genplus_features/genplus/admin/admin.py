@@ -15,7 +15,6 @@ from openedx.features.genplus_features.genplus.filters import (
     WithoutClassStudents,
     SchoolFilter,
 )
-from genz.common.djangoapps.genz_aggregator.utils import get_completion_structure
 
 User = get_user_model()
 admin.site.unregister(User)
@@ -225,15 +224,16 @@ class StudentAdmin(admin.ModelAdmin):
             )
             unit_data = ''
             for unit in units:
-                if obj.gen_user.student.program_enrollments.filter(program=program).exists():
-                    user_completion_structure = get_completion_structure(obj.gen_user.user.id, course_key=unit.course.id)
-                    progress = round(user_completion_structure['course'].get('percent', 0) * 100, 2)
+                try:
+                    obj.gen_user.student.program_enrollments.get(program=program)
+                    completion = completions.filter(user=obj.gen_user.user, course_key=unit.course.id).first()
+                    progress = completion.progress if completion else 0
                     unit_html = f"""<tr>
                                   <td>{unit.display_name}</td> <td style="background-color: #eee;">{progress}%</td>
                                 </tr>
                               """
                     unit_data += unit_html
-                else:
+                except ProgramEnrollment.DoesNotExist:
                     continue
             if unit_data:
                 program_html = f"""
