@@ -78,3 +78,4 @@ git+https://github.com/edx-solutions/xblock-drag-and-drop-v2@v2.3.4#egg=xblock-d
 
 -e git+https://github.com/GenPlusLeaders/edx_xblock_scorm.git@v1.1.4#egg=edx_xblock_scorm==v1.1.4
 -e git+https://github.com/raccoongang/xblock-pdf.git@master#egg=xblock-pdf
+-e git+https://github.com/GenPlusLeaders/typeform-xblock.git
