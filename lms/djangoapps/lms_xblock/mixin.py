@@ -8,7 +8,7 @@ Namespace that defines fields common to all blocks used in the LMS
 from lazy import lazy
 from xblock.core import XBlock, XBlockMixin
 from xblock.exceptions import JsonHandlerError
-from xblock.fields import Boolean, Dict, Scope, String
+from xblock.fields import Boolean, Dict, Scope, String, Integer
 from xblock.validation import ValidationMessage
 
 from lms.lib.utils import is_unit
@@ -94,6 +94,16 @@ class LmsBlockMixin(XBlockMixin):
     )
     is_completion_tracked = Boolean(
         help=_("If true, problems completion will be tracked"),
+        default=True,
+        scope=Scope.settings,
+    )
+    genplus_chapter_group = String(
+        help=_("Chapter group name"),
+        default=True,
+        scope=Scope.settings,
+    )
+    genplus_chapter_group_time = Integer(
+        help=_("Chapter allocated time"),
         default=True,
         scope=Scope.settings,
     )
