@@ -118,6 +118,8 @@ def get_course_outline_block_tree(request, course_id, user=None, allow_start_dat
             'is_completion_tracked',
             'thumbnail',
             'lesson_type',
+            'genplus_chapter_group',
+            'genplus_chapter_group_time'
         ],
         allow_start_dates_in_future=allow_start_dates_in_future,
     )
