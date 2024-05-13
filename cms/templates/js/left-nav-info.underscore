@@ -1,0 +1,15 @@
+<form>
+<h3 class="modal-section-title" id="left_nav_info"><%- gettext('LMS Left Information') %></h3>
+<div class="modal-section-content lesson_type_select">
+    <div class="list-fields">
+    <div class="row">
+    <label for="lms-nav-group-name-input" class="label">GenPlus Group Name</label>
+        <input id="lms-nav-group-name-input" name="lms-nav-group-name-input"/>
+    </div>
+    <div class="row">
+    <label for="lms-nav-group-time-input" class="label">GenPlus Group Time Allocated</label>
+        <input id="lms-nav-group-time-input" name="lms-nav-group-time-input" type="number"/>
+    </div>
+    </div>
+</div>
+</form>

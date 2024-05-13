@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=(n > 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n                    Your verification attempt failed. Please read our guidelines to make\n                    sure you understand the requirements for successfully completing verification,\n                    then try again.\n                ": "\n                    Do\u011frulama denemeniz ba\u015far\u0131s\u0131z oldu. L\u00fctfen ba\u015far\u0131l\u0131 bir do\u011frulama i\u015flemi i\u00e7in\n                    yerine getirilmesi gerekenleri do\u011frulamak i\u00e7in k\u0131lavuz metinlerimizi yeniden okuyun,\n                    ve ard\u0131ndan tekrar deneyin.\n                ",
     "\n                    Your verification has expired. You must successfully complete a new identity verification\n                    before you can start the proctored exam.\n                ": "\n                    Do\u011frulaman\u0131z ge\u00e7erlili\u011fini kaybetti. G\u00f6zetmenli s\u0131nava ba\u015flamadan \u00f6nce\n                    yeni bir kimlik do\u011frulamas\u0131 yapmal\u0131s\u0131n\u0131z.\n                ",
@@ -489,6 +489,7 @@
     "Continue to Verification": "Do\u011frulamaya Devam Et",
     "Continue to my practice exam": "Al\u0131\u015ft\u0131rma s\u0131nav\u0131ma devam et",
     "Continue to my proctored exam.": "G\u00f6zetmenli s\u0131nav\u0131ma devam et.",
+    "Continue to onboarding": "Oryantasyona devam et",
     "Copy": "Kopyala",
     "Copy Component Location": "Bile\u015fen Konumunu Kopyala",
     "Copy Email To Editor": "Edit\u00f6re e-postay\u0131 kopyala",
@@ -970,6 +971,7 @@
     "Invalidate Certificate": "Sertifikay\u0131 Ge\u00e7ersizle\u015ftir",
     "Invalidated": "Ge\u00e7ersizle\u015ftirildi",
     "Invalidated By": "Ge\u00e7ersizle\u015ftiren",
+    "Is Resumable": "Devam Edilebilir",
     "Is Sample Attempt": "Bir \u00d6rnek Denemedir",
     "Is Visible To:": "\u015eu Ki\u015filere G\u00f6r\u00fcn\u00fcyor:",
     "Is this OK?": "Bu tamam m\u0131?",
@@ -1187,6 +1189,11 @@
     "Ok": "Tamam",
     "Onboarding": "Test s\u00fcr\u00fc\u015f\u00fc",
     "Onboarding Exam": "Test S\u00fcr\u00fc\u015f\u00fc S\u0131nav\u0131",
+    "Onboarding Expired": "Oryantasyon S\u00fcresi Doldu",
+    "Onboarding Failed": "Oryantasyon Ba\u015far\u0131s\u0131z",
+    "Onboarding Missing": "Oryantasyon Eksik",
+    "Onboarding Pending": "Oryantasyon Beklemede",
+    "Onboarding status question": "Oryantasyon durumu sorusu",
     "One or more rescheduling tasks failed.": "Bir veya daha fazla yeniden zamanlama g\u00f6revi ba\u015far\u0131s\u0131z oldu.",
     "Only ": "Sadece",
     "Only properly formatted .csv files will be accepted.": "Sadece d\u00fczg\u00fcn formatlanm\u0131\u015f .csv dosyalar\u0131 kabul edilecek.",
@@ -1322,8 +1329,11 @@
     "Proctored Exam": "G\u00f6zetmenli S\u0131nav",
     "Proctored Option Available": "G\u00f6zetmenli Se\u00e7enek Mevcut",
     "Proctored Option No Longer Available": "G\u00f6zetmenli Se\u00e7enek Art\u0131k Mevcut De\u011fil",
+    "Proctored exam {exam_name} in {course_name} for user {username}": "{username} i\u00e7in {course_name} dersi {exam_name} g\u00f6zetmenli s\u0131nav\u0131",
     "Proctored exams are timed and they record video of each learner taking the exam. The videos are then reviewed to ensure that learners follow all examination rules.": "G\u00f6zetmenli s\u0131navlar zaman s\u0131n\u0131rl\u0131d\u0131r ve s\u0131nav s\u00fcresince \u00f6\u011frencileri videoya kaydeder. Bu videolar \u00f6\u011frencilerin s\u0131nav kurallar\u0131na uymalar\u0131n\u0131 belgeler.",
     "Proctoring": "G\u00f6zetmenli",
+    "Proctoring Results For {course_name} {exam_name}": "{course_name} dersi {exam_name} s\u0131nav\u0131 i\u00e7in G\u00f6zetmen Sonu\u00e7lar\u0131",
+    "Proctoring Review In Progress For {course_name} {exam_name}": "{course_name} dersi {exam_name} s\u0131nav\u0131 i\u00e7in G\u00f6zetim \u0130ncelemesi devam ediyor",
     "Proctoring Settings": "G\u00f6zetmen Ayarlar\u0131",
     "Product Name": "\u00dcr\u00fcn Ad\u0131",
     "Professional Certificate for {courseName}": "{courseName} i\u00e7in Profesyonel Sertifika",
@@ -1351,6 +1361,7 @@
     "Re-run Course": "Dersi Yeniden \u00c7al\u0131\u015ft\u0131r",
     "Read More": "Daha Fazlas\u0131 \u0130\u00e7in",
     "Read more": "Daha fazlas\u0131",
+    "Ready To Resume": "Devam Etmeye Haz\u0131r",
     "Ready To Start": "Ba\u015flamaya Haz\u0131r",
     "Ready To Submit": "G\u00f6ndermeye Haz\u0131r",
     "Reason": "Neden",
@@ -2366,7 +2377,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

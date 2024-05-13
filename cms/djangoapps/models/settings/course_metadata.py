@@ -76,6 +76,8 @@ class CourseMetadata:
         'default_tab',
         'highlights_enabled_for_messaging',
         'is_onboarding_exam',
+        'genplus_chapter_group',
+        'genplus_chapter_group_time'
     ]
 
     @classmethod
