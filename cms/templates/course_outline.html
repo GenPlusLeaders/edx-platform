@@ -182,13 +182,6 @@ from django.urls import reverse
                         </a>
                     </li>
                 %endif
-                %if update_lessons_link:
-                    <li class="nav-item">
-                        <a href="${update_lessons_link}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}">
-                            <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
-                        </a>
-                    </li>
-                %endif
                 <li class="nav-item">
                     <a href="#" class="button button-toggle button-toggle-expand-collapse collapse-all is-hidden">
                         <span class="collapse-all"><span class="icon fa fa-arrow-up" aria-hidden="true"></span> <span class="label">${_("Collapse All Sections")}</span></span>
@@ -198,6 +191,33 @@ from django.urls import reverse
                 <li class="nav-item">
                     <a href="${lms_link}" rel="external" class="button view-button view-live-button"
                        title="${_('Click to open the courseware in the LMS in a new tab')}">${_("View Live")}</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+</div>
+
+
+<div class="wrapper-mast wrapper">
+    <header class="mast has-actions has-subtitle">
+        <nav class="nav-actions" aria-label="${_('GenPlus Actions')}" style="bottom: 0">
+            <ul>
+                %if update_lessons_link:
+                <li class="nav-item">
+                    <a href="${update_lessons_link}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}">
+                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
+                    </a>
+                </li>
+                %endif
+                <li class="nav-item">
+                    <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}">
+                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Progress')}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}">
+                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
+                    </a>
                 </li>
             </ul>
         </nav>
