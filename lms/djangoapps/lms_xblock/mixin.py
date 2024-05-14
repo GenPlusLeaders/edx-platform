@@ -118,7 +118,7 @@ class LmsBlockMixin(XBlockMixin):
     led_type = String(
         help=_("Icon for Gen+ learning zone menu"),
         scope=Scope.settings,
-        default=LessonLedTypes.TEACHER_AND_STUDENT,
+        default=LessonLedTypes.TEACHER_LED_ONLY,
     )
     group_access = GroupAccessDict(
         help=_(
