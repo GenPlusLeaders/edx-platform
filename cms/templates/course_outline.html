@@ -210,12 +210,12 @@ from django.urls import reverse
                 </li>
                 %endif
                 <li class="nav-item">
-                    <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}">
+                    <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}" data-tooltip="Run everytime you made any structural change in course">
                         <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Progress')}
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}">
+                    <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}" data-tooltip="Manually create badges for missing students">
                         <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
                     </a>
                 </li>
