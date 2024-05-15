@@ -11,8 +11,8 @@ var edx = edx || {},
 
             loadAccordion: function() {
                 navigation.checkForCurrent();
-                navigation.listenForClick();
-                navigation.listenForKeypress();
+                navigation.listenForChange();
+                // navigation.listenForKeypress();
             },
 
             getActiveIndex: function() {
@@ -27,24 +27,16 @@ var edx = edx || {},
             },
 
             checkForCurrent: function() {
-                var button = navigation.getActiveIndex();
-
-                navigation.closeAccordions();
-
-                if (button !== null) {
-                    navigation.setupCurrentAccordionSection(button);
-                }
+              var section = '#' + $('.accordion').find('#select-lessons').val();
+              navigation.openAccordion(section);
             },
 
-            listenForClick: function() {
-                $('.accordion').on('click', '.button-chapter', function(event) {
-                    event.preventDefault();
+            listenForChange: function() {
+                $('.accordion').on('change', '#select-lessons', function(event) {
+                    section = '#' + event.target.value;
 
-                    var $button = $(event.currentTarget),
-                        section = $button.next('.chapter-content-container');
-
-                    navigation.closeAccordions($button, section);
-                    navigation.openAccordion($button, section);
+                    navigation.closeAccordions();
+                    navigation.openAccordion(section);
                 });
             },
 
@@ -62,28 +54,12 @@ var edx = edx || {},
                 });
             },
 
-            closeAccordions: function(button, section) {
-                var menu = $(section).find('.chapter-menu'),
-                    toggle;
+            closeAccordions: function() {
 
-                $('.accordion .button-chapter').each(function(index, element) {
-                    $toggle = $(element);
-
-                    $toggle
+                $('.chapter-content-container').each(function(index, element) {
+                    $(element)
                         .removeClass('is-open')
-                        .attr('aria-expanded', 'false');
-
-                    $toggle
-                        .children('.group-heading')
-                        .removeClass('active')
-                        .find('.icon')
-                            .addClass('fa-caret-right')
-                            .removeClass('fa-caret-down');
-
-                    $toggle
-                        .next('.chapter-content-container')
-                        .removeClass('is-open')
-                        .find('.chapter-menu').not(menu)
+                        .find('.chapter-menu')
                             .removeClass('is-open')
                             .slideUp();
                 });
@@ -92,24 +68,11 @@ var edx = edx || {},
             setupCurrentAccordionSection: function(button) {
                 var section = $(button).next('.chapter-content-container');
 
-                navigation.openAccordion(button, section);
+                navigation.openAccordion(section);
             },
 
-            openAccordion: function(button, section) {
-                var $sectionEl = $(section),
-                    firstLink = $sectionEl.find('.menu-item').first(),
-                    $buttonEl = $(button);
-
-                $buttonEl
-                    .addClass('is-open')
-                    .attr('aria-expanded', 'true');
-
-                $buttonEl
-                    .children('.group-heading')
-                    .addClass('active')
-                    .find('.icon')
-                        .removeClass('fa-caret-right')
-                        .addClass('fa-caret-down');
+            openAccordion: function(section) {
+                var $sectionEl = $('.accordion').find(section);
 
                 $sectionEl
                     .addClass('is-open')
