@@ -216,6 +216,7 @@ from django.urls import reverse
                 </li>
                 <li class="nav-item">
                     <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}" data-tooltip="Manually create badges should be run if (when testing) there are any course/program badge that are not being awarded to students.">
+
                         <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
                     </a>
                 </li>
