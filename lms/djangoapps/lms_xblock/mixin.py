@@ -99,12 +99,12 @@ class LmsBlockMixin(XBlockMixin):
     )
     genplus_chapter_group = String(
         help=_("Chapter group name"),
-        default=True,
+        default=None,
         scope=Scope.settings,
     )
     genplus_chapter_group_time = Integer(
         help=_("Chapter allocated time"),
-        default=True,
+        default=None,
         scope=Scope.settings,
     )
     thumbnail = String(
