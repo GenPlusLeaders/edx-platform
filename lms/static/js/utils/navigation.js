@@ -116,7 +116,7 @@ var edx = edx || {},
                 .html(buttonHtml);
             },
 
-            openAccordion: function(button, section, clicked = false) {
+            openAccordion: function(button, section, updateDropMenu = false) {
                 var $sectionEl = $(section),
                     $buttonEl = $(button);
 
@@ -133,7 +133,7 @@ var edx = edx || {},
                     .find('.chapter-menu')
                         .addClass('is-open')
                         .slideDown(function() {
-                          if (clicked) {
+                          if (updateDropMenu) {
                             navigation.selectFirstUnit(section);
                             $('#selectLessonsButton').addClass('disabled');
                           }
