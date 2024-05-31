@@ -13,8 +13,14 @@ from lms.djangoapps.badges.models import (
     CourseEventBadgesConfiguration
 )
 
+
+@admin.register(BadgeClass)
+class BadgeClassAdmin(admin.ModelAdmin):
+    list_display = ('display_name', 'slug', 'issuing_component', 'course_id')
+    list_filter = ('slug', )
+
+
 admin.site.register(CourseCompleteImageConfiguration)
-admin.site.register(BadgeClass)
 admin.site.register(BadgeAssertion)
 # Use the standard Configuration Model Admin handler for this model.
 admin.site.register(CourseEventBadgesConfiguration, ConfigurationModelAdmin)
