@@ -49,8 +49,8 @@ var edx = edx || {},
                     }
 
                     navigation.closeAccordions($button, section);
+                    navigation.openAccordion($button, section, true);
                     navigation.updateDropDownButton($button);
-                    navigation.openAccordion($button, section);
                 });
             },
 
@@ -97,13 +97,13 @@ var edx = edx || {},
             setupCurrentAccordionSection: function(button) {
                 var section = "#" + $(button).attr('data-section-id');
 
-                navigation.updateDropDownButton(button);
                 navigation.openAccordion(button, section);
+                navigation.updateDropDownButton(button);
             },
 
             updateDropDownButton : function (button) {
               var buttonHtml = $(button).find('.group-heading').html();
-              var $dropButton = $('#selectLessonsButton')
+              var $dropButton = $('#selectLessonsButton');
 
               if ($(button).hasClass('complete')) {
                 $dropButton.addClass('complete')
@@ -116,9 +116,8 @@ var edx = edx || {},
                 .html(buttonHtml);
             },
 
-            openAccordion: function(button, section) {
+            openAccordion: function(button, section, clicked = false) {
                 var $sectionEl = $(section),
-                    firstLink = $sectionEl.find('.menu-item').first(),
                     $buttonEl = $(button);
 
                 $buttonEl
@@ -133,7 +132,24 @@ var edx = edx || {},
                     .addClass('is-open')
                     .find('.chapter-menu')
                         .addClass('is-open')
-                        .slideDown();
+                        .slideDown(function() {
+                          if (clicked) {
+                            navigation.selectFirstUnit(section);
+                            $('#selectLessonsButton').addClass('disabled');
+                          }
+                        });
+            },
+
+            selectFirstUnit: function (section) {
+              var firstSubesctioUrl = $(section)
+                                        .find('.menu-item')
+                                        .first()
+                                        .addClass('active')
+                                        .find('.accordion-nav')
+                                        .attr('href');
+              if (firstSubesctioUrl) {
+                window.location.href = firstSubesctioUrl;
+              }
             }
         };
 
