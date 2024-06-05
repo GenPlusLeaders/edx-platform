@@ -206,6 +206,25 @@
 // ====================
 
 // informational bits (rename once UI pattern is further defined)
+.genplus-feature-widget {
+  border: 1px solid #eb004a;
+  background: white;
+  padding-bottom: $baseline;
+  margin: $baseline*3.85 0 $baseline;
+  border-radius: $border-radius;
+  overflow: hidden;
+
+  .title-2 {
+    background: #eb004a;
+    color: white;
+    padding: $baseline*.25 $baseline;
+  }
+
+  .bit {
+    padding: 0 $baseline $baseline;
+  }
+}
+
 .bit {
   @extend %t-copy-sub1;
 
