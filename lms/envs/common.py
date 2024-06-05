@@ -3196,6 +3196,8 @@ MICROSOFT_PROVIDER_SLUGS = ['microsoft',]
 
 XPORTER_RELYING_PARTY_ID = 'Learn.genplus.co.uk'
 XPORTER_THIRD_PARTY_ID = 'XporterOnDemand'
+
+HUBSPOT_ACCESS_TOKEN = "your-hubspot-token"
 ######################### GENPLUS SETTINGS #################################
 
 GENPLUS_FRONTEND_URL = ''
