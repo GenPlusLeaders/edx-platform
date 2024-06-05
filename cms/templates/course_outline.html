@@ -253,28 +253,31 @@ from django.urls import reverse
             </div>
         </article>
         <aside class="content-supplementary" role="complementary">
-          %if update_lessons_link:
-            <div class="bit">
-              <h3 class="title-3">${_("Update Lessons")}</h3>
-              <p>After Adding/Removing/Moving a menu section, a Gen+ admin should click this button to update the lesson menu structure.</p>
-              <a href="${update_lessons_link}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}">
-                  <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
-              </a>
-            </div>
-          %endif
-            <div class="bit">
-              <h3 class="title-3">${_("Update Course Structure")}</h3>
-              <p>This should be run every time you make a structural change in the course (i.e. removing an xblock, adding a subsection, etc).  If you don't run this then student progress tracking will not work properly.</p>
-              <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}">
-                <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Progress')}
-              </a>
-            </div>
-            <div class="bit">
-              <h3 class="title-3">${_("Update Badges")}</h3>
-              <p>Manually create badges should be run if (when testing) there are any course/program badge that are not being awarded to students.</p>
-              <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}">
-                <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
-              </a>
+          <div class="genplus-feature-widget">
+            <h2 class="title-2">${_("Gen+ Features")}</h2>
+            %if update_lessons_link:
+              <div class="bit">
+                <h3 class="title-3">${_("Update Lessons")}</h3>
+                <p>After Adding/Removing/Moving a menu section, a Gen+ admin should click this button to update the lesson menu structure.</p>
+                <a href="${update_lessons_link}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}">
+                    <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
+                </a>
+              </div>
+            %endif
+              <div class="bit">
+                <h3 class="title-3">${_("Update Course Structure")}</h3>
+                <p>This should be run every time you make a structural change in the course (i.e. removing an xblock, adding a subsection, etc).  If you don't run this then student progress tracking will not work properly.</p>
+                <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}">
+                  <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Progress')}
+                </a>
+              </div>
+              <div class="bit">
+                <h3 class="title-3">${_("Update Badges")}</h3>
+                <p>Manually create badges should be run if (when testing) there are any course/program badge that are not being awarded to students.</p>
+                <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button external-help-button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}">
+                  <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
+                </a>
+              </div>
             </div>
             <div class="bit">
                 <h3 class="title-3">${_("Creating your course organization")}</h3>
