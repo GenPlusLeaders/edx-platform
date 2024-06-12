@@ -19,6 +19,9 @@ data: |
                   <div class="img-box">
                     <img src="/static/images/great-reflection-badge.png" width="65" alt="Badge opportunity - Great Reflection" />
                     <div class="text-area">
+                      <!--
+                        Hint! Use <br /> to move word on to the next line. For example, 'Great<br />Reflection' the word Reflection will be move to the next line.
+                      -->
                       <span class="badge-title">Badge<br />opportunity - </span>
                       <strong class="badge-name">Great<br />Reflection</strong>
                     </div>
