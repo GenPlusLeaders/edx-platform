@@ -16,7 +16,13 @@ data: |
             <div class="col">
               <div class="journals-info">
                 <div class="journals-info-header">
-                  <img src="/static/images/reflection-badge.svg" width="120" alt="Badge opportunity - Great Reflection" />
+                  <div class="img-box">
+                    <img src="/static/images/great-reflection-badge.png" width="65" alt="Badge opportunity - Great Reflection" />
+                    <div class="text-area">
+                      <span class="badge-title">Badge<br />opportunity - </span>
+                      <strong class="badge-name">Great<br />Reflection</strong>
+                    </div>
+                  </div>
                   <h2>YOUR JOURNAL</h2>
                 </div>
                 <div class="img-block">
