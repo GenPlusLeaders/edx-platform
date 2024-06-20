@@ -37,14 +37,20 @@ var edx = edx || {},
             },
 
             listenForClick: function() {
-                $('.accordion').on('click', '.button-chapter', function(event) {
+                $('.accordion .dropdown-menu').on('click', '.button-chapter', function(event) {
                     event.preventDefault();
 
                     var $button = $(event.currentTarget),
-                        section = $button.next('.chapter-content-container');
+                        section = "#" + $button.attr('data-section-id');
+
+                    if($button.hasClass('locked')) {
+                      event.stopPropagation();
+                      return false;
+                    }
 
                     navigation.closeAccordions($button, section);
-                    navigation.openAccordion($button, section);
+                    navigation.openAccordion($button, section, true);
+                    navigation.updateDropDownButton($button);
                 });
             },
 
@@ -53,7 +59,8 @@ var edx = edx || {},
                     // because we're changing the role of the toggle from an 'a' to a 'button'
                     // we need to ensure it has the same keyboard use cases as a real button.
                     // this is useful for screenreader users primarily.
-                    if (event.which == 32) { // spacebar
+                    var currentButton  = $(this);
+                    if (event.which == 32 && !currentButton.hasClass('locked')) { // spacebar
                         event.preventDefault();
                         $(event.currentTarget).trigger('click');
                     } else {
@@ -63,11 +70,13 @@ var edx = edx || {},
             },
 
             closeAccordions: function(button, section) {
-                var menu = $(section).find('.chapter-menu'),
+                var menu = $(section),
+                    $sections = $('.chapter-content-container'),
                     toggle;
 
-                $('.accordion .button-chapter').each(function(index, element) {
+                $('.accordion .dropdown-menu .button-chapter').each(function(index, element) {
                     $toggle = $(element);
+                    $sectionEl = $(section)
 
                     $toggle
                         .removeClass('is-open')
@@ -76,28 +85,39 @@ var edx = edx || {},
                     $toggle
                         .children('.group-heading')
                         .removeClass('active')
-                        .find('.icon')
-                            .addClass('fa-caret-right')
-                            .removeClass('fa-caret-down');
 
-                    $toggle
-                        .next('.chapter-content-container')
+                    $sections.not(menu)
                         .removeClass('is-open')
-                        .find('.chapter-menu').not(menu)
+                        .find('.chapter-menu')
                             .removeClass('is-open')
                             .slideUp();
                 });
             },
 
             setupCurrentAccordionSection: function(button) {
-                var section = $(button).next('.chapter-content-container');
+                var section = "#" + $(button).attr('data-section-id');
 
                 navigation.openAccordion(button, section);
+                navigation.updateDropDownButton(button);
             },
 
-            openAccordion: function(button, section) {
+            updateDropDownButton : function (button) {
+              var buttonHtml = $(button).find('.group-heading').html();
+              var $dropButton = $('#selectLessonsButton');
+
+              if ($(button).hasClass('complete')) {
+                $dropButton.addClass('complete')
+              } else {
+                $dropButton.removeClass('complete')
+              }
+
+              $dropButton
+                .find('.text')
+                .html(buttonHtml);
+            },
+
+            openAccordion: function(button, section, updateDropMenu = false) {
                 var $sectionEl = $(section),
-                    firstLink = $sectionEl.find('.menu-item').first(),
                     $buttonEl = $(button);
 
                 $buttonEl
@@ -107,15 +127,29 @@ var edx = edx || {},
                 $buttonEl
                     .children('.group-heading')
                     .addClass('active')
-                    .find('.icon')
-                        .removeClass('fa-caret-right')
-                        .addClass('fa-caret-down');
 
                 $sectionEl
                     .addClass('is-open')
                     .find('.chapter-menu')
                         .addClass('is-open')
-                        .slideDown();
+                        .slideDown(function() {
+                          if (updateDropMenu) {
+                            navigation.selectFirstUnit(section);
+                            $('#selectLessonsButton').addClass('disabled');
+                          }
+                        });
+            },
+
+            selectFirstUnit: function (section) {
+              var firstSubesctioUrl = $(section)
+                                        .find('.menu-item')
+                                        .first()
+                                        .addClass('active')
+                                        .find('.accordion-nav')
+                                        .attr('href');
+              if (firstSubesctioUrl) {
+                window.location.href = firstSubesctioUrl;
+              }
             }
         };
 
