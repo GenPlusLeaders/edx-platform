@@ -57,6 +57,8 @@ SUPPORTED_FIELDS = [
     SupportedFieldType('weight'),
     SupportedFieldType('show_correctness'),
     SupportedFieldType('is_completion_tracked'),
+    SupportedFieldType('genplus_chapter_group'),
+    SupportedFieldType('genplus_chapter_group_time'),
     SupportedFieldType('thumbnail;'),
     SupportedFieldType('lesson_type'),
     # 'student_view_data'
