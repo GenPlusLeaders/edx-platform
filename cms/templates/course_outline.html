@@ -29,7 +29,7 @@ from django.urls import reverse
 
 <%block name="header_extras">
 <link rel="stylesheet" type="text/css" href="${static.url('js/vendor/timepicker/jquery.timepicker.css')}" />
-% for template_name in ['course-outline', 'xblock-string-field-editor', 'basic-modal', 'modal-button', 'course-outline-modal', 'due-date-editor', 'release-date-editor', 'grading-editor', 'publish-editor', 'staff-lock-editor', 'unit-access-editor', 'content-visibility-editor', 'verification-access-editor', 'timed-examination-preference-editor', 'access-editor', 'settings-modal-tabs', 'show-correctness-editor', 'completion-tracking-editor', 'thumbnail-upload', 'lesson-type-selector', 'led-type-selector', 'highlights-editor', 'highlights-enable-editor', 'course-highlights-enable']:
+% for template_name in ['course-outline', 'xblock-string-field-editor', 'basic-modal', 'modal-button', 'course-outline-modal', 'due-date-editor', 'release-date-editor', 'grading-editor', 'publish-editor', 'staff-lock-editor', 'unit-access-editor', 'content-visibility-editor', 'verification-access-editor', 'timed-examination-preference-editor', 'access-editor', 'settings-modal-tabs', 'show-correctness-editor', 'completion-tracking-editor', 'highlights-editor', 'highlights-enable-editor', 'course-highlights-enable']:
 <script type="text/template" id="${template_name}-tpl">
     <%static:include path="js/${template_name}.underscore" />
 </script>
@@ -182,6 +182,13 @@ from django.urls import reverse
                         </a>
                     </li>
                 %endif
+                %if update_lessons_link:
+                    <li class="nav-item">
+                        <a href="${update_lessons_link}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}">
+                            <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
+                        </a>
+                    </li>
+                %endif
                 <li class="nav-item">
                     <a href="#" class="button button-toggle button-toggle-expand-collapse collapse-all is-hidden">
                         <span class="collapse-all"><span class="icon fa fa-arrow-up" aria-hidden="true"></span> <span class="label">${_("Collapse All Sections")}</span></span>
@@ -191,34 +198,6 @@ from django.urls import reverse
                 <li class="nav-item">
                     <a href="${lms_link}" rel="external" class="button view-button view-live-button"
                        title="${_('Click to open the courseware in the LMS in a new tab')}">${_("View Live")}</a>
-                </li>
-            </ul>
-        </nav>
-    </header>
-</div>
-
-
-<div class="wrapper-mast wrapper">
-    <header class="mast has-actions has-subtitle">
-        <nav class="nav-actions" aria-label="${_('GenPlus Actions')}" style="bottom: 0">
-            <ul>
-                %if update_lessons_link:
-                <li class="nav-item">
-                    <a href="${update_lessons_link}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Lessons')}" data-tooltip="After Adding/Removing/Moving a menu section, a Gen+ admin should click this button to update the lesson menu structure.">
-                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Lessons')}
-                    </a>
-                </li>
-                %endif
-                <li class="nav-item">
-                    <a href="${reverse('genplus_learning:update_lessons_structure_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Course Structure')}" data-tooltip="This should be run every time you make a structural change in the course (i.e. removing an xblock, adding a subsection, etc).  If you don't run this then student progress tracking will not work properly.">
-                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Progress')}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="${reverse('genplus_learning:update_course_badge_task', kwargs={'course_key_string': six.text_type(context_course.location.course_key)})}" class="button button-update-lessons" data-category="update-lessons" title="${_('Update Badges')}" data-tooltip="Manually create badges should be run if (when testing) there are any course/program badge that are not being awarded to students.">
-
-                        <span class="icon-arrow-right" aria-hidden="true"></span>${_('Update Badges')}
-                    </a>
                 </li>
             </ul>
         </nav>

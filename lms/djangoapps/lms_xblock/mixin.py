@@ -14,7 +14,7 @@ from xblock.validation import ValidationMessage
 from lms.lib.utils import is_unit
 from xmodule.modulestore.inheritance import UserPartitionList
 from xmodule.partitions.partitions import NoSuchUserPartitionError, NoSuchUserPartitionGroupError
-from genplus.lms.djangoapps.genplus_learning.constants import LessonLedTypes
+
 # Please do not remove, this is a workaround for Django 1.8.
 # more information can be found here: https://openedx.atlassian.net/browse/PLAT-902
 _ = lambda text: text
@@ -96,19 +96,6 @@ class LmsBlockMixin(XBlockMixin):
         help=_("If true, problems completion will be tracked"),
         default=True,
         scope=Scope.settings,
-    )
-    thumbnail = String(
-        help=_("Thumbnail which will be viewed within the class dashboard"),
-        scope=Scope.settings,
-    )
-    lesson_type = String(
-        help=_("Icon for Gen+ learning zone menu"),
-        scope=Scope.settings,
-    )
-    led_type = String(
-        help=_("Icon for Gen+ learning zone menu"),
-        scope=Scope.settings,
-        default=LessonLedTypes.TEACHER_AND_STUDENT,
     )
     group_access = GroupAccessDict(
         help=_(
