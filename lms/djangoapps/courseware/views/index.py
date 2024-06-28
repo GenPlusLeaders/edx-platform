@@ -47,7 +47,7 @@ from openedx.features.course_experience.views.course_sock import CourseSockFragm
 from openedx.features.course_experience.url_helpers import make_learning_mfe_courseware_url
 from openedx.features.course_experience.utils import get_course_outline_block_tree
 from openedx.features.enterprise_support.api import data_sharing_consent_required
-from openedx.features.genplus_features.genplus_learning.models import ClassLesson
+from genplus.lms.djangoapps.genplus_learning.models import ClassLesson
 from common.djangoapps.student.models import CourseEnrollment
 from common.djangoapps.util.views import ensure_valid_course_key
 from xmodule.course_module import COURSE_VISIBILITY_PUBLIC
@@ -478,15 +478,10 @@ class CoursewareIndex(View):
             )
             try:
                 gen_user = request.user.gen_user
-                log.info('GP-920 user_email %s', request.user.email)
-                log.info('GP-920 staff_access %s', staff_access)
-                log.info('GP-920 global_staff_access %s', request.user.is_staff)
                 sections = course_block_tree.get('children', [])
-                log.info('GP-920 sections %s', sections)
 
                 if gen_user.is_student:
                     gen_class = gen_user.student.active_class
-                    log.info('GP-920 log for active_class', gen_class)
                     lessons = ClassLesson.objects.filter(class_unit__gen_class=gen_class, course_key=self.course.id)
                     for i, section in enumerate(sections):
                         lesson = lessons.get(usage_key=UsageKey.from_string(section.get('id')))
@@ -623,7 +618,6 @@ def render_accordion(request, course, table_of_contents, active_section, active_
             ('due_date_display_format', course.due_date_display_format),
         ] + list(TEMPLATE_IMPORTS.items())
     )
-    log.info('GP-920 render_accordion context', context)
     return render_to_string('courseware/accordion.html', context)
 
 
