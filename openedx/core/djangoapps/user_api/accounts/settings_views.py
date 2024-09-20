@@ -35,11 +35,13 @@ from openedx.features.enterprise_support.utils import update_account_settings_co
 from common.djangoapps.student.models import UserProfile
 from common.djangoapps.third_party_auth import pipeline
 from common.djangoapps.util.date_utils import strftime_localized
+from openedx.features.genplus_features.utils import genplus_superuser_required
 
 log = logging.getLogger(__name__)
 
 
 @login_required
+@genplus_superuser_required
 @require_http_methods(['GET'])
 def account_settings(request):
     """Render the current user's account settings page.
