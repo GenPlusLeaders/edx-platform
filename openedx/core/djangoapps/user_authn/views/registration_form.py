@@ -247,7 +247,7 @@ class AccountCreationForm(forms.Form):
         if email_exists_or_retired(email):
             raise ValidationError(
                 _(
-                    "It looks like {email} belongs to an existing account. Try again with a different email address."
+                    "Registration failed for {email}"
                 ).format(email=email)
             )
         return email
