@@ -133,6 +133,7 @@ from xmodule.modulestore.exceptions import ItemNotFoundError, NoPathToItem
 from xmodule.tabs import CourseTabList
 from xmodule.x_module import STUDENT_VIEW
 
+from openedx.features.genplus_features.utils import genplus_superuser_required
 from ..context_processor import user_timezone_locale_prefs
 from ..entrance_exams import user_can_skip_entrance_exam
 from ..module_render import get_module, get_module_by_usage_id, get_module_for_descriptor
@@ -1107,6 +1108,7 @@ def dates(request, course_id):
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @ensure_valid_course_key
 @data_sharing_consent_required
+@genplus_superuser_required
 def progress(request, course_id, student_id=None):
     """ Display the progress page. """
     from lms.urls import COURSE_PROGRESS_NAME
